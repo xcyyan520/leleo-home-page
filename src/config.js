@@ -48,7 +48,7 @@ const config = {
     skillPoints: [90, 85, 78, 88, 80, 78, 85, 65, 82, 78, 65],
   },
 
-  //社交按钮 ---- icon字段来自mdi图标库：https://pictogrammers.com/library/mdi/
+  //社交按钮
   socialPlatformIcons: [
     {icon:"mdi-github",link:"https://www.github.com/leleo886"},
     {icon:"mdi-email",link:"mailto:leleo886@foxmail.com"},
@@ -66,14 +66,14 @@ const config = {
     "生命太短，没有时间留给遗憾，若不是终点，请微笑一直向前。"
   ],
 
-  //音乐播放配置，采用MetingJS Api(https://github.com/metowolf/MetingJS),目前只支持修改提供的三个字段
+  //音乐播放配置，采用MetingJS Api(https://github.com/metowolf/MetingJS)
   musicPlayer:{
     server: 'netease',  //服务提供商 --网易云音乐
     type: 'playlist',   //歌单类型
-    id: '2028178887'  //歌单id
+    id: '2028178887'  //歌单id ---> music.163.com/#/playlist?id=2028178887
   },
 
-  //壁纸数据 -----更多壁纸请前往 pan.leleo.top/wallpaper。若想用api，请前往脚本自行修改逻辑
+  //壁纸数据 -----有些自己压制的放在了 pan.leleo.top/wallpaper 复制链接即可。若想调用api，请前往脚本自行修改逻辑
   wallpaper:{
     pic:[
       {"title":"海洋女孩","preview":"/img/wallpaper/static/海洋女孩/image-pre.webp","url":"/img/wallpaper/static/海洋女孩/image.png"},
@@ -119,7 +119,7 @@ const config = {
 
   //项目卡片 其中 字段"show"控制初始卡片的text是否展开
   projectcards:[ 
-    {icon:"🚀",img:"/img/sunshine.jpg",title:"Project 1",subtitle:"1,000 miles of wonder", text:"If you see this line, I've managed to get your attention.",url:"https://home.leleo.top",show:false},
+    {icon:"🚀",img:"/img/sunshine.jpg",title:"Project 1",subtitle:"1,000 miles of wonder", text:"If you see this line, I've managed to get your attention.",url:"https://leleo.top",show:false},
     {icon:"🗂️",img:"/img/sunshine.jpg",title:"Project 2",subtitle:"2,000 miles of wonder", text:"If you see this line, I've managed to get your attention.",url:"https://leleo.top",show:false},
     {icon:"📝",img:"/img/sunshine.jpg",title:"Project 3",subtitle:"3,000 miles of wonder", text:"If you see this line, I've managed to get your attention.",url:"https://leleo.top",show:false},
     {icon:"👍",img:"/img/sunshine.jpg",title:"Project 4",subtitle:"4,000 miles of wonder", text:"If you see this line, I've managed to get your attention.",url:"https://leleo.top",show:false},
@@ -129,6 +129,7 @@ const config = {
     {icon:"🔍",img:"/img/sunshine.jpg",title:"Project 8",subtitle:"8,000 miles of wonder", text:"If you see this line, I've managed to get your attention.",url:"https://leleo.top",show:false},
   ],
   
+  statement: ["备案号：XXICP备123456789号","Copyright © 2025 Leleo"],
 }
 
 export default config

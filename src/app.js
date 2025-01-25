@@ -27,7 +27,7 @@ export default {
       configdata: config,
       dialog1: false,
       dialog2: false,
-      personalizedtags: config.tags,
+      personalizedtags: null,
       videosrc: '',
       ismusicplayer: false,
       isPlaying:false,
@@ -36,7 +36,7 @@ export default {
       musicinfo: null,
       musicinfoLoading:false,
       lyrics:{},
-      socialPlatformIcons: config.socialPlatformIcons,
+      socialPlatformIcons: null,
       isExpanded: false,
       stackicons:[
         {icon:"mdi-vuejs",color:"green", model: false,tip: 'vue'},
@@ -45,7 +45,7 @@ export default {
         {icon:"mdi-language-html5",color:"red", model: false,tip: 'html'},
         {icon:"$vuetify",color:"#1697F6", model: false,tip: 'vuetify'},
       ],
-      projectcards:config.projectcards,
+      projectcards:null,
       tab: null,
       tabs: [
         {
@@ -71,32 +71,60 @@ export default {
     };
   },
   async mounted() {
+    if(import.meta.env.VITE_CONFIG){
+      this.configdata = JSON.parse(import.meta.env.VITE_CONFIG);
+    }
+    this.projectcards = this.configdata.projectcards;this.socialPlatformIcons = this.configdata.socialPlatformIcons;
+    this.personalizedtags = this.configdata.tags;
     this.isloading = true;
     let imageurl = "";
     this.dataConsole();
-    this.setMeta(config.metaData.title,config.metaData.description,config.metaData.keywords);
+    this.setMeta(this.configdata.metaData.title,this.configdata.metaData.description,this.configdata.metaData.keywords);
     
     imageurl = this.setMainProperty(imageurl);
 
     //异步等待背景壁纸包括视频壁纸加载完成后再显示页面
     const loadImage = () => {
+        const imageUrls = [
+          config.avatar,
+          ...config.projectcards.map(item => item.img)
+        ];
+        console.log(imageUrls)
         return new Promise((resolve, reject) => {
-          if(imageurl){
-            const img = new Image();
-            img.src = imageurl;
-            // resolve() 函数通将一个 Promise 对象从未完成状态转变为已完成状态
-            img.onload = () => {resolve();};
-            img.onerror = (err) => {reject(err);};
-          }else{
-            const video = this.$refs.VdPlayer;
-            video.onloadedmetadata = () => {
-              setTimeout(() => {
-              }, "800");  
-              // console.log('视频加载成功');
+          const imagePromises = imageUrls.map((url) => {
+            return new Promise((resolve, reject) => {
+                const imgs = new Image();
+                imgs.src = url;
+                imgs.onload = () => resolve();
+                imgs.onerror = (err) => reject(err);
+            });
+          })
+
+          // 设置超时机制：2.5秒
+          const timeoutPromise = new Promise((resolve) => {
+            setTimeout(() => {
               resolve();
-            };
-            video.onerror = (err) => {resolve();};
-          }
+            }, 2500);
+          });
+          
+          // 等待所有图片加载完成或超时
+          Promise.race([Promise.all(imagePromises), timeoutPromise]).then(()=>{
+            if(imageurl){
+              const img = new Image();
+              img.src = imageurl;
+              // resolve() 函数通将一个 Promise 对象从未完成状态转变为已完成状态
+              img.onload = () => {resolve();};
+              img.onerror = (err) => {reject(err);};
+            }else{
+              const video = this.$refs.VdPlayer;
+              video.onloadedmetadata = () => {
+                setTimeout(() => {
+                }, "200");  
+                resolve();
+              };
+              video.onerror = (err) => {resolve();};
+            }
+          })
         });
      };
 
@@ -110,7 +138,7 @@ export default {
         console.error('壁纸加载失败:', err);
         setTimeout(() => {
           this.isloading = false;
-        }, "500");  
+        }, "100");  
       });
  
       setInterval(() => {
@@ -173,10 +201,10 @@ export default {
         root.style.setProperty('--leleo-brightness', `${leleodata.brightness}%`);
         root.style.setProperty('--leleo-blur', `${leleodata.blur}px`); 
       }else{
-        root.style.setProperty('--leleo-welcomtitle-color', `${config.color.welcometitlecolor}`);
-        root.style.setProperty('--leleo-vcard-color', `${config.color.themecolor}`);  
-        root.style.setProperty('--leleo-brightness', `${config.brightness}%`);  
-        root.style.setProperty('--leleo-blur', `${config.blur}px`);
+        root.style.setProperty('--leleo-welcomtitle-color', `${this.configdata.color.welcometitlecolor}`);
+        root.style.setProperty('--leleo-vcard-color', `${this.configdata.color.themecolor}`);  
+        root.style.setProperty('--leleo-brightness', `${this.configdata.brightness}%`);  
+        root.style.setProperty('--leleo-blur', `${this.configdata.blur}px`);
       }
   
       let leleodatabackground = this.getCookie("leleodatabackground");
@@ -202,20 +230,20 @@ export default {
           
       }else{
         if(xs.value){
-          if(config.background.mobile.type == "pic"){
-            root.style.setProperty('--leleo-background-image-url', `url('${config.background.mobile.datainfo.url}')`);
-            imageurl = config.background.mobile.datainfo.url;
+          if(this.configdata.background.mobile.type == "pic"){
+            root.style.setProperty('--leleo-background-image-url', `url('${this.configdata.background.mobile.datainfo.url}')`);
+            imageurl = this.configdata.background.mobile.datainfo.url;
             return imageurl;
           }else{
-            this.videosrc = config.background.mobile.datainfo.url;
+            this.videosrc = this.configdata.background.mobile.datainfo.url;
           }
         }else{
-          if(config.background.pc.type == "pic"){
-            root.style.setProperty('--leleo-background-image-url', `url('${config.background.pc.datainfo.url}')`);
-            imageurl = config.background.pc.datainfo.url;
+          if(this.configdata.background.pc.type == "pic"){
+            root.style.setProperty('--leleo-background-image-url', `url('${this.configdata.background.pc.datainfo.url}')`);
+            imageurl = this.configdata.background.pc.datainfo.url;
             return imageurl;
           }else{
-            this.videosrc = config.background.pc.datainfo.url;
+            this.videosrc = this.configdata.background.pc.datainfo.url;
           }
           
         }
@@ -239,7 +267,7 @@ export default {
     async getMusicInfo(){
       this.musicinfoLoading = true;
       try {
-        const response = await fetch(`https://api.i-meto.com/meting/api?server=${config.musicPlayer.server}&type=${config.musicPlayer.type}&id=${config.musicPlayer.id}`
+        const response = await fetch(`https://api.i-meto.com/meting/api?server=${this.configdata.musicPlayer.server}&type=${this.configdata.musicPlayer.type}&id=${this.configdata.musicPlayer.id}`
         );
         if (!response.ok) {
           throw new Error('网络请求失败');

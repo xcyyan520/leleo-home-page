@@ -12,11 +12,17 @@ export default {
   name: 'polarChart',
   data() {
     return {
-      skills: config.polarChart.skills,
-      skillPoints: config.polarChart.skillPoints,
+      configdata:config,
+      skills: null,
+      skillPoints: null,
     };
   },
   mounted() {
+    if(import.meta.env.VITE_CONFIG){
+        this.configdata = JSON.parse(import.meta.env.VITE_CONFIG);
+    }
+    this.skills = this.configdata.polarChart.skills;
+    this.skillPoints = this.configdata.polarChart.skillPoints;
     this.renderChart();
   },
   methods: {

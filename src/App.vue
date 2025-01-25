@@ -239,16 +239,25 @@
                   </template>
                   <span>uiverse</span>
                 </v-tooltip>
+                <v-tooltip location="top">
+                  <template v-slot:activator="{ props }">
+                    <v-btn v-bind="props" rounded="lg" class="ma-1 stack-btn" size="35" color="">
+                      <v-avatar image="/img/stackicon/vercel.png" rounded="0" size="23"></v-avatar>
+                    </v-btn>
+                  </template>
+                  <span>vercel</span>
+                </v-tooltip>
               </div>
             </v-card>
 
-            <v-btn prepend-icon="mdi-arrow-right-thin-circle-outline" variant="tonal" href="https://baidu.com" target="_blank" class="mt-3">
-              部署教程
+            <v-btn prepend-icon="mdi-arrow-right-thin-circle-outline" variant="tonal" href="/docs/leleo-homepage/index.html" target="_blank" class="mt-3">
+              部署本页教程
             </v-btn>
 
             <p class="ma-6">
-                备案号：XXICP备123456789号 <br>
-                Copyright © {{new Date().getFullYear()}} Leleo
+                <span v-for="item in configdata.statement">
+                  {{ item }}<br>
+                </span>
             </p>
           </div>
         </v-card>

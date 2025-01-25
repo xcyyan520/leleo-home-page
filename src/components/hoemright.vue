@@ -36,9 +36,10 @@
               >
                 <v-card class="">
                   <v-img
+                    aspect-ratio="1.7778"
                     :src= item.img
                     cover
-                    :style="{ opacity: 0.7 }"
+                    :style="{ opacity: 0.8 }"
                   ></v-img>
                   <v-card-title :style="xs?{'font-size': '0.9rem','padding': '0.15rem 0.5rem'}:{'font-size': '1.1rem','padding':'0.2rem 0.8rem'}">
                     {{item.title}}
@@ -50,7 +51,7 @@
                   <v-card-actions :style="xs||sm||md?{'padding': '0','min-height': '0','height':'2.5rem'}:{'min-height': '0','height':'2.8rem'}">
                     <v-btn :href="item.url"
                     target="_blank"
-                      :text= "item.icon + ` 前往`"
+                      :text= "item.go"
                     ></v-btn>
                     <v-spacer></v-spacer>
                     <v-btn

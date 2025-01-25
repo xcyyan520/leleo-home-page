@@ -167,9 +167,10 @@ export default {
             loading2: false,
             loading3: false,
             snackbar:false,
+            configdata:config,
             background: {'pc':{},'mobile':{}},
-            wallpaperPIC: config.wallpaper.pic,
-            wallpaperVD: config.wallpaper.video,
+            wallpaperPIC: null,
+            wallpaperVD: null,
             radios: {},
             currentVDPage: 1,
             currentPICPage: 1,
@@ -195,15 +196,20 @@ export default {
         }
     },
     mounted() {
+        if(import.meta.env.VITE_CONFIG){
+            this.configdata = JSON.parse(import.meta.env.VITE_CONFIG);
+        }
+        this.wallpaperPIC = this.configdata.wallpaper.pic;
+        this.wallpaperVD = this.configdata.wallpaper.video;
         this.radios.title = "请选择壁纸";
     },
     watch: {
         tab(val) {
             this.type = 'pc';
             if(val == 'tab-1'){
-                this.wallpaperPIC = config.wallpaper.pic;
+                this.wallpaperPIC = this.configdata.wallpaper.pic;
             }else{
-                this.wallpaperVD = config.wallpaper.video;
+                this.wallpaperVD = this.configdata.wallpaper.video;
             }
         }
     },
@@ -244,7 +250,7 @@ export default {
                 if(leleodatabackground){
                     this.background.pc = leleodatabackground.pc;
                 }else{
-                    this.background.pc = config.background.pc;
+                    this.background.pc = this.configdata.background.pc;
                 }
             }else{
                 this.background.pc.type= this.tab === 'tab-1'? 'pic' : 'video';
@@ -252,7 +258,7 @@ export default {
                 if(leleodatabackground){
                     this.background.mobile = leleodatabackground.mobile;
                 }else{
-                    this.background.mobile = config.background.mobile;
+                    this.background.mobile = this.configdata.background.mobile;
                 }
             }
 
@@ -285,18 +291,18 @@ export default {
             if(tabtype == 'static'){
                 if(type == 'mobile'){
                     this.type='mobile';
-                    this.wallpaperPIC = config.wallpaper.picMobile;
+                    this.wallpaperPIC = this.configdata.wallpaper.picMobile;
                 }else if(type == 'pc'){
                     this.type='pc';
-                    this.wallpaperPIC = config.wallpaper.pic;
+                    this.wallpaperPIC = this.configdata.wallpaper.pic;
                 }
             }else{
                 if(type == 'mobile'){
                     this.type='mobile';
-                    this.wallpaperVD = config.wallpaper.videoMobile;
+                    this.wallpaperVD = this.configdata.wallpaper.videoMobile;
                 }else if(type == 'pc'){
                     this.type='pc';
-                    this.wallpaperVD = config.wallpaper.video;
+                    this.wallpaperVD = this.configdata.wallpaper.video;
                 }
             }
         },

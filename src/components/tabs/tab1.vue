@@ -23,6 +23,7 @@
                 :max="100"
                 :min="50"
                 :step="0.5"
+                :thumb-size="xs?15:18"
                 v-model="brightness"
                 thumb-label="always"
             ></v-slider>
@@ -32,6 +33,7 @@
                 color=var(--leleo-vcard-color)
                 :max="20"
                 :min="0"
+                :thumb-size="xs?15:18"
                 :step="0.2"
                 v-model="blur"
                 thumb-label="always"
@@ -81,13 +83,19 @@
 <script>
 import { setCookie, getCookie, eraseCookie } from '../../utils/cookieUtils.js';
 import config from '../../config.js';
+import { useDisplay } from 'vuetify';
 export default {
   emits: ['cancel'],
+  setup() {
+        const { xs } = useDisplay();
+        return { xs };
+    },
   data() {
     return {
         loading1: false,
         loading2: false,
         snackbar: false,
+        configdata:config,
         snackbartext: '',
         color:{
             "themecolor":'',
@@ -101,15 +109,19 @@ export default {
     };
   },
   mounted() {
+    if(import.meta.env.VITE_CONFIG){
+        this.configdata = JSON.parse(import.meta.env.VITE_CONFIG);
+    }
+    
     let leleodata = this.getCookie("leleodata");
     if(leleodata){
         this.color = leleodata.color;
         this.brightness = leleodata.brightness;
         this.blur = leleodata.blur;
     }else{
-        this.color = config.color;
-        this.brightness = config.brightness;
-        this.blur = config.blur;
+        this.color = this.configdata.color;
+        this.brightness = this.configdata.brightness;
+        this.blur = this.configdata.blur;
     }
   },
   methods: {
