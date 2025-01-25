@@ -31,6 +31,7 @@
 ## 演示地址
 
 [在线演示](https://leleo.top)
+[说明](https://leleo.top/docs/leleo-homepage/index.html)
 
 ## 技术栈
 
