@@ -70,11 +70,11 @@ npm run dev
 
 ### Vercel在线部署
 
-> 无需服务器，点击链接一键在线部署到 [Vercel](https://vercel.com/new/import?s=https://github.com/leleo886/leleo-home-page)
+> 无需服务器，点击链接一键在线部署到 [Vercel](https://vercel.com/new/clone?s=https://github.com/leleo886/leleo-home-page.git)（首先需要有github和vercel账号）
 
-![Vercel部署步骤1](./img/leleo-home-page/1737538768844.png)
+![Vercel部署步骤1](./img/leleo-home-page/1737785497852.png)
 
-> ---登录账号，点击"Deploy"按钮开始部署
+> ---登录vercel账号，并选择github关联账号，然后点击"Deploy"按钮开始部署
 
 ![Vercel部署完成](./img/leleo-home-page/1737538980894.png)
 
