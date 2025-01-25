@@ -250,7 +250,7 @@
               </div>
             </v-card>
 
-            <v-btn prepend-icon="mdi-arrow-right-thin-circle-outline" variant="tonal" href="/docs/leleo-homepage/index.html" target="_blank" class="mt-3">
+            <v-btn prepend-icon="mdi-arrow-right-thin-circle-outline" variant="tonal" href="https://www.leleo.top/docs/leleo-homepage/index.html" target="_blank" class="mt-3">
               部署本页教程
             </v-btn>
 
