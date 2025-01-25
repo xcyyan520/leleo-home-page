@@ -239,14 +239,6 @@
                   </template>
                   <span>uiverse</span>
                 </v-tooltip>
-                <v-tooltip location="top">
-                  <template v-slot:activator="{ props }">
-                    <v-btn v-bind="props" rounded="lg" class="ma-1 stack-btn" size="35" color="">
-                      <v-avatar image="/img/stackicon/vercel.png" rounded="0" size="23"></v-avatar>
-                    </v-btn>
-                  </template>
-                  <span>vercel</span>
-                </v-tooltip>
               </div>
             </v-card>
 
