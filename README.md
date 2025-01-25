@@ -74,7 +74,7 @@ npm run dev
 
 ![Vercel部署步骤1](./img/leleo-home-page/1737785497852.png)
 
-> ---登录vercel账号，并选择github关联账号，然后点击"Create"按钮开始部署
+> ---登录vercel账号，并选择github关联账号，为项目取个名字，然后点击"Create"按钮开始部署
 
 ![Vercel部署完成](./img/leleo-home-page/1737538980894.png)
 
