@@ -89,7 +89,6 @@ export default {
           config.avatar,
           ...config.projectcards.map(item => item.img)
         ];
-        console.log(imageUrls)
         return new Promise((resolve, reject) => {
           const imagePromises = imageUrls.map((url) => {
             return new Promise((resolve, reject) => {
