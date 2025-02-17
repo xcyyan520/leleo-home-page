@@ -13,8 +13,14 @@
 1. 登录[Vercel](https://vercel.com/)并进入项目控制台
 2. 进入项目主界面
 3. 在"Domains"部分添加上述解析的域名（将名称与主域拼接，例如 xxx.leleosd.top
-<img src="./domainToVercel/1737605814820.png" width="600" alt="域名添加" style="display: block; margin: 10px auto;">
-4. 等待Vercel验证域名所有权，完成后即可通过 xxxxxx.leleosd.top 来访问在vercel上部署的项目了。
+<img src="./domainToVercel/1737605814820.png" width="600" alt="域名添加" style="display: block; margin: 10px auto;">  
+4. 出现如下图所示的情况时:
+<img src="./domainToVercel/173-q.png" width="600" alt="域名添加" style="display: block; margin: 10px auto;">  
+复制其中的`Name`和`Value`的值，然后继续添加TXT记录：
+<img src="./domainToVercel/173-r.png" width="600" alt="域名添加" style="display: block; margin: 10px auto;">
+<img src="./domainToVercel/173-s.png" width="600" alt="域名添加" style="display: block; margin: 10px auto;">
+
+5. 刷新等待Vercel验证域名所有权，完成后即可通过 xxxxxx.leleosd.top 来访问在vercel上部署的项目了。
 <img src="./domainToVercel/1737605840227.png" width="600" alt="域名添加" style="display: block; margin: 10px auto;">
 
 ## 注意事项
