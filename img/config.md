@@ -74,7 +74,7 @@ const config = {
     id: '2028178887'  //歌单id ---> music.163.com/#/playlist?id=2028178887
   },
 
-  //壁纸数据 -----若想调用api，请前往脚本自行修改逻辑
+  //壁纸数据 -----可以将文件上传到uhsea.com获取直链。若想调用api，请前往脚本自行修改逻辑
   wallpaper:{
     pic:[
       {"title":"海洋女孩","preview":"/img/wallpaper/static/海洋女孩/image-pre.webp","url":"/img/wallpaper/static/海洋女孩/image.png"},
