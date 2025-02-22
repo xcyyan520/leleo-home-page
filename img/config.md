@@ -49,7 +49,7 @@ const config = {
     skillPoints: [90, 85, 78, 88, 80, 78, 85, 65, 82, 78, 65],
   },
 
-  //社交按钮
+  //社交按钮，图标使用mdi图标（https://pictogrammers.com/library/mdi/），复制图标名称即可
   socialPlatformIcons: [
     {icon:"mdi-github",link:"https://www.github.com/leleo886"},
     {icon:"mdi-email",link:"mailto:leleo886@foxmail.com"},
