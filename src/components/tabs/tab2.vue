@@ -206,6 +206,7 @@ export default {
     watch: {
         tab(val) {
             this.type = 'pc';
+            this.itemsPerPage = 6;
             if(val == 'tab-1'){
                 this.wallpaperPIC = this.configdata.wallpaper.pic;
             }else{
@@ -291,17 +292,21 @@ export default {
             if(tabtype == 'static'){
                 if(type == 'mobile'){
                     this.type='mobile';
+                    this.itemsPerPage = 8;
                     this.wallpaperPIC = this.configdata.wallpaper.picMobile;
                 }else if(type == 'pc'){
                     this.type='pc';
+                    this.itemsPerPage = 6;
                     this.wallpaperPIC = this.configdata.wallpaper.pic;
                 }
             }else{
                 if(type == 'mobile'){
                     this.type='mobile';
+                    this.itemsPerPage = 8;
                     this.wallpaperVD = this.configdata.wallpaper.videoMobile;
                 }else if(type == 'pc'){
                     this.type='pc';
+                    this.itemsPerPage = 6;
                     this.wallpaperVD = this.configdata.wallpaper.video;
                 }
             }
