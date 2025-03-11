@@ -299,6 +299,7 @@ export default {
                     this.itemsPerPage = 6;
                     this.wallpaperPIC = this.configdata.wallpaper.pic;
                 }
+                this.currentPICPage = 1;;
             }else{
                 if(type == 'mobile'){
                     this.type='mobile';
@@ -309,6 +310,7 @@ export default {
                     this.itemsPerPage = 6;
                     this.wallpaperVD = this.configdata.wallpaper.video;
                 }
+                this.currentVDPage = 1;
             }
         },
     },
