@@ -90,6 +90,8 @@ npm run dev
 > 自定义数据文件为项目src目录下面的 config.js，这里有[配置说明](./img/config.md)，然后就是代码的拉取、修改上传。
 
 方法2. vercel 环境变量，直接在线修改
+<p style="color: red;font-size:14px;">注意：此方法优先级高于方法1，若使用方法1请勿配置vercel环境变量</p> 
+
 > (1). 首先还是打开vercel中本项目主面板，然后依次点击`Settings`、`Environments`、`Production`
 ![Vercel控制面板](./img/leleo-home-page/1737624788108.png)
 
