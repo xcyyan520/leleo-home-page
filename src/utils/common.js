@@ -1,4 +1,4 @@
-export function setMeta(title,description,keywords) {   
+export function setMeta(title,description,keywords,icon) {   
   // 设置标题
   document.title = title;
 
@@ -12,6 +12,12 @@ export function setMeta(title,description,keywords) {
   const metaKeywords = document.querySelector('meta[name="keywords"]');
   if (metaKeywords) {
     metaKeywords.setAttribute('content', keywords);
+  }
+
+   // 设置图标ico
+  const webico = document.querySelector('link[rel="icon"]');
+   if (webico) {
+    webico.href = icon;
   }
 }
 

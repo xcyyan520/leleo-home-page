@@ -79,7 +79,7 @@ export default {
     this.isloading = true;
     let imageurl = "";
     this.dataConsole();
-    this.setMeta(this.configdata.metaData.title,this.configdata.metaData.description,this.configdata.metaData.keywords);
+    this.setMeta(this.configdata.metaData.title,this.configdata.metaData.description,this.configdata.metaData.keywords,this.configdata.metaData.icon);
     
     imageurl = this.setMainProperty(imageurl);
 
