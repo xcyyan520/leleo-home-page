@@ -111,7 +111,6 @@ const config = {
         "preview":"/img/wallpaper/dynamic/向往航天的女孩/Toy-Aeroplane-pre.webm",
         "url":"/img/wallpaper/dynamic/向往航天的女孩/Toy-Aeroplane.webm"
       },
-      ,
       {
         "title":"世界很温柔《龙族》上杉绘梨衣",
         "preview":"https://file.uhsea.com/2503/c048d174eee7df15de79a6cdc5c47697LT.webm",
