@@ -77,16 +77,6 @@
 				"title": "安逸舒适",
 				"preview": "/img/wallpaper/static/安逸舒适/image-pre.webp",
 				"url": "/img/wallpaper/static/安逸舒适/image.png"
-			},
-			{
-				"title": "jswcMaMj",
-				"preview": "https://file.uhsea.com/2503/76a4f03e8654d6e66bbbc7e8149c2fe33M.png",
-				"url": "https://file.uhsea.com/2503/5b8a20a5f2b269659911c9485d0d0c3f0F.png"
-			},
-			{
-				"title": "pgtTqoqq",
-				"preview": "https://file.uhsea.com/2503/caeae6b4fc1aba41bff4ad4ec59d6d8aA5.png",
-				"url": "https://file.uhsea.com/2503/45aa0a5a31a0ae95f7cc660e3ab4148eUT.png"
 			}
 		],
 		"picMobile": [{
@@ -105,15 +95,6 @@
 				"title": "0004",
 				"preview": "/img/wallpaper/static-mobile/0004/image-pre.webp",
 				"url": "/img/wallpaper/static-mobile/0004/image.png"
-			}, {
-				"title": "DfNHPPcc",
-				"preview": "https://file.uhsea.com/2503/e3510f4d0286e37b828f74494230f0efM2.png",
-				"url": "https://file.uhsea.com/2503/97b50adb3d4cd6f1a4132f6d3e8c98483T.png"
-			},
-			{
-				"title": "WIOlrGSy",
-				"preview": "https://file.uhsea.com/2503/99162abfe07e18cfe6182ca3458561ef3A.png",
-				"url": "https://file.uhsea.com/2503/609532b992163117db9b341dde87b78f3C.png"
 			}
 		],
 		"video": [{
