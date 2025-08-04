@@ -111,8 +111,8 @@ const config = {
 			},
 			{
 				"title": "世界很温柔《龙族》上杉绘梨衣",
-				"preview": "https://lpan.leleo.top/d/guest/wallpaper/dynamic/%E4%B8%96%E7%95%8C%E5%BE%88%E6%B8%A9%E6%9F%94%E3%80%8A%E9%BE%99%E6%97%8F%E3%80%8B%E4%B8%8A%E6%9D%89%E7%BB%98%E6%A2%A8%E8%A1%A3/The%20world%20is%20gentle-Dragon%20Clan-Uesugi-pre.webm",
-				"url": "https://lpan.leleo.top/d/guest/wallpaper/dynamic/%E4%B8%96%E7%95%8C%E5%BE%88%E6%B8%A9%E6%9F%94%E3%80%8A%E9%BE%99%E6%97%8F%E3%80%8B%E4%B8%8A%E6%9D%89%E7%BB%98%E6%A2%A8%E8%A1%A3/The%20world%20is%20gentle-Dragon%20Clan-Uesugi.webm"
+				"preview": "https://objectstorageapi.ap-northeast-1.clawcloudrun.com/42v8z06q-lb/世界很温柔《龙族》上杉绘梨衣-pre.webm",
+				"url": "https://objectstorageapi.ap-northeast-1.clawcloudrun.com/42v8z06q-lb/世界很温柔《龙族》上杉绘梨衣.webm"
 			},
 		],
 		videoMobile: [
