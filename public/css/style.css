@@ -35,6 +35,10 @@
     background-color: var(--main_bg_color, linear-gradient(50deg, #a2d0ff, #ffffff));
 }
 
+body {
+	background-color: #282c34;
+}
+
 .v-selection-control-group{
     justify-content: center;
 }
