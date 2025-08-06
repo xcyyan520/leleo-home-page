@@ -58,7 +58,7 @@
                   <template v-slot:subtitle>
                     <span style="font-weight: bold;">{{formattedDate}}</span>
                   </template>
-                  <turntable />
+                  <turntable :color1="configdata.color.turntablecolor1" :color2="configdata.color.turntablecolor2" />
               </v-card>
             </v-col>
           </v-row>
