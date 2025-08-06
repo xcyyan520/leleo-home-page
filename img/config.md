@@ -15,6 +15,8 @@ const config = {
   color: {
     themecolor: "#FFFFFF", // 主题颜色，推荐趋于亮白可带有轻微色调，例： #D1FFEC
     welcometitlecolor: "#FFFFFF", // 标题颜色 例： #7BFFC9
+	turntablecolor1: "#FFFF00",  // 转盘渐变色一
+	turntablecolor2: "#00FFFF"   // 转盘渐变色二
   },
   
   brightness: 85, // 背景亮度 --%

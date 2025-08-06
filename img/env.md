@@ -12,7 +12,9 @@
 	"welcometitle": "Hi, I'm Leleo",
 	"color": {
 		"themecolor": "#FFFFFF",
-		"welcometitlecolor": "#FFFFFF"
+		"welcometitlecolor": "#FFFFFF",
+		"turntablecolor1": "#FFFF00", 
+		"turntablecolor2": "#00FFFF"
 	},
 	"brightness": 85,
 	"blur": 7,
