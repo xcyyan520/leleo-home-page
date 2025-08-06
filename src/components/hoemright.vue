@@ -27,11 +27,12 @@
 								<v-icon icon="mdi-chevron-down"></v-icon>
 							</v-btn>
 							</template>
-							<v-list>
+							<v-list class="glass-list">
 								<v-list-item
 									v-for="engine in searchEngines"
 									:key="engine.value"
 									@click="selectedEngine = engine"
+									density="compact"
 								>
 									{{ engine.title }}
 								</v-list-item>
@@ -207,4 +208,11 @@ export default {
 <style scoped>
 @import url(/css/app.less);
 @import url(/css/mobile.less);
+.glass-list {
+	background: transparent !important;
+	backdrop-filter: blur(var(--leleo-blur));
+	border-radius: 5%;
+	color: var(--leleo-vcard-color);
+	overflow: hidden;
+}
 </style>
