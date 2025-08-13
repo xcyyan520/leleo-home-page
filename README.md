@@ -8,6 +8,7 @@
 - [安装与运行](#安装与运行)
   - [本地运行](#本地运行)
   - [Vercel在线部署](#vercel在线部署)
+  - [CloudFlare Pages 在线部署](#cloudflare-pages-在线部署)
 - [配置文件](#配置文件)
 
 
@@ -83,6 +84,38 @@ npm run dev
 ![Vercel控制面板](./img/leleo-home-page/1737539171658.png)
 
 注意：Vercel提供的`.vercel.app`域名在中国大陆地区可能无法访问，所以建议绑定自定义域名。（若没有自己的域名，这里提供简单的[免费二级域名服务](https://sds.leleo.top)及本项目如何进行域名绑定的[说明](./img/domainToVercel.md)）
+
+### CloudFlare Pages 在线部署
+
+> ---无需服务器，对站长友好(需要有CloudFlare以及Github账号)
+
+1. Fork本项目到自己的账号下
+
+
+   
+2. 登录CloudFlare并点击左侧栏目中"计算(workers)"底下的"Workers 和 Pages"
+
+
+
+3. 点击右上角"创建"，选择"Pages"，点击"导入现有 Git 存储库"右侧的"开始使用"
+
+
+
+4. 点击"连接 Github"，并登录你的 Github 账号
+
+
+
+5. 选择项目存储库(如果你没有更名那应该是"leleo-home-page")并开始设置，在接下来的页面中框架预设选择`Vue`(如果不选择，你的网站会访问为空白)，点击保存并部署
+
+
+
+此时，项目已经部署完成，可以直接点击上方链接预览
+
+> 如果需要绑定域名，可以点击"添加自定义域"、"设置自定义域"并填入目标域，点击继续
+
+> 你的域名托管在CloudFlare，直接点击"激活域"就可以完成
+
+> 你的域名没有托管在CloudFlare，根据指引添加CNAME记录即可
 
 ## 配置文件
 
