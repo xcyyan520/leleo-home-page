@@ -118,6 +118,7 @@ npm run dev
 ### 方法1. 修改配置文件
 
 自定义数据文件为项目src目录下面的 config.js，这里有[配置说明](./img/config.md)，然后就是代码的拉取、修改上传。如果部署方式为CloudFlare Page，直接在Github修改后Commit即可自动部署
+
 **若使用此方法请勿配置环境变量**
 
 ### 方法2. 在线修改环境变量
