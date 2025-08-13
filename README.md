@@ -131,8 +131,7 @@ npm run dev
 > (2). 然后下翻点击`Add Environment Variable`按钮，要求填入`Key`值为`VITE_CONFIG`,`Value`值如[环境变量值](./img/env.md)所示，全部复制粘贴即可（有点多），根据个人情况自定义修改，配置说明同方法1。
 ![Vercel控制面板](./img/leleo-home-page/1737625015472.png)
 
-> (3). 依次点击`Project`、`Build Logs`，进入新页面后再找到`Redeploy`。最后等待重新部署完成即可。
-
+> (3). 回到项目主面板，依次点击`Project`、`Build Logs`，进入新页面后再找到`Redeploy`。最后等待重新部署完成即可。
 ![Vercel控制面板](./img/leleo-home-page/1737626184576.png)
 ![Vercel控制面板](./img/leleo-home-page/1737626397809.png)
 
@@ -143,4 +142,5 @@ npm run dev
 
 > (2). 要求填入"变量名称"为`VITE_CONFIG`,"值"如[环境变量值](./img/env.md)所示，全部复制粘贴即可（有点多），根据个人情况自定义修改，配置说明同方法1
 
-> (3). 
+> (3). 点击"部署"，找到左侧带绿条的那个点击右侧三个点"重试部署" 等待部署完成即可
+![重试部署](./img/leleo-home-page/IMG_20250813_131021.jpg)
