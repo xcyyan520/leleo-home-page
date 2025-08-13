@@ -90,24 +90,20 @@ npm run dev
 > ---无需服务器，对站长友好(需要有CloudFlare以及Github账号)
 
 1. Fork本项目到自己的账号下
-
-
    
 2. 登录CloudFlare并点击左侧栏目中"计算(workers)"底下的"Workers 和 Pages"
 
-
+![Workers页](./img/leleo-home-page/IMG_20250813_122124.jpg)
 
 3. 点击右上角"创建"，选择"Pages"，点击"导入现有 Git 存储库"右侧的"开始使用"
 
-
+![创建页](./img/leleo-home-page/IMG_20250813_122156.jpg)
 
 4. 点击"连接 Github"，并登录你的 Github 账号
 
-
-
 5. 选择项目存储库(如果你没有更名那应该是"leleo-home-page")并开始设置，在接下来的页面中框架预设选择`Vue`(如果不选择，你的网站会访问为空白)，点击保存并部署
 
-
+![配置页](./img/leleo-home-page/IMG_20250813_122251.jpg)
 
 此时，项目已经部署完成，可以直接点击上方链接预览
 
