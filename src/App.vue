@@ -1,5 +1,5 @@
 <template>
-  <v-app class="vapp-fullscreen-background" :class="{ 'radius-before': !xs }"
+  <v-app class="vapp-fullscreen-background" style="overflow: hidden;" :class="{ 'radius-before': !xs }"
   :style="xs?{height: '100%',width: '100%',top: '0',left:'0'}:(sm?{height: '98%',width: '98%',top: '1%',left:' 1%'}:{height: '96.6%',width: '99%',top: '1.7%',left:' 0.5%'})">
     <transition name="fade">
       <div class="loading" v-show="isloading">
