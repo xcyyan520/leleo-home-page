@@ -335,5 +335,8 @@ export default {
     collapseSwitch() {
       this.isExpanded = false;
     },
+    openThoughts() {
+      window.location.href = '/thoughts.html';
+    },
   }
 };
