@@ -23,6 +23,24 @@
     .floating-switch:hover {
         transform: translateX(0); /* 悬停时完全展开 */
     }
+
+    .floating-thoughts-container {
+        position: fixed;
+        top: 14px;
+        right: 14px;
+        z-index: 100;
+    }
+
+    .floating-thoughts-btn {
+        opacity: 0.5;
+        transition: opacity 0.3s ease, transform 0.3s ease;
+    }
+
+    .floating-thoughts-btn:hover {
+        opacity: 0.9;
+        transform: scale(1.08);
+    }
+
     /* 调整视频元素的样式，使其全屏作为背景 */
     .video-bg {
         position: fixed;
