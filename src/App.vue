@@ -22,6 +22,16 @@
         @mouseleave="collapseSwitch"
       ></v-switch>
     </div>
+
+    <div class="floating-thoughts-container">
+      <v-btn
+        icon="mdi-brain"
+        variant="tonal"
+        size="36"
+        class="floating-thoughts-btn"
+        @click="openThoughts"
+      ></v-btn>
+    </div>
     
     <div v-show="!isloading && !isClearScreen" :style="xs||sm?{'overflow-y': 'auto','overflow-x': 'hidden'}:{}">
         <v-row>
