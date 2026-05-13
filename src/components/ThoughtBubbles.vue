@@ -53,7 +53,7 @@
           >
             <!-- Effect 0: firefly sparkles gathering -->
             <template v-if="captureEffect === 0">
-              <span v-for="sp in sparkles" :key="sp.i" class="sparkle" :class="{ perimeter: sp.isPerimeter }" :style="sp.style"></span>
+              <span v-for="sp in sparkles" :key="sp.i" class="sparkle" :style="sp.style"></span>
             </template>
             <!-- Effect 1: fog wisps -->
             <template v-if="captureEffect === 1">
@@ -365,32 +365,28 @@ export default {
       this.shards = []
       this.ripples = []
       if (eff === 0) {
-        // firefly: 22 sparkles from viewport edges, converge to center forming the bubble
-        for (let i = 0; i < 22; i++) {
-          const edge = i % 4 // 0=top, 1=right, 2=bottom, 3=left — evenly distributed
+        // firefly: 14 sparkles from viewport edges converge to center
+        for (let i = 0; i < 14; i++) {
+          const edge = i % 4
           let sx, sy
-          const jitter = (Math.random() - 0.5) * 100
+          const jitter = (Math.random() - 0.5) * 80
           switch (edge) {
-            case 0: sx = 10 + jitter; sy = -8 - Math.random() * 12; break
-            case 1: sx = 108 + Math.random() * 8; sy = 10 + jitter; break
-            case 2: sx = 10 + jitter; sy = 108 + Math.random() * 8; break
-            case 3: sx = -8 - Math.random() * 12; sy = 10 + jitter; break
+            case 0: sx = 15 + jitter; sy = -6 - Math.random() * 10; break
+            case 1: sx = 106 + Math.random() * 6; sy = 15 + jitter; break
+            case 2: sx = 15 + jitter; sy = 106 + Math.random() * 6; break
+            case 3: sx = -6 - Math.random() * 10; sy = 15 + jitter; break
           }
-          const size = 3 + Math.random() * 12
-          const isPerimeter = i >= 16 // last 6 sparkles become orbiting perimeter lights
+          const size = 4 + Math.random() * 10
           this.sparkles.push({
             i,
-            isPerimeter,
             style: {
               '--sx': `${sx}vw`,
               '--sy': `${sy}vh`,
-              '--delay': `${0.2 + Math.random() * 0.9}s`,
-              '--dur': `${1.0 + Math.random() * 1.2}s`,
+              '--delay': `${Math.random() * 0.6}s`,
+              '--dur': `${0.8 + Math.random() * 0.8}s`,
               '--size': `${size}px`,
-              '--glow': `${size * 1.5}px`,
-              '--perimeter': isPerimeter ? '1' : '0',
               backgroundColor: color,
-              boxShadow: `0 0 ${size * 1.8}px ${size * 0.6}px ${color}cc`,
+              boxShadow: `0 0 ${size * 2}px ${size * 0.5}px ${color}bb`,
             },
           })
         }
@@ -449,7 +445,6 @@ export default {
     releaseBubble() {
       if (this.releasing) return
       this.releasing = true
-      // let the release animation play, then remove
       setTimeout(() => {
         this.capturedBubble = null
         this.releasing = false
@@ -458,7 +453,7 @@ export default {
         this.shards = []
         this.ripples = []
         this.removeEscListener()
-      }, 1200)
+      }, 500)
     },
     addEscListener() {
       this._escHandler = (e) => {
@@ -803,32 +798,19 @@ export default {
 
 .sparkle {
   position: fixed;
-  left: var(--sx, 50vw);
-  top: var(--sy, 50vh);
-  width: var(--size, 6px);
-  height: var(--size, 6px);
+  width: var(--size, 8px);
+  height: var(--size, 8px);
   border-radius: 50%;
   pointer-events: none;
   z-index: 18;
-  animation: sparkle-gather var(--dur, 1.5s) var(--delay, 0s) ease-out forwards;
-}
-.sparkle.perimeter {
-  animation: sparkle-perimeter var(--dur, 1.5s) var(--delay, 0s) ease-out forwards,
-             perimeter-orbit 3s var(--dur, 1.5s) ease-in-out infinite;
+  animation: sparkle-gather var(--dur, 1.4s) var(--delay, 0s) ease-out forwards;
 }
 
 @keyframes sparkle-gather {
-  0%   { transform: translate(0, 0) scale(0.15); opacity: 0; }
+  0%   { left: var(--sx); top: var(--sy); transform: scale(0.1); opacity: 0; }
   8%   { opacity: 1; }
-  65%  { transform: translate(calc(50vw - var(--sx)), calc(50vh - var(--sy))) scale(1.3); opacity: 0.9; }
-  85%  { transform: translate(calc(50vw - var(--sx)), calc(50vh - var(--sy))) scale(0.7); opacity: 0.6; }
-  100% { transform: translate(calc(50vw - var(--sx)), calc(50vh - var(--sy))) scale(0.3); opacity: 0.3; }
-}
-@keyframes perimeter-orbit {
-  0%, 100% { transform: translate(calc(50vw - var(--sx)), calc(50vh - var(--sy))) rotate(0deg) translateX(0px); }
-  25%  { transform: translate(calc(50vw - var(--sx) + 8px), calc(50vh - var(--sy) - 6px)) scale(1.2); }
-  50%  { transform: translate(calc(50vw - var(--sx) - 6px), calc(50vh - var(--sy) + 4px)) scale(0.85); }
-  75%  { transform: translate(calc(50vw - var(--sx) + 4px), calc(50vh - var(--sy) + 8px)) scale(1.1); }
+  80%  { left: 50vw; top: 50vh; transform: scale(1.1); opacity: 0.8; }
+  100% { left: 50vw; top: 50vh; transform: scale(0.3); opacity: 0.15; }
 }
 
 /* ── Effect 1: Fog ── */
@@ -928,10 +910,12 @@ export default {
 }
 
 /* ── release dissolve (shared) ── */
+.capture-bubble.releasing {
+  animation: release-dissolve 0.5s ease-in forwards !important;
+}
 @keyframes release-dissolve {
   0%   { transform: scale(1); opacity: 1; filter: blur(0); }
-  40%  { opacity: 0.7; filter: blur(2px); }
-  100% { transform: scale(0.85) translateY(10px); opacity: 0; filter: blur(8px); }
+  100% { transform: scale(0.9) translateY(6px); opacity: 0; filter: blur(6px); }
 }
 
 /* captured label */
