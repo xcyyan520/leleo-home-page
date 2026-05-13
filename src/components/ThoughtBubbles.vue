@@ -432,78 +432,79 @@ export default {
       if (!text) return
       const canvas = document.createElement('canvas')
       const ctx = canvas.getContext('2d')
-      const fontSize = 20
-      const font = `400 ${fontSize}px serif`
+      const fontSize = 18
+      // Windows Chinese fonts: SimSun/宋体 always available, Microsoft YaHei modern, serif fallback
+      const font = `400 ${fontSize}px SimSun, 'Microsoft YaHei', 'Noto Serif CJK SC', serif`
       ctx.font = font
-      const maxWidth = 440
-      // wrap
+      const maxWidth = 400
       const lines = []
-      let current = ''
-      for (const char of text) {
-        if (ctx.measureText(current + char).width > maxWidth) { lines.push(current); current = char }
-        else { current += char }
+      let cur = ''
+      for (const ch of text) {
+        if (ctx.measureText(cur + ch).width > maxWidth) { lines.push(cur); cur = ch }
+        else { cur += ch }
       }
-      if (current) lines.push(current)
+      if (cur) lines.push(cur)
       const lineH = fontSize * 1.8
-      const totalH = lines.length * lineH + 10
+      const totalH = lines.length * lineH + 8
       const maxW = Math.max(...lines.map(l => ctx.measureText(l).width))
-      canvas.width = Math.ceil(maxW) + 20
-      canvas.height = Math.ceil(totalH)
+      canvas.width = Math.max(Math.ceil(maxW) + 16, 20)
+      canvas.height = Math.max(Math.ceil(totalH), 20)
 
-      // re-apply font after canvas resize (required!)
+      // MUST re-set font after canvas resize
       ctx.font = font
       ctx.fillStyle = '#ffffff'
       ctx.textBaseline = 'top'
-      lines.forEach((line, li) => ctx.fillText(line, 10, 5 + li * lineH))
+      lines.forEach((line, li) => ctx.fillText(line, 8, 4 + li * lineH))
 
       const img = ctx.getImageData(0, 0, canvas.width, canvas.height)
       const pixels = []
-      const step = Math.max(2, Math.floor(Math.sqrt((canvas.width * canvas.height) / 600)))
+      const step = 2 // finer sampling for better text shape
       for (let y = 0; y < canvas.height; y += step) {
         for (let x = 0; x < canvas.width; x += step) {
-          if (img.data[(y * canvas.width + x) * 4 + 3] > 80) pixels.push({ x, y })
+          if (img.data[(y * canvas.width + x) * 4 + 3] > 60) pixels.push({ x, y })
         }
       }
+
       if (pixels.length === 0) {
-        // fallback: random shards if text sampling failed
-        for (let i = 0; i < 12; i++) {
-          const a = (i / 12) * Math.PI * 2
+        // fallback: scatter around center (not all to same point)
+        for (let i = 0; i < 18; i++) {
+          const a = (i / 18) * Math.PI * 2
+          const scX = (Math.random() - 0.5) * 80
+          const scY = (Math.random() - 0.5) * 50
           this.shards.push({
-            i,
-            style: {
-              '--ox': `${origin.x + Math.cos(a) * 60}px`,
-              '--oy': `${origin.y + Math.sin(a) * 60}px`,
-              '--cx': `${center.x}px`, '--cy': `${center.y}px`,
-              '--delay': `${i * 0.04}s`,
-              '--size': '18px',
+            i, style: {
+              '--ox': `${origin.x + Math.cos(a) * 70}px`,
+              '--oy': `${origin.y + Math.sin(a) * 70}px`,
+              '--cx': `${center.x + scX}px`, '--cy': `${center.y + scY}px`,
+              '--delay': `${i * 0.03}s`, '--size': '4px',
               backgroundColor: color,
-              boxShadow: `0 0 12px ${color}99`,
-              opacity: 0.75,
+              boxShadow: `0 0 4px ${color}cc`,
+              opacity: 0.8,
             },
           })
         }
         return
       }
-      const limit = Math.min(pixels.length, 160)
-      const ox = center.x - canvas.width / 2
-      const oy = center.y - canvas.height / 2
+
+      const limit = Math.min(pixels.length, 180)
+      const tx = center.x - canvas.width / 2
+      const ty = center.y - canvas.height / 2
       for (let i = 0; i < limit; i++) {
-        const idx = Math.floor(Math.random() * pixels.length)
-        const p = pixels.splice(idx, 1)[0]
+        const ri = Math.floor(Math.random() * pixels.length)
+        const p = pixels.splice(ri, 1)[0]
         const a = Math.random() * Math.PI * 2
-        const burst = 40 + Math.random() * 130
+        const burst = 50 + Math.random() * 120
         this.shards.push({
-          i,
-          style: {
+          i, style: {
             '--ox': `${origin.x + Math.cos(a) * burst}px`,
             '--oy': `${origin.y + Math.sin(a) * burst}px`,
-            '--cx': `${ox + p.x}px`,
-            '--cy': `${oy + p.y}px`,
-            '--delay': `${Math.random() * 0.8}s`,
-            '--size': `${Math.max(step * 1.2, 3)}px`,
+            '--cx': `${tx + p.x}px`,
+            '--cy': `${ty + p.y}px`,
+            '--delay': `${Math.random() * 0.7}s`,
+            '--size': `${step * 1.1}px`,
             backgroundColor: color,
-            boxShadow: `0 0 ${step}px ${color}aa`,
-            opacity: 0.9,
+            boxShadow: `0 0 3px ${color}cc`,
+            opacity: 0.88,
           },
         })
       }
