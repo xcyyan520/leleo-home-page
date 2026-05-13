@@ -50,9 +50,7 @@
         <template v-if="captureEffect === 1">
           <span v-for="w in wisps" :key="w.i" class="wisp" :style="w.style"></span>
         </template>
-        <template v-if="captureEffect === 2">
-          <span v-for="sh in shards" :key="sh.i" class="shard" :style="sh.style"></span>
-        </template>
+        <!-- effect 2 has no particles — typewriter text instead -->
         <template v-if="captureEffect === 3">
           <span v-for="r in ripples" :key="r.i" class="ripple-ring" :style="r.style"></span>
         </template>
@@ -69,7 +67,8 @@
           >
             <span v-if="captureEffect === 3" class="reflection"></span>
             <span class="capture-label">{{ capturedBubble.personaLabel }} · 思考中</span>
-            <p class="capture-text">{{ capturedBubble.text }}</p>
+            <p class="capture-text" v-if="captureEffect !== 2">{{ capturedBubble.text }}</p>
+            <p class="capture-text typing" v-if="captureEffect === 2">{{ typedText }}<span class="typing-cursor" :class="{ blink: !typingTimer }">|</span></p>
             <div class="capture-dots">
               <span class="c-dot" v-for="n in capturedBubble.dotCount" :key="n"></span>
             </div>
@@ -148,6 +147,8 @@ export default {
       capturedBubble: null,
       captureEffect: 0,
       releasing: false,
+      typedText: '',
+      typingTimer: null,
       sparkles: [],
       wisps: [],
       shards: [],
@@ -164,6 +165,7 @@ export default {
   },
   beforeUnmount() {
     clearInterval(this.bubbleTimer)
+    this.stopTyping()
     document.removeEventListener('click', this.handleClick)
     this.removeEscListener()
   },
@@ -410,7 +412,7 @@ export default {
         }
       } else if (eff === 2) {
         // Canvas text reconstruction — bubble shatters, particles reassemble into the text stroke-by-stroke
-        this.sampleTextPixelsForEffect2(color, origin, center, text)
+        this.startTypingEffect(text)
       } else {
         // ripple: vortex — rings emanate from origin, center area blurs, bubble rises
         for (let i = 0; i < 6; i++) {
@@ -427,86 +429,36 @@ export default {
         }
       }
     },
-    sampleTextPixelsForEffect2(color, origin, center, text) {
-      this.shards = []
+    startTypingEffect(text) {
+      this.stopTyping()
+      this.typedText = ''
       if (!text) return
-      // character-grid approach: measure each char, fill its box with 2.5px particles
-      const canvas = document.createElement('canvas')
-      const ctx = canvas.getContext('2d')
-      const fontSize = 18
-      ctx.font = `400 ${fontSize}px SimSun, 'Microsoft YaHei', serif`
-      const maxWidth = 400
-      const lines = []
-      let cur = ''
-      for (const ch of text) {
-        if (ctx.measureText(cur + ch).width > maxWidth) { lines.push(cur); cur = ch }
-        else { cur += ch }
-      }
-      if (cur) lines.push(cur)
-      const lineH = fontSize * 1.8
-      const step = 2.5
-      // build grid positions for every character
-      const grid = []
-      for (let li = 0; li < lines.length; li++) {
-        const line = lines[li]
-        let cx = 0
-        for (let ci = 0; ci < line.length; ci++) {
-          const ch = line[ci]
-          const cw = ctx.measureText(ch).width
-          // skip very narrow chars (spaces, punctuation)
-          for (let gx = 0; gx < cw; gx += step) {
-            for (let gy = 0; gy < fontSize * 0.85; gy += step) {
-              // ~55% density for a particle-grid mosaic look (not solid block)
-              if (Math.random() > 0.55) continue
-              grid.push({
-                x: cx + gx + (Math.random() - 0.5) * 1.5,
-                y: li * lineH + gy + (Math.random() - 0.5) * 1.5,
-              })
-            }
-          }
-          cx += cw
-        }
-      }
-      if (grid.length === 0) return
-      // total text block dimensions
-      const totalW = Math.max(...lines.map(l => ctx.measureText(l).width))
-      const totalH = lines.length * lineH
-      // random sample from grid (limit to 200 particles)
-      const limit = Math.min(grid.length, 200)
-      const tx = center.x - totalW / 2
-      const ty = center.y - totalH / 2
-      for (let i = 0; i < limit; i++) {
-        const ri = Math.floor(Math.random() * grid.length)
-        const p = grid.splice(ri, 1)[0]
-        const a = Math.random() * Math.PI * 2
-        const burst = 50 + Math.random() * 130
-        this.shards.push({
-          i, style: {
-            '--ox': `${origin.x + Math.cos(a) * burst}px`,
-            '--oy': `${origin.y + Math.sin(a) * burst}px`,
-            '--cx': `${tx + p.x}px`,
-            '--cy': `${ty + p.y}px`,
-            '--delay': `${Math.random() * 0.7}s`,
-            '--size': `${step * 0.9}px`,
-            backgroundColor: color,
-            boxShadow: `0 0 3px ${color}cc`,
-            opacity: 0.85,
-          },
-        })
-      }
+      let i = 0
+      const chars = [...text] // handle multi-byte chars correctly
+      const delay = 40 + Math.random() * 40 // 40-80ms per char
+      this.typingTimer = setInterval(() => {
+        if (i >= chars.length) { this.stopTyping(); return }
+        this.typedText += chars[i]
+        i++
+      }, delay)
+    },
+    stopTyping() {
+      if (this.typingTimer) { clearInterval(this.typingTimer); this.typingTimer = null }
     },
     releaseBubble() {
       if (this.releasing) return
       this.releasing = true
+      this.stopTyping()
       setTimeout(() => {
         this.capturedBubble = null
         this.releasing = false
+        this.typedText = ''
         this.sparkles = []
         this.wisps = []
         this.shards = []
         this.ripples = []
         this.removeEscListener()
-      }, 500)
+      }, 400)
     },
     addEscListener() {
       this._escHandler = (e) => {
@@ -916,39 +868,30 @@ export default {
   100% { opacity: 1; filter: blur(0) brightness(1); }
 }
 
-/* ── Effect 2: Canvas pixel text reconstruction ── */
-.shard {
-  position: absolute;
-  width: var(--size, 4px);
-  height: var(--size, 4px);
-  border-radius: 50%;
-  pointer-events: none;
-  z-index: 99;
-  display: block;
-  animation-name: pixel-land;
-  animation-duration: 0.7s;
-  animation-delay: var(--delay, 0s);
-  animation-timing-function: ease-out;
-  animation-fill-mode: forwards;
-}
-@keyframes pixel-land {
-  0%   { left: var(--ox); top: var(--oy); transform: scale(0); opacity: 0; }
-  20%  { opacity: 1; }
-  80%  { left: var(--cx); top: var(--cy); transform: scale(1.5); opacity: 1; }
-  100% { left: var(--cx); top: var(--cy); transform: scale(1); opacity: 0.88; }
-}
-/* text shown faintly behind pixel reconstruction for effect 2 */
-.capture-bubble.effect-2 .capture-text { opacity: 0.12; transition: opacity 0.8s 0.5s; }
-.capture-bubble.effect-2 .capture-dots { opacity: 0.25; }
+/* ── Effect 2: Typewriter ── */
 .capture-bubble.effect-2 {
-  animation: reveal-shard 0.35s 0.2s ease-out forwards, capture-float 4s 0.7s ease-in-out infinite;
+  animation: reveal-shard 0.35s 0.15s ease-out forwards, capture-float 4s 0.6s ease-in-out infinite;
   opacity: 0;
-  background: transparent;
-  border-color: color-mix(in srgb, var(--persona-color, #d4a255) 12%, transparent);
 }
 @keyframes reveal-shard {
   0%   { opacity: 0; }
   100% { opacity: 1; }
+}
+.capture-text.typing {
+  min-height: 1.7em;
+}
+.typing-cursor {
+  display: inline;
+  color: var(--persona-color, #d4a255);
+  font-weight: 300;
+  animation: cursor-blink 0.8s step-end infinite;
+}
+.typing-cursor.blink {
+  animation: cursor-blink 0.8s step-end infinite;
+}
+@keyframes cursor-blink {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0; }
 }
 
 /* ── Effect 3: Ripple ── */
