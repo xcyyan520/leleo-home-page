@@ -863,11 +863,19 @@ export default {
   border-radius: 50%;
   pointer-events: none;
   z-index: 18;
-  animation: sparkle-fly var(--dur, 1.4s) var(--delay, 0s) ease-out forwards;
+  animation-name: sparkle-fly;
+  animation-duration: var(--dur, 1.4s);
+  animation-delay: var(--delay, 0s);
+  animation-timing-function: ease-out;
+  animation-fill-mode: forwards;
 }
 .sparkle.builder {
-  animation: sparkle-fly var(--dur, 1.4s) var(--delay, 0s) ease-out forwards,
-             builder-glow 2s var(--dur, 1.4s) ease-in-out infinite;
+  animation-name: sparkle-fly, builder-glow;
+  animation-duration: var(--dur, 1.4s), 2s;
+  animation-delay: var(--delay, 0s), var(--dur, 1.4s);
+  animation-timing-function: ease-out, ease-in-out;
+  animation-fill-mode: forwards, none;
+  animation-iteration-count: 1, infinite;
 }
 @keyframes sparkle-fly {
   0%   { left: var(--ox); top: var(--oy); transform: scale(0.05); opacity: 0; }
@@ -900,7 +908,11 @@ export default {
   z-index: 17;
   opacity: 0;
   filter: blur(14px);
-  animation: wisp-flow var(--dur, 1.2s) var(--delay, 0s) ease-out forwards;
+  animation-name: wisp-flow;
+  animation-duration: var(--dur, 1.2s);
+  animation-delay: var(--delay, 0s);
+  animation-timing-function: ease-out;
+  animation-fill-mode: forwards;
 }
 @keyframes wisp-flow {
   0%   { left: var(--ox); top: var(--oy); transform: scale(0.15) rotate(0deg); opacity: 0; }
@@ -925,7 +937,11 @@ export default {
   border-radius: 50%;
   pointer-events: none;
   z-index: 18;
-  animation: pixel-land 0.7s var(--delay, 0s) ease-out forwards;
+  animation-name: pixel-land;
+  animation-duration: 0.7s;
+  animation-delay: var(--delay, 0s);
+  animation-timing-function: ease-out;
+  animation-fill-mode: forwards;
 }
 @keyframes pixel-land {
   0%   { left: var(--ox); top: var(--oy); transform: scale(0); opacity: 0; }
@@ -956,7 +972,11 @@ export default {
   border-style: solid;
   pointer-events: none;
   z-index: 17;
-  animation: ripple-from-origin 2.2s var(--delay, 0s) ease-out forwards;
+  animation-name: ripple-from-origin;
+  animation-duration: 2.2s;
+  animation-delay: var(--delay, 0s);
+  animation-timing-function: ease-out;
+  animation-fill-mode: forwards;
 }
 @keyframes ripple-from-origin {
   0%   { left: var(--ox); top: var(--oy); transform: translate(-50%, -50%) scale(0.05); opacity: 1; }
