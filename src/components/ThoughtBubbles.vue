@@ -41,6 +41,20 @@
     <!-- capture overlay -->
     <transition name="overlay-fade">
       <div v-if="capturedBubble" class="capture-overlay" :class="{ releasing }" @click="releaseBubble">
+        <!-- particles layer: outside capture-bubble so position:fixed is viewport-relative -->
+        <template v-if="captureEffect === 0">
+          <span v-for="sp in sparkles" :key="sp.i" class="sparkle" :style="sp.style"></span>
+        </template>
+        <template v-if="captureEffect === 1">
+          <span v-for="w in wisps" :key="w.i" class="wisp" :style="w.style"></span>
+        </template>
+        <template v-if="captureEffect === 2">
+          <span v-for="sh in shards" :key="sh.i" class="shard" :style="sh.style"></span>
+        </template>
+        <template v-if="captureEffect === 3">
+          <span v-for="r in ripples" :key="r.i" class="ripple-ring" :style="r.style"></span>
+        </template>
+
         <div class="capture-stage" @click.stop>
           <div
             class="capture-bubble"
@@ -51,24 +65,7 @@
               '--persona-bg': capturedBubble.style['--persona-bg'],
             }"
           >
-            <!-- Effect 0: firefly sparkles gathering -->
-            <template v-if="captureEffect === 0">
-              <span v-for="sp in sparkles" :key="sp.i" class="sparkle" :style="sp.style"></span>
-            </template>
-            <!-- Effect 1: fog wisps -->
-            <template v-if="captureEffect === 1">
-              <span v-for="w in wisps" :key="w.i" class="wisp" :style="w.style"></span>
-            </template>
-            <!-- Effect 2: memory shards -->
-            <template v-if="captureEffect === 2">
-              <span v-for="sh in shards" :key="sh.i" class="shard" :style="sh.style"></span>
-            </template>
-            <!-- Effect 3: ripple rings -->
-            <template v-if="captureEffect === 3">
-              <span v-for="r in ripples" :key="r.i" class="ripple-ring" :style="r.style"></span>
-              <span class="reflection"></span>
-            </template>
-
+            <span v-if="captureEffect === 3" class="reflection"></span>
             <span class="capture-label">{{ capturedBubble.personaLabel }} · 思考中</span>
             <p class="capture-text">{{ capturedBubble.text }}</p>
             <div class="capture-dots">
