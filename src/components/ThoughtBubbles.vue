@@ -51,7 +51,14 @@
               '--persona-bg': capturedBubble.style['--persona-bg'],
             }"
           >
-            <div class="capture-spin-ring"></div>
+            <!-- orbiting mini thought-bubbles -->
+            <span
+              v-for="ob in orbitBubbles"
+              :key="ob.i"
+              class="orbit-bubble"
+              :class="ob.rev ? 'orbit-ccw' : 'orbit-cw'"
+              :style="ob.style"
+            ></span>
             <span class="capture-label">{{ capturedBubble.personaLabel }} · 思考中</span>
             <p class="capture-text">{{ capturedBubble.text }}</p>
             <div class="capture-dots">
@@ -117,6 +124,15 @@ const PERSONAS = [
   },
 ]
 
+const ORBIT_CONFIGS = [
+  { r: 70,  size: 12, dur: 3.2, delay: 0,    rev: false },
+  { r: 100, size: 7,  dur: 4.0, delay: 0.3,  rev: true },
+  { r: 125, size: 15, dur: 3.6, delay: 0.55, rev: false },
+  { r: 82,  size: 5,  dur: 2.9, delay: 1.1,  rev: true },
+  { r: 148, size: 10, dur: 4.4, delay: 0.15, rev: false },
+  { r: 110, size: 13, dur: 3.3, delay: 0.8,  rev: true },
+]
+
 let nextId = 0
 
 export default {
@@ -130,6 +146,8 @@ export default {
       bubbleTimer: null,
       maxBubbles: 7,
       capturedBubble: null,
+      orbitBubbles: [],
+      recentTexts: [], // { text, personaIndex, time } — 10s dedup
     }
   },
   async mounted() {
@@ -209,6 +227,21 @@ export default {
       if (!arr || arr.length === 0) return '……'
       return arr[Math.floor(Math.random() * arr.length)]
     },
+    getFreshText(pi) {
+      const now = Date.now()
+      const all = this.personaData[pi]
+      if (!all.length) return '……'
+      // filter out texts shown in last 10s for this persona
+      const recent = this.recentTexts.filter(r => r.time > now - 10000)
+      const recentSet = new Set(recent.map(r => r.text))
+      const fresh = all.filter(t => !recentSet.has(t))
+      if (fresh.length === 0) return this.pickRandom(all)
+      return this.pickRandom(fresh)
+    },
+    pruneRecentTexts() {
+      const now = Date.now()
+      this.recentTexts = this.recentTexts.filter(r => r.time > now - 10000)
+    },
     spawnBubble() {
       if (this.personaData.every(d => d.length === 0)) return
 
@@ -219,7 +252,10 @@ export default {
       } while (this.personaData[pi].length === 0)
 
       const persona = PERSONAS[pi]
-      const text = this.pickRandom(this.personaData[pi])
+      const text = this.getFreshText(pi)
+      // record for dedup
+      this.recentTexts.push({ text, personaIndex: pi, time: Date.now() })
+      this.pruneRecentTexts()
 
       const id = nextId++
       const shapeIdx = Math.floor(Math.random() * persona.shapes.length)
@@ -311,14 +347,28 @@ export default {
         pointerEvents: 'none',
         opacity: 0,
       }
+      // generate orbiting mini-bubbles with this persona's color
+      const c = bubble.style['--persona-color']
+      this.orbitBubbles = ORBIT_CONFIGS.map((cfg, i) => ({
+        i,
+        rev: cfg.rev,
+        style: {
+          '--ob-radius': `${cfg.r}px`,
+          '--ob-size': `${cfg.size}px`,
+          '--ob-duration': `${cfg.dur}s`,
+          '--ob-delay': `${cfg.delay}s`,
+          backgroundColor: c,
+          boxShadow: `0 0 ${cfg.size * 1.5}px ${c}55`,
+        },
+      }))
       this.capturedBubble = bubble
-      // after fly animation completes, show overlay content
       this.$nextTick(() => {
         this.addEscListener()
       })
     },
     releaseBubble() {
       this.capturedBubble = null
+      this.orbitBubbles = []
       this.removeEscListener()
     },
     addEscListener() {
@@ -620,9 +670,9 @@ export default {
 /* captured bubble at center */
 .capture-bubble {
   position: relative;
-  max-width: 520px;
-  min-width: 280px;
-  padding: 36px 40px 28px;
+  max-width: 440px;
+  min-width: 260px;
+  padding: 32px 36px 24px;
   border-radius: 35% 65% 55% 45% / 45% 50% 50% 55%;
   background: var(--persona-bg, rgba(212,162,85,0.08));
   backdrop-filter: blur(10px);
@@ -635,37 +685,13 @@ export default {
              capture-float 4s 1s ease-in-out infinite;
 }
 
-/* spinning ring — the "滴溜溜" effect */
-.capture-spin-ring {
-  position: absolute;
-  inset: -8px;
-  border-radius: inherit;
-  border: 1.5px solid transparent;
-  border-top-color: color-mix(in srgb, var(--persona-color, #d4a255) 40%, transparent);
-  border-right-color: color-mix(in srgb, var(--persona-color, #d4a255) 20%, transparent);
-  animation: ring-spin 2.5s linear infinite;
-  pointer-events: none;
-}
-
-.capture-bubble::after {
-  content: '';
-  position: absolute;
-  inset: -16px;
-  border-radius: inherit;
-  border: 1px solid transparent;
-  border-bottom-color: color-mix(in srgb, var(--persona-color, #d4a255) 25%, transparent);
-  border-left-color: color-mix(in srgb, var(--persona-color, #d4a255) 15%, transparent);
-  animation: ring-spin 4s linear infinite reverse;
-  pointer-events: none;
-}
-
 @keyframes capture-reveal {
   0% {
-    transform: scale(0.2) rotate(-90deg);
+    transform: scale(0.15) rotate(-120deg);
     opacity: 0;
   }
-  60% {
-    transform: scale(1.08) rotate(5deg);
+  55% {
+    transform: scale(1.06) rotate(4deg);
     opacity: 1;
   }
   100% {
@@ -676,13 +702,76 @@ export default {
 
 @keyframes capture-float {
   0%, 100% { transform: translateY(0) rotate(0deg); }
-  30%  { transform: translateY(-6px) rotate(0.5deg); }
-  70%  { transform: translateY(4px) rotate(-0.5deg); }
+  30%  { transform: translateY(-5px) rotate(0.4deg); }
+  70%  { transform: translateY(3px) rotate(-0.4deg); }
 }
 
-@keyframes ring-spin {
-  from { transform: rotate(0deg); }
-  to   { transform: rotate(360deg); }
+/* ── orbiting mini thought-bubbles ── */
+.orbit-bubble {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: var(--ob-size, 10px);
+  height: var(--ob-size, 10px);
+  border-radius: 50%;
+  opacity: 0;
+  pointer-events: none;
+  animation-duration: var(--ob-duration, 3s);
+  animation-delay: var(--ob-delay, 0s);
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+}
+
+.orbit-cw {
+  animation-name: orbit-cw;
+}
+
+.orbit-ccw {
+  animation-name: orbit-ccw;
+}
+
+@keyframes orbit-cw {
+  0% {
+    transform: translate(-50%, -50%) rotate(0deg) translateX(var(--ob-radius)) rotate(0deg) scale(0.3);
+    opacity: 0;
+  }
+  14% {
+    opacity: 0.5;
+    transform: translate(-50%, -50%) rotate(50.4deg) translateX(var(--ob-radius)) rotate(0deg) scale(1);
+  }
+  50% {
+    opacity: 0.35;
+  }
+  86% {
+    opacity: 0.45;
+    transform: translate(-50%, -50%) rotate(309.6deg) translateX(var(--ob-radius)) rotate(0deg) scale(0.9);
+  }
+  100% {
+    transform: translate(-50%, -50%) rotate(360deg) translateX(var(--ob-radius)) rotate(0deg) scale(0.3);
+    opacity: 0;
+  }
+}
+
+@keyframes orbit-ccw {
+  0% {
+    transform: translate(-50%, -50%) rotate(0deg) translateX(var(--ob-radius)) rotate(0deg) scale(0.3);
+    opacity: 0;
+  }
+  14% {
+    opacity: 0.5;
+    transform: translate(-50%, -50%) rotate(-50.4deg) translateX(var(--ob-radius)) rotate(0deg) scale(1);
+  }
+  50% {
+    opacity: 0.35;
+  }
+  86% {
+    opacity: 0.45;
+    transform: translate(-50%, -50%) rotate(-309.6deg) translateX(var(--ob-radius)) rotate(0deg) scale(0.9);
+  }
+  100% {
+    transform: translate(-50%, -50%) rotate(-360deg) translateX(var(--ob-radius)) rotate(0deg) scale(0.3);
+    opacity: 0;
+  }
 }
 
 /* captured label */
@@ -756,5 +845,11 @@ export default {
   .bubble-wide { max-width: 280px; }
   .bubble-tall { max-width: 200px; }
   .bubble-small { max-width: 180px; }
+  .capture-bubble {
+    max-width: 300px;
+    min-width: 200px;
+    padding: 24px 22px 18px;
+  }
+  .capture-text { font-size: 15px; line-height: 1.8; }
 }
 </style>
