@@ -53,7 +53,7 @@
           >
             <!-- Effect 0: firefly sparkles gathering -->
             <template v-if="captureEffect === 0">
-              <span v-for="sp in sparkles" :key="sp.i" class="sparkle" :style="sp.style"></span>
+              <span v-for="sp in sparkles" :key="sp.i" class="sparkle" :class="{ perimeter: sp.isPerimeter }" :style="sp.style"></span>
             </template>
             <!-- Effect 1: fog wisps -->
             <template v-if="captureEffect === 1">
@@ -365,72 +365,82 @@ export default {
       this.shards = []
       this.ripples = []
       if (eff === 0) {
-        // firefly sparkles — emerge from random edges, gather to center
-        for (let i = 0; i < 9; i++) {
-          const angle = Math.random() * 360
-          const dist = 140 + Math.random() * 160
+        // firefly: 22 sparkles from viewport edges, converge to center forming the bubble
+        for (let i = 0; i < 22; i++) {
+          const edge = i % 4 // 0=top, 1=right, 2=bottom, 3=left — evenly distributed
+          let sx, sy
+          const jitter = (Math.random() - 0.5) * 100
+          switch (edge) {
+            case 0: sx = 10 + jitter; sy = -8 - Math.random() * 12; break
+            case 1: sx = 108 + Math.random() * 8; sy = 10 + jitter; break
+            case 2: sx = 10 + jitter; sy = 108 + Math.random() * 8; break
+            case 3: sx = -8 - Math.random() * 12; sy = 10 + jitter; break
+          }
+          const size = 3 + Math.random() * 12
+          const isPerimeter = i >= 16 // last 6 sparkles become orbiting perimeter lights
           this.sparkles.push({
             i,
+            isPerimeter,
             style: {
-              '--from-x': `${Math.cos(angle * Math.PI / 180) * dist}px`,
-              '--from-y': `${Math.sin(angle * Math.PI / 180) * dist}px`,
-              '--delay': `${Math.random() * 0.5}s`,
-              '--dur': `${1.2 + Math.random() * 0.8}s`,
-              '--size': `${4 + Math.random() * 8}px`,
+              '--sx': `${sx}vw`,
+              '--sy': `${sy}vh`,
+              '--delay': `${0.2 + Math.random() * 0.9}s`,
+              '--dur': `${1.0 + Math.random() * 1.2}s`,
+              '--size': `${size}px`,
+              '--glow': `${size * 1.5}px`,
+              '--perimeter': isPerimeter ? '1' : '0',
               backgroundColor: color,
-              boxShadow: `0 0 ${6 + Math.random() * 8}px ${color}aa`,
-              animationDelay: `var(--delay)`,
+              boxShadow: `0 0 ${size * 1.8}px ${size * 0.6}px ${color}cc`,
             },
           })
         }
       } else if (eff === 1) {
-        // fog wisps — soft drifting around bubble
-        for (let i = 0; i < 6; i++) {
+        // fog: 9 thick wisps engulfing the bubble
+        for (let i = 0; i < 9; i++) {
           this.wisps.push({
             i,
             style: {
-              '--wisp-x': `${-40 + Math.random() * 80}%`,
-              '--wisp-y': `${-30 + Math.random() * 60}%`,
-              '--wisp-dur': `${5 + Math.random() * 6}s`,
-              '--wisp-delay': `${Math.random() * 3}s`,
-              '--wisp-scale': `${0.6 + Math.random() * 0.8}`,
-              background: `radial-gradient(ellipse, ${color}22 0%, transparent 70%)`,
+              '--wisp-x': `${-50 + Math.random() * 100}%`,
+              '--wisp-y': `${-40 + Math.random() * 80}%`,
+              '--wisp-dur': `${6 + Math.random() * 8}s`,
+              '--wisp-delay': `${Math.random() * 4}s`,
+              '--wisp-scale': `${0.8 + Math.random() * 1.2}`,
+              '--wisp-opacity': `${0.25 + Math.random() * 0.35}`,
+              background: `radial-gradient(ellipse at center, ${color}66 0%, ${color}22 50%, transparent 75%)`,
             },
           })
         }
       } else if (eff === 2) {
-        // memory shards — colored fragments fly in from corners
-        const hues = [0, 30, 45, 60]
-        for (let i = 0; i < 4; i++) {
-          const shardColor = color
-          const corners = [
-            { x: -120, y: -80 },   // top-left
-            { x: 120, y: -80 },    // top-right
-            { x: -100, y: 90 },    // bottom-left
-            { x: 110, y: 85 },     // bottom-right
-          ]
+        // memory shards: 6 fragments from 6 directions
+        const origins = [
+          { x: -140, y: -100 }, { x: 0, y: -120 }, { x: 140, y: -100 },
+          { x: -140, y: 100 }, { x: 0, y: 120 }, { x: 140, y: 100 },
+        ]
+        for (let i = 0; i < 6; i++) {
           this.shards.push({
             i,
             style: {
-              '--from-x': `${corners[i].x}px`,
-              '--from-y': `${corners[i].y}px`,
-              '--delay': `${i * 0.08}s`,
-              '--rotate': `${-30 + i * 18 + Math.random() * 20}deg`,
-              '--size': `${18 + Math.random() * 14}px`,
-              backgroundColor: shardColor,
-              opacity: 0.55 + Math.random() * 0.25,
+              '--from-x': `${origins[i].x + (Math.random() - 0.5) * 30}px`,
+              '--from-y': `${origins[i].y + (Math.random() - 0.5) * 30}px`,
+              '--delay': `${i * 0.06}s`,
+              '--rotate': `${-40 + i * 12 + Math.random() * 30}deg`,
+              '--size': `${22 + Math.random() * 22}px`,
+              backgroundColor: color,
+              opacity: 0.65 + Math.random() * 0.3,
+              boxShadow: `0 0 8px ${color}88`,
             },
           })
         }
       } else {
-        // ripple rings — concentric expanding circles
-        for (let i = 0; i < 3; i++) {
+        // ripple: 5 rings + prominent reflection
+        for (let i = 0; i < 5; i++) {
           this.ripples.push({
             i,
             style: {
-              '--ripple-delay': `${i * 0.3}s`,
-              '--ripple-size': `${80 + i * 50}px`,
-              borderColor: `${color}44`,
+              '--ripple-delay': `${i * 0.25}s`,
+              '--ripple-size': `${70 + i * 45}px`,
+              borderColor: `${color}66`,
+              borderWidth: `${2 - i * 0.2}px`,
             },
           })
         }
@@ -785,110 +795,136 @@ export default {
 
 /* ── Effect 0: Firefly ── */
 @keyframes reveal-firefly {
-  0%   { transform: scale(0.08); opacity: 0; filter: blur(8px); }
-  50%  { transform: scale(0.7) rotate(15deg); opacity: 0.6; filter: blur(4px); }
-  75%  { transform: scale(1.05) rotate(-3deg); opacity: 1; filter: blur(0); }
-  100% { transform: scale(1) rotate(0deg); opacity: 1; filter: blur(0); }
+  0%   { transform: scale(0.6); opacity: 0; }
+  35%  { opacity: 0; }
+  65%  { opacity: 0.6; transform: scale(0.9); }
+  100% { transform: scale(1); opacity: 1; }
 }
 
 .sparkle {
-  position: absolute;
+  position: fixed;
+  left: var(--sx, 50vw);
+  top: var(--sy, 50vh);
   width: var(--size, 6px);
   height: var(--size, 6px);
   border-radius: 50%;
   pointer-events: none;
+  z-index: 18;
   animation: sparkle-gather var(--dur, 1.5s) var(--delay, 0s) ease-out forwards;
 }
+.sparkle.perimeter {
+  animation: sparkle-perimeter var(--dur, 1.5s) var(--delay, 0s) ease-out forwards,
+             perimeter-orbit 3s var(--dur, 1.5s) ease-in-out infinite;
+}
+
 @keyframes sparkle-gather {
-  0%   { transform: translate(var(--from-x), var(--from-y)) scale(0.2); opacity: 0; }
-  15%  { opacity: 0.9; }
-  100% { transform: translate(0, 0) scale(0.5); opacity: 0; }
+  0%   { transform: translate(0, 0) scale(0.15); opacity: 0; }
+  8%   { opacity: 1; }
+  65%  { transform: translate(calc(50vw - var(--sx)), calc(50vh - var(--sy))) scale(1.3); opacity: 0.9; }
+  85%  { transform: translate(calc(50vw - var(--sx)), calc(50vh - var(--sy))) scale(0.7); opacity: 0.6; }
+  100% { transform: translate(calc(50vw - var(--sx)), calc(50vh - var(--sy))) scale(0.3); opacity: 0.3; }
+}
+@keyframes perimeter-orbit {
+  0%, 100% { transform: translate(calc(50vw - var(--sx)), calc(50vh - var(--sy))) rotate(0deg) translateX(0px); }
+  25%  { transform: translate(calc(50vw - var(--sx) + 8px), calc(50vh - var(--sy) - 6px)) scale(1.2); }
+  50%  { transform: translate(calc(50vw - var(--sx) - 6px), calc(50vh - var(--sy) + 4px)) scale(0.85); }
+  75%  { transform: translate(calc(50vw - var(--sx) + 4px), calc(50vh - var(--sy) + 8px)) scale(1.1); }
 }
 
 /* ── Effect 1: Fog ── */
 @keyframes reveal-fog {
-  0%   { transform: scale(0.5); opacity: 0; filter: blur(20px) brightness(2); }
-  40%  { filter: blur(12px) brightness(1.3); opacity: 0.4; }
-  80%  { filter: blur(3px) brightness(1.05); opacity: 0.9; }
+  0%   { transform: scale(0.4); opacity: 0; filter: blur(24px) brightness(2.5); }
+  30%  { filter: blur(16px) brightness(1.5); opacity: 0.2; }
+  60%  { filter: blur(6px) brightness(1.1); opacity: 0.7; }
+  85%  { filter: blur(1px) brightness(1); opacity: 0.95; }
   100% { transform: scale(1); opacity: 1; filter: blur(0) brightness(1); }
 }
 .wisp {
   position: absolute;
   left: var(--wisp-x, 0);
   top: var(--wisp-y, 0);
-  width: 70px;
-  height: 40px;
+  width: 120px;
+  height: 70px;
   border-radius: 50%;
   pointer-events: none;
-  animation: wisp-drift var(--wisp-dur, 6s) var(--wisp-delay, 0s) ease-in-out infinite;
+  opacity: 0;
+  filter: blur(8px);
+  animation: wisp-drift var(--wisp-dur, 8s) var(--wisp-delay, 0s) ease-in-out infinite;
 }
 @keyframes wisp-drift {
-  0%, 100% { transform: translate(0, 0) scale(var(--wisp-scale, 0.8)) rotate(0deg); opacity: 0; }
-  30%      { opacity: 0.35; }
-  50%      { transform: translate(10px, -15px) scale(1.2) rotate(5deg); opacity: 0.45; }
-  70%      { opacity: 0.3; }
+  0%, 100% { transform: translate(0, 0) scale(var(--wisp-scale, 1)) rotate(0deg); opacity: 0; }
+  20%      { opacity: var(--wisp-opacity, 0.35); }
+  35%      { transform: translate(15px, -20px) scale(calc(var(--wisp-scale, 1) * 1.3)) rotate(8deg); opacity: var(--wisp-opacity, 0.35); }
+  60%      { transform: translate(-10px, 10px) scale(calc(var(--wisp-scale, 1) * 0.9)) rotate(-4deg); }
+  80%      { opacity: var(--wisp-opacity, 0.35); }
 }
 
 /* ── Effect 2: Memory Shards ── */
 @keyframes reveal-shard {
-  0%   { transform: scale(0.2) rotate(-40deg); opacity: 0; }
-  50%  { transform: scale(1.08) rotate(6deg); opacity: 1; }
-  70%  { transform: scale(0.94) rotate(-2deg); opacity: 1; }
+  0%   { transform: scale(0.1) rotate(-60deg); opacity: 0; }
+  40%  { transform: scale(1.1) rotate(8deg); opacity: 0.9; }
+  60%  { transform: scale(0.9) rotate(-3deg); opacity: 1; }
+  80%  { transform: scale(1.02) rotate(1deg); opacity: 1; }
   100% { transform: scale(1) rotate(0deg); opacity: 1; }
 }
 .shard {
-  position: absolute;
-  width: var(--size, 22px);
-  height: var(--size, 22px);
-  border-radius: 2px 8px 3px 6px;
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  width: var(--size, 28px);
+  height: var(--size, 28px);
+  border-radius: 3px 10px 4px 8px;
   pointer-events: none;
-  animation: shard-fly 1.0s var(--delay, 0s) cubic-bezier(0.34, 1.56, 0.64, 1) forwards,
-             shard-pulse 2.5s 1s ease-in-out infinite;
+  z-index: 18;
+  animation: shard-fly 0.9s var(--delay, 0s) cubic-bezier(0.22, 0.61, 0.36, 1) forwards,
+             shard-pulse 3s 1s ease-in-out infinite;
 }
 @keyframes shard-fly {
-  0%   { transform: translate(var(--from-x), var(--from-y)) rotate(var(--rotate)) scale(0.2); opacity: 0; }
-  100% { transform: translate(0, 0) rotate(0deg) scale(1); opacity: 0.7; }
+  0%   { transform: translate(var(--from-x), var(--from-y)) rotate(var(--rotate)) scale(0.15); opacity: 0; }
+  30%  { opacity: 1; }
+  100% { transform: translate(0, 0) rotate(0deg) scale(1); opacity: 0.85; }
 }
 @keyframes shard-pulse {
-  0%, 100% { opacity: 0.65; transform: translate(0, 0) rotate(0deg); }
-  50%      { opacity: 0.85; transform: translate(3px, -2px) rotate(3deg); }
+  0%, 100% { opacity: 0.7; transform: translate(0, 0) rotate(0deg) scale(1); }
+  50%      { opacity: 0.95; transform: translate(4px, -3px) rotate(4deg) scale(1.05); }
 }
 
 /* ── Effect 3: Ripple ── */
 @keyframes reveal-ripple {
-  0%   { transform: scale(0.3); opacity: 0; }
-  40%  { transform: scale(0.9); opacity: 0.6; }
-  70%  { transform: scale(1.04); opacity: 1; }
-  85%  { transform: scale(0.96); opacity: 1; }
+  0%   { transform: scale(0.2); opacity: 0; }
+  30%  { transform: scale(0.85); opacity: 0.5; }
+  55%  { transform: scale(1.05); opacity: 1; }
+  75%  { transform: scale(0.95); opacity: 1; }
   100% { transform: scale(1); opacity: 1; }
 }
 .ripple-ring {
   position: absolute;
   top: 50%;
   left: 50%;
-  width: var(--ripple-size, 100px);
-  height: var(--ripple-size, 100px);
+  width: var(--ripple-size, 90px);
+  height: var(--ripple-size, 90px);
   border-radius: 50%;
-  border: 1.5px solid var(--ripple-color, #88888844);
+  border-style: solid;
   pointer-events: none;
-  animation: ripple-expand 2.5s var(--ripple-delay, 0s) ease-out infinite;
+  animation: ripple-expand 3s var(--ripple-delay, 0s) ease-out infinite;
 }
 @keyframes ripple-expand {
-  0%   { transform: translate(-50%, -50%) scale(0.3); opacity: 0.6; }
-  100% { transform: translate(-50%, -50%) scale(1.6); opacity: 0; }
+  0%   { transform: translate(-50%, -50%) scale(0.15); opacity: 0.8; }
+  100% { transform: translate(-50%, -50%) scale(2.0); opacity: 0; }
 }
 .reflection {
   position: absolute;
-  inset: 10px -10px -10px 10px;
+  inset: 8px -8px -12px 8px;
   border-radius: inherit;
-  background: var(--persona-bg, rgba(212,162,85,0.04));
+  background: var(--persona-bg, rgba(212,162,85,0.06));
   pointer-events: none;
   animation: reflection-shift 3s ease-in-out infinite;
-  filter: blur(15px);
+  filter: blur(18px);
+  opacity: 0.5;
 }
 @keyframes reflection-shift {
-  0%, 100% { transform: translate(3px, 3px); opacity: 0.3; }
-  50%      { transform: translate(-3px, -3px); opacity: 0.15; }
+  0%, 100% { transform: translate(4px, 4px) scale(0.9); opacity: 0.3; }
+  50%      { transform: translate(-4px, -4px) scale(1.05); opacity: 0.6; }
 }
 
 /* ── release dissolve (shared) ── */
