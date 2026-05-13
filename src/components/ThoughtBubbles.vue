@@ -430,12 +430,12 @@ export default {
     sampleTextPixelsForEffect2(color, origin, center, text) {
       this.shards = []
       if (!text) return
+      // character-grid approach: measure each char, fill its box with 2.5px particles
       const canvas = document.createElement('canvas')
       const ctx = canvas.getContext('2d')
-      const fontSize = 32 // larger font for reliable text rendering on any system
-      const font = `400 ${fontSize}px SimSun, 'Microsoft YaHei', serif`
-      ctx.font = font
-      const maxWidth = 520 // wider at large font size, we'll scale down
+      const fontSize = 18
+      ctx.font = `400 ${fontSize}px SimSun, 'Microsoft YaHei', serif`
+      const maxWidth = 400
       const lines = []
       let cur = ''
       for (const ch of text) {
@@ -444,70 +444,52 @@ export default {
       }
       if (cur) lines.push(cur)
       const lineH = fontSize * 1.8
-      canvas.width = Math.max(Math.ceil(Math.max(...lines.map(l => ctx.measureText(l).width))) + 16, 20)
-      canvas.height = Math.max(Math.ceil(lines.length * lineH + 8), 20)
-
-      // MUST re-set after canvas resize
-      ctx.font = font
-      // fill + stroke for thick, reliable pixel coverage
-      ctx.fillStyle = '#ffffff'
-      ctx.strokeStyle = '#ffffff'
-      ctx.lineWidth = 3
-      ctx.textBaseline = 'top'
-      lines.forEach((line, li) => {
-        const y = 4 + li * lineH
-        ctx.fillText(line, 8, y)
-        ctx.strokeText(line, 8, y)
-      })
-
-      const img = ctx.getImageData(0, 0, canvas.width, canvas.height)
-      const pixels = []
-      const step = 3 // sample step relative to 32px font
-      for (let y = 0; y < canvas.height; y += step) {
-        for (let x = 0; x < canvas.width; x += step) {
-          if (img.data[(y * canvas.width + x) * 4 + 3] > 20) pixels.push({ x, y })
+      const step = 2.5
+      // build grid positions for every character
+      const grid = []
+      for (let li = 0; li < lines.length; li++) {
+        const line = lines[li]
+        let cx = 0
+        for (let ci = 0; ci < line.length; ci++) {
+          const ch = line[ci]
+          const cw = ctx.measureText(ch).width
+          // skip very narrow chars (spaces, punctuation)
+          for (let gx = 0; gx < cw; gx += step) {
+            for (let gy = 0; gy < fontSize * 0.85; gy += step) {
+              // ~55% density for a particle-grid mosaic look (not solid block)
+              if (Math.random() > 0.55) continue
+              grid.push({
+                x: cx + gx + (Math.random() - 0.5) * 1.5,
+                y: li * lineH + gy + (Math.random() - 0.5) * 1.5,
+              })
+            }
+          }
+          cx += cw
         }
       }
-      // scale factor: 32px canvas font → 18px screen font
-      const scale = 18 / fontSize
-
-      if (pixels.length === 0) {
-        for (let i = 0; i < 18; i++) {
-          const a = (i / 18) * Math.PI * 2
-          this.shards.push({
-            i, style: {
-              '--ox': `${origin.x + Math.cos(a) * 70}px`,
-              '--oy': `${origin.y + Math.sin(a) * 70}px`,
-              '--cx': `${center.x + (Math.random() - 0.5) * 80}px`,
-              '--cy': `${center.y + (Math.random() - 0.5) * 50}px`,
-              '--delay': `${i * 0.03}s`, '--size': '3px',
-              backgroundColor: color, boxShadow: `0 0 3px ${color}cc`, opacity: 0.7,
-            },
-          })
-        }
-        return
-      }
-      const limit = Math.min(pixels.length, 180)
-      // canvas is rendered at fontSize=32, scale to 18px on screen
-      const sw = canvas.width * scale
-      const sh = canvas.height * scale
-      const tx = center.x - sw / 2
-      const ty = center.y - sh / 2
+      if (grid.length === 0) return
+      // total text block dimensions
+      const totalW = Math.max(...lines.map(l => ctx.measureText(l).width))
+      const totalH = lines.length * lineH
+      // random sample from grid (limit to 200 particles)
+      const limit = Math.min(grid.length, 200)
+      const tx = center.x - totalW / 2
+      const ty = center.y - totalH / 2
       for (let i = 0; i < limit; i++) {
-        const ri = Math.floor(Math.random() * pixels.length)
-        const p = pixels.splice(ri, 1)[0]
+        const ri = Math.floor(Math.random() * grid.length)
+        const p = grid.splice(ri, 1)[0]
         const a = Math.random() * Math.PI * 2
-        const burst = 50 + Math.random() * 120
+        const burst = 50 + Math.random() * 130
         this.shards.push({
           i, style: {
             '--ox': `${origin.x + Math.cos(a) * burst}px`,
             '--oy': `${origin.y + Math.sin(a) * burst}px`,
-            '--cx': `${tx + p.x * scale}px`,
-            '--cy': `${ty + p.y * scale}px`,
+            '--cx': `${tx + p.x}px`,
+            '--cy': `${ty + p.y}px`,
             '--delay': `${Math.random() * 0.7}s`,
-            '--size': '2px',
+            '--size': `${step * 0.9}px`,
             backgroundColor: color,
-            boxShadow: `0 0 2px ${color}cc`,
+            boxShadow: `0 0 3px ${color}cc`,
             opacity: 0.85,
           },
         })
