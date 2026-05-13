@@ -932,11 +932,12 @@ export default {
 /* ── Effect 2: Canvas pixel text reconstruction ── */
 .shard {
   position: absolute;
-  width: var(--size, 3px);
-  height: var(--size, 3px);
+  width: var(--size, 4px);
+  height: var(--size, 4px);
   border-radius: 50%;
   pointer-events: none;
-  z-index: 18;
+  z-index: 99;
+  display: block;
   animation-name: pixel-land;
   animation-duration: 0.7s;
   animation-delay: var(--delay, 0s);
@@ -945,9 +946,9 @@ export default {
 }
 @keyframes pixel-land {
   0%   { left: var(--ox); top: var(--oy); transform: scale(0); opacity: 0; }
-  30%  { opacity: 1; }
-  85%  { left: var(--cx); top: var(--cy); transform: scale(1.5); opacity: 1; }
-  100% { left: var(--cx); top: var(--cy); transform: scale(1); opacity: 0.85; }
+  20%  { opacity: 1; }
+  80%  { left: var(--cx); top: var(--cy); transform: scale(1.5); opacity: 1; }
+  100% { left: var(--cx); top: var(--cy); transform: scale(1); opacity: 0.88; }
 }
 /* text shown faintly behind pixel reconstruction for effect 2 */
 .capture-bubble.effect-2 .capture-text { opacity: 0.12; transition: opacity 0.8s 0.5s; }
