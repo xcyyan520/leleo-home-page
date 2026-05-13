@@ -432,11 +432,10 @@ export default {
       if (!text) return
       const canvas = document.createElement('canvas')
       const ctx = canvas.getContext('2d')
-      const fontSize = 18
-      // Windows Chinese fonts: SimSun/宋体 always available, Microsoft YaHei modern, serif fallback
-      const font = `400 ${fontSize}px SimSun, 'Microsoft YaHei', 'Noto Serif CJK SC', serif`
+      const fontSize = 32 // larger font for reliable text rendering on any system
+      const font = `400 ${fontSize}px SimSun, 'Microsoft YaHei', serif`
       ctx.font = font
-      const maxWidth = 400
+      const maxWidth = 520 // wider at large font size, we'll scale down
       const lines = []
       let cur = ''
       for (const ch of text) {
@@ -445,50 +444,55 @@ export default {
       }
       if (cur) lines.push(cur)
       const lineH = fontSize * 1.8
-      const totalH = lines.length * lineH + 8
-      const maxW = Math.max(...lines.map(l => ctx.measureText(l).width))
-      canvas.width = Math.max(Math.ceil(maxW) + 16, 20)
-      canvas.height = Math.max(Math.ceil(totalH), 20)
+      canvas.width = Math.max(Math.ceil(Math.max(...lines.map(l => ctx.measureText(l).width))) + 16, 20)
+      canvas.height = Math.max(Math.ceil(lines.length * lineH + 8), 20)
 
-      // MUST re-set font after canvas resize
+      // MUST re-set after canvas resize
       ctx.font = font
+      // fill + stroke for thick, reliable pixel coverage
       ctx.fillStyle = '#ffffff'
+      ctx.strokeStyle = '#ffffff'
+      ctx.lineWidth = 3
       ctx.textBaseline = 'top'
-      lines.forEach((line, li) => ctx.fillText(line, 8, 4 + li * lineH))
+      lines.forEach((line, li) => {
+        const y = 4 + li * lineH
+        ctx.fillText(line, 8, y)
+        ctx.strokeText(line, 8, y)
+      })
 
       const img = ctx.getImageData(0, 0, canvas.width, canvas.height)
       const pixels = []
-      const step = 2 // finer sampling for better text shape
+      const step = 3 // sample step relative to 32px font
       for (let y = 0; y < canvas.height; y += step) {
         for (let x = 0; x < canvas.width; x += step) {
-          if (img.data[(y * canvas.width + x) * 4 + 3] > 60) pixels.push({ x, y })
+          if (img.data[(y * canvas.width + x) * 4 + 3] > 20) pixels.push({ x, y })
         }
       }
+      // scale factor: 32px canvas font → 18px screen font
+      const scale = 18 / fontSize
 
       if (pixels.length === 0) {
-        // fallback: scatter around center (not all to same point)
         for (let i = 0; i < 18; i++) {
           const a = (i / 18) * Math.PI * 2
-          const scX = (Math.random() - 0.5) * 80
-          const scY = (Math.random() - 0.5) * 50
           this.shards.push({
             i, style: {
               '--ox': `${origin.x + Math.cos(a) * 70}px`,
               '--oy': `${origin.y + Math.sin(a) * 70}px`,
-              '--cx': `${center.x + scX}px`, '--cy': `${center.y + scY}px`,
-              '--delay': `${i * 0.03}s`, '--size': '4px',
-              backgroundColor: color,
-              boxShadow: `0 0 4px ${color}cc`,
-              opacity: 0.8,
+              '--cx': `${center.x + (Math.random() - 0.5) * 80}px`,
+              '--cy': `${center.y + (Math.random() - 0.5) * 50}px`,
+              '--delay': `${i * 0.03}s`, '--size': '3px',
+              backgroundColor: color, boxShadow: `0 0 3px ${color}cc`, opacity: 0.7,
             },
           })
         }
         return
       }
-
       const limit = Math.min(pixels.length, 180)
-      const tx = center.x - canvas.width / 2
-      const ty = center.y - canvas.height / 2
+      // canvas is rendered at fontSize=32, scale to 18px on screen
+      const sw = canvas.width * scale
+      const sh = canvas.height * scale
+      const tx = center.x - sw / 2
+      const ty = center.y - sh / 2
       for (let i = 0; i < limit; i++) {
         const ri = Math.floor(Math.random() * pixels.length)
         const p = pixels.splice(ri, 1)[0]
@@ -498,13 +502,13 @@ export default {
           i, style: {
             '--ox': `${origin.x + Math.cos(a) * burst}px`,
             '--oy': `${origin.y + Math.sin(a) * burst}px`,
-            '--cx': `${tx + p.x}px`,
-            '--cy': `${ty + p.y}px`,
+            '--cx': `${tx + p.x * scale}px`,
+            '--cy': `${ty + p.y * scale}px`,
             '--delay': `${Math.random() * 0.7}s`,
-            '--size': `${step * 1.1}px`,
+            '--size': '2px',
             backgroundColor: color,
-            boxShadow: `0 0 3px ${color}cc`,
-            opacity: 0.88,
+            boxShadow: `0 0 2px ${color}cc`,
+            opacity: 0.85,
           },
         })
       }
