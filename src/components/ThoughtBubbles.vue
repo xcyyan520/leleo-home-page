@@ -464,6 +464,26 @@ export default {
           if (img.data[(y * canvas.width + x) * 4 + 3] > 80) pixels.push({ x, y })
         }
       }
+      if (pixels.length === 0) {
+        // fallback: random shards if text sampling failed
+        for (let i = 0; i < 12; i++) {
+          const a = (i / 12) * Math.PI * 2
+          this.shards.push({
+            i,
+            style: {
+              '--ox': `${origin.x + Math.cos(a) * 60}px`,
+              '--oy': `${origin.y + Math.sin(a) * 60}px`,
+              '--cx': `${center.x}px`, '--cy': `${center.y}px`,
+              '--delay': `${i * 0.04}s`,
+              '--size': '18px',
+              backgroundColor: color,
+              boxShadow: `0 0 12px ${color}99`,
+              opacity: 0.75,
+            },
+          })
+        }
+        return
+      }
       const limit = Math.min(pixels.length, 160)
       const ox = center.x - canvas.width / 2
       const oy = center.y - canvas.height / 2
