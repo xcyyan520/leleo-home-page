@@ -359,11 +359,11 @@ export default {
       const c = bubble.style['--persona-color']
       this.captureEffect = Math.floor(Math.random() * 4)
       this.releasing = false
-      this.generateEffectDecorations(c, origin, center)
+      this.generateEffectDecorations(c, origin, center, bubble.text)
       this.capturedBubble = bubble
       this.$nextTick(() => { this.addEscListener() })
     },
-    generateEffectDecorations(color, origin, center) {
+    generateEffectDecorations(color, origin, center, text) {
       const eff = this.captureEffect
       this.sparkles = []
       this.wisps = []
@@ -409,24 +409,8 @@ export default {
           })
         }
       } else if (eff === 2) {
-        // shards: 10 fragments — bubble literally breaks into jagged pieces, reassembles at center
-        for (let i = 0; i < 10; i++) {
-          const angle = (i / 10) * Math.PI * 2
-          const burst = 30 + Math.random() * 110
-          this.shards.push({
-            i, style: {
-              '--ox': `${origin.x + Math.cos(angle) * burst}px`,
-              '--oy': `${origin.y + Math.sin(angle) * burst}px`,
-              '--cx': `${center.x}px`, '--cy': `${center.y}px`,
-              '--delay': `${i * 0.035}s`,
-              '--rot': `${(i / 10) * 360 - 90 + (Math.random() - 0.5) * 40}deg`,
-              '--size': `${14 + Math.random() * 24}px`,
-              backgroundColor: color,
-              boxShadow: `0 0 12px ${color}99, inset 0 0 4px ${color}44`,
-              opacity: 0.75 + Math.random() * 0.2,
-            },
-          })
-        }
+        // Canvas text reconstruction — bubble shatters, particles reassemble into the text stroke-by-stroke
+        this.sampleTextPixelsForEffect2(color, origin, center)
       } else {
         // ripple: vortex — rings emanate from origin, center area blurs, bubble rises
         for (let i = 0; i < 6; i++) {
@@ -441,6 +425,71 @@ export default {
             },
           })
         }
+      }
+    },
+    sampleTextPixelsForEffect2(color, origin, center, text) {
+      if (!text) { this.shards = []; return }
+      const canvas = document.createElement('canvas')
+      const ctx = canvas.getContext('2d')
+      const fontSize = 18
+      ctx.font = `400 ${fontSize}px Georgia, 'Noto Serif SC', 'Source Han Serif SC', serif`
+      const maxWidth = 440
+      // wrap text
+      const lines = []
+      let current = ''
+      for (const char of text) {
+        if (ctx.measureText(current + char).width > maxWidth) {
+          lines.push(current)
+          current = char
+        } else { current += char }
+      }
+      if (current) lines.push(current)
+      const lineHeight = fontSize * 1.8
+      const totalH = lines.length * lineHeight
+      const maxLineW = Math.max(...lines.map(l => ctx.measureText(l).width))
+      canvas.width = Math.ceil(maxLineW) + 20
+      canvas.height = Math.ceil(totalH) + 10
+
+      ctx.fillStyle = '#ffffff'
+      ctx.font = `400 ${fontSize}px Georgia, 'Noto Serif SC', serif`
+      ctx.textBaseline = 'top'
+      lines.forEach((line, li) => {
+        ctx.fillText(line, 10, 5 + li * lineHeight)
+      })
+
+      const img = ctx.getImageData(0, 0, canvas.width, canvas.height)
+      const pixels = []
+      const step = Math.max(2, Math.floor(Math.sqrt((canvas.width * canvas.height) / 800)))
+      for (let y = 0; y < canvas.height; y += step) {
+        for (let x = 0; x < canvas.width; x += step) {
+          const a = img.data[(y * canvas.width + x) * 4 + 3]
+          if (a > 100) pixels.push({ x, y })
+        }
+      }
+      // sample up to 180 particles
+      const total = Math.min(pixels.length, 180)
+      const offsetX = center.x - canvas.width / 2
+      const offsetY = center.y - canvas.height / 2
+
+      for (let i = 0; i < total; i++) {
+        const idx = Math.floor(Math.random() * pixels.length)
+        const pixel = pixels.splice(idx, 1)[0]
+        const angle = Math.random() * Math.PI * 2
+        const burst = 40 + Math.random() * 120
+        this.shards.push({
+          i,
+          style: {
+            '--ox': `${origin.x + Math.cos(angle) * burst}px`,
+            '--oy': `${origin.y + Math.sin(angle) * burst}px`,
+            '--cx': `${offsetX + pixel.x}px`,
+            '--cy': `${offsetY + pixel.y}px`,
+            '--delay': `${Math.random() * 0.7}s`,
+            '--size': `${step * 1.1}px`,
+            backgroundColor: color,
+            boxShadow: `0 0 ${step * 2}px ${color}88`,
+            opacity: 0.85,
+          },
+        })
       }
     },
     releaseBubble() {
@@ -852,34 +901,34 @@ export default {
   100% { opacity: 1; filter: blur(0) brightness(1); }
 }
 
-/* ── Effect 2: Memory Shards ── */
+/* ── Effect 2: Canvas pixel text reconstruction ── */
 .shard {
   position: absolute;
-  width: var(--size, 28px);
-  height: var(--size, 28px);
-  border-radius: 2px 8px 3px 7px;
+  width: var(--size, 3px);
+  height: var(--size, 3px);
+  border-radius: 50%;
   pointer-events: none;
   z-index: 18;
-  animation: shard-fly 0.9s var(--delay, 0s) cubic-bezier(0.22, 0.61, 0.36, 1) forwards,
-             shard-pulse 2.8s 1s ease-in-out infinite;
+  animation: pixel-land 0.7s var(--delay, 0s) ease-out forwards;
 }
-@keyframes shard-fly {
-  0%   { left: var(--ox); top: var(--oy); transform: rotate(var(--rot)) scale(0.1); opacity: 0; }
-  20%  { opacity: 1; }
-  100% { left: var(--cx); top: var(--cy); transform: rotate(0deg) scale(1); opacity: 0.85; }
+@keyframes pixel-land {
+  0%   { left: var(--ox); top: var(--oy); transform: scale(0); opacity: 0; }
+  30%  { opacity: 1; }
+  85%  { left: var(--cx); top: var(--cy); transform: scale(1.5); opacity: 1; }
+  100% { left: var(--cx); top: var(--cy); transform: scale(1); opacity: 0.85; }
 }
-@keyframes shard-pulse {
-  0%,100% { opacity: 0.7; transform: translate(0,0) rotate(0deg); }
-  50%     { opacity: 0.95; transform: translate(5px,-4px) rotate(5deg); }
-}
+/* hide bubble text for effect 2 — text is formed by pixels */
+.capture-bubble.effect-2 .capture-text { opacity: 0; }
+.capture-bubble.effect-2 .capture-dots { opacity: 0; }
 .capture-bubble.effect-2 {
-  animation: reveal-shard 0.35s 0.5s ease-out forwards, capture-float 4s 1s ease-in-out infinite;
+  animation: reveal-shard 0.3s 0.8s ease-out forwards, capture-float 4s 1.5s ease-in-out infinite;
   opacity: 0;
+  background: transparent;
+  border-color: color-mix(in srgb, var(--persona-color, #d4a255) 12%, transparent);
 }
 @keyframes reveal-shard {
-  0%   { transform: scale(0.1) rotate(-40deg); opacity: 0; }
-  60%  { transform: scale(1.06) rotate(3deg); opacity: 0.9; }
-  100% { transform: scale(1) rotate(0deg); opacity: 1; }
+  0%   { opacity: 0; }
+  100% { opacity: 1; }
 }
 
 /* ── Effect 3: Ripple ── */
