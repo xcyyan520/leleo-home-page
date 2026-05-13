@@ -829,14 +829,6 @@ export default {
   50%  { transform: translate(-4px,2px) scale(0.7); opacity: 0.5; }
   75%  { transform: translate(2px,5px) scale(1.1); opacity: 0.75; }
 }
-.capture-bubble.effect-0 .capture-text {
-  animation: text-build 0.5s 0.3s steps(20) forwards;
-  clip-path: inset(0 100% 0 0);
-}
-@keyframes text-build {
-  0%   { clip-path: inset(0 100% 0 0); }
-  100% { clip-path: inset(0 0 0 0); }
-}
 
 /* ── Effect 1: Fog ── */
 .wisp {
