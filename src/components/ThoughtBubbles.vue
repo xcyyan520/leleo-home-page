@@ -26,8 +26,9 @@
         v-for="b in visibleBubbles"
         :key="b.id"
         class="thought-bubble"
-        :class="[b.personaClass, b.shapeClass]"
-        :style="b.style"
+        :class="[b.personaClass, b.shapeClass, { 'is-captured': capturedBubble && capturedBubble.id === b.id }]"
+        :style="b.id === (capturedBubble && capturedBubble.id) ? b.capturedStyle : b.style"
+        @click.stop="captureBubble(b)"
       >
         <span class="bubble-label">{{ b.personaLabel }}</span>
         <p class="bubble-text">{{ b.text }}</p>
@@ -36,6 +37,31 @@
         </div>
       </div>
     </transition-group>
+
+    <!-- capture overlay -->
+    <transition name="overlay-fade">
+      <div v-if="capturedBubble" class="capture-overlay" @click="releaseBubble">
+        <div class="capture-stage" @click.stop>
+          <div
+            class="capture-bubble"
+            :class="[capturedBubble.personaClass]"
+            :style="{
+              '--persona-color': capturedBubble.style['--persona-color'],
+              '--persona-glow': capturedBubble.style['--persona-glow'],
+              '--persona-bg': capturedBubble.style['--persona-bg'],
+            }"
+          >
+            <div class="capture-spin-ring"></div>
+            <span class="capture-label">{{ capturedBubble.personaLabel }} · 思考中</span>
+            <p class="capture-text">{{ capturedBubble.text }}</p>
+            <div class="capture-dots">
+              <span class="c-dot" v-for="n in capturedBubble.dotCount" :key="n"></span>
+            </div>
+          </div>
+          <div class="capture-hint">点击空白处释放</div>
+        </div>
+      </div>
+    </transition>
 
     <!-- back link -->
     <a href="/" class="back-link">
@@ -103,6 +129,7 @@ export default {
       personaData: [[], [], [], []],
       bubbleTimer: null,
       maxBubbles: 7,
+      capturedBubble: null,
     }
   },
   async mounted() {
@@ -115,6 +142,7 @@ export default {
   beforeUnmount() {
     clearInterval(this.bubbleTimer)
     document.removeEventListener('click', this.handleClick)
+    this.removeEscListener()
   },
   methods: {
     generateParticles() {
@@ -261,6 +289,48 @@ export default {
       // spawn extra bubble on click
       if (this.visibleBubbles.length < this.maxBubbles + 2) {
         this.spawnBubble()
+      }
+    },
+    captureBubble(bubble) {
+      // if same bubble clicked again, release
+      if (this.capturedBubble && this.capturedBubble.id === bubble.id) {
+        this.releaseBubble()
+        return
+      }
+      // add capturedStyle for fly-in animation
+      bubble.capturedStyle = {
+        '--persona-color': bubble.style['--persona-color'],
+        '--persona-glow': bubble.style['--persona-glow'],
+        '--persona-bg': bubble.style['--persona-bg'],
+        position: 'fixed',
+        left: '50%',
+        top: '50%',
+        transform: 'translate(-50%, -50%) scale(1.25)',
+        zIndex: 20,
+        transition: 'all 0.8s cubic-bezier(0.34, 1.56, 0.64, 1)',
+        pointerEvents: 'none',
+        opacity: 0,
+      }
+      this.capturedBubble = bubble
+      // after fly animation completes, show overlay content
+      this.$nextTick(() => {
+        this.addEscListener()
+      })
+    },
+    releaseBubble() {
+      this.capturedBubble = null
+      this.removeEscListener()
+    },
+    addEscListener() {
+      this._escHandler = (e) => {
+        if (e.key === 'Escape') this.releaseBubble()
+      }
+      document.addEventListener('keydown', this._escHandler)
+    },
+    removeEscListener() {
+      if (this._escHandler) {
+        document.removeEventListener('keydown', this._escHandler)
+        this._escHandler = null
       }
     },
   },
@@ -497,6 +567,183 @@ export default {
   color: rgba(200,195,185,0.18);
   letter-spacing: 0.12em;
   margin-top: 2px;
+}
+
+/* ── capture ── */
+.is-captured {
+  opacity: 0 !important;
+  pointer-events: none;
+}
+
+/* overlay */
+.capture-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 15;
+  background: rgba(4, 4, 10, 0.75);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.overlay-fade-enter-active {
+  transition: all 0.6s ease-out;
+}
+.overlay-fade-leave-active {
+  transition: all 0.5s ease-in;
+}
+.overlay-fade-enter-from,
+.overlay-fade-leave-to {
+  opacity: 0;
+}
+.overlay-fade-enter-from .capture-bubble {
+  transform: scale(0.3) rotate(-180deg);
+  opacity: 0;
+}
+.overlay-fade-leave-to .capture-bubble {
+  transform: scale(0.5) rotate(90deg);
+  opacity: 0;
+}
+
+/* center stage */
+.capture-stage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+  cursor: default;
+}
+
+/* captured bubble at center */
+.capture-bubble {
+  position: relative;
+  max-width: 520px;
+  min-width: 280px;
+  padding: 36px 40px 28px;
+  border-radius: 35% 65% 55% 45% / 45% 50% 50% 55%;
+  background: var(--persona-bg, rgba(212,162,85,0.08));
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 2px solid color-mix(in srgb, var(--persona-color, #d4a255) 30%, transparent);
+  box-shadow:
+    0 0 80px var(--persona-glow, rgba(212,162,85,0.3)),
+    inset 0 0 60px rgba(255,255,255,0.02);
+  animation: capture-reveal 1s cubic-bezier(0.34, 1.56, 0.64, 1) forwards,
+             capture-float 4s 1s ease-in-out infinite;
+}
+
+/* spinning ring — the "滴溜溜" effect */
+.capture-spin-ring {
+  position: absolute;
+  inset: -8px;
+  border-radius: inherit;
+  border: 1.5px solid transparent;
+  border-top-color: color-mix(in srgb, var(--persona-color, #d4a255) 40%, transparent);
+  border-right-color: color-mix(in srgb, var(--persona-color, #d4a255) 20%, transparent);
+  animation: ring-spin 2.5s linear infinite;
+  pointer-events: none;
+}
+
+.capture-bubble::after {
+  content: '';
+  position: absolute;
+  inset: -16px;
+  border-radius: inherit;
+  border: 1px solid transparent;
+  border-bottom-color: color-mix(in srgb, var(--persona-color, #d4a255) 25%, transparent);
+  border-left-color: color-mix(in srgb, var(--persona-color, #d4a255) 15%, transparent);
+  animation: ring-spin 4s linear infinite reverse;
+  pointer-events: none;
+}
+
+@keyframes capture-reveal {
+  0% {
+    transform: scale(0.2) rotate(-90deg);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.08) rotate(5deg);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1) rotate(0deg);
+    opacity: 1;
+  }
+}
+
+@keyframes capture-float {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  30%  { transform: translateY(-6px) rotate(0.5deg); }
+  70%  { transform: translateY(4px) rotate(-0.5deg); }
+}
+
+@keyframes ring-spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+/* captured label */
+.capture-label {
+  display: inline-block;
+  font-size: 12px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--persona-color, #d4a255);
+  opacity: 0.7;
+  margin-bottom: 10px;
+  font-family: 'Georgia', 'Noto Serif SC', serif;
+}
+
+/* captured text */
+.capture-text {
+  font-size: 18px;
+  line-height: 2;
+  color: rgba(230, 225, 215, 0.92);
+  font-family: 'Georgia', 'Noto Serif SC', 'Source Han Serif SC', serif;
+  font-weight: 400;
+  letter-spacing: 0.04em;
+  word-break: break-word;
+  text-align: center;
+}
+
+/* captured dots */
+.capture-dots {
+  display: flex;
+  gap: 8px;
+  margin-top: 14px;
+  justify-content: center;
+}
+.c-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--persona-color, #d4a255);
+  opacity: 0.4;
+  animation: dot-pulse 1.8s ease-in-out infinite;
+}
+.c-dot:nth-child(2) { animation-delay: 0.25s; width: 10px; height: 10px; opacity: 0.32; }
+.c-dot:nth-child(3) { animation-delay: 0.5s; }
+.c-dot:nth-child(4) { animation-delay: 0.75s; width: 6px; height: 6px; opacity: 0.28; }
+
+@keyframes dot-pulse {
+  0%, 100% { opacity: 0.4; transform: scale(1); }
+  50%      { opacity: 0.85; transform: scale(1.4); }
+}
+
+/* capture hint */
+.capture-hint {
+  font-size: 12px;
+  color: rgba(200, 195, 185, 0.35);
+  font-family: 'Georgia', 'Noto Serif SC', serif;
+  letter-spacing: 0.1em;
+  animation: hint-fade 3s ease-in-out infinite;
+}
+@keyframes hint-fade {
+  0%, 100% { opacity: 0.25; }
+  50%      { opacity: 0.55; }
 }
 
 /* ── responsive ── */
