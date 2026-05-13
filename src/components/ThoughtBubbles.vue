@@ -434,12 +434,13 @@ export default {
       this.typedText = ''
       if (!text) return
       let i = 0
-      const chars = [...text] // handle multi-byte chars correctly
-      const delay = 40 + Math.random() * 40 // 40-80ms per char
+      const chars = [...text]
+      const delay = 80 + Math.random() * 60 // 80-140ms per tick
       this.typingTimer = setInterval(() => {
         if (i >= chars.length) { this.stopTyping(); return }
-        this.typedText += chars[i]
-        i++
+        const count = 1 + Math.floor(Math.random() * 2) // 1-2 chars per tick
+        this.typedText += chars.slice(i, i + count).join('')
+        i += count
       }, delay)
     },
     stopTyping() {
