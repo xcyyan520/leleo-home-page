@@ -41,9 +41,11 @@
     <!-- capture overlay -->
     <transition name="overlay-fade">
       <div v-if="capturedBubble" class="capture-overlay" :class="{ releasing }" @click="releaseBubble">
-        <!-- particles layer: outside capture-bubble so position:fixed is viewport-relative -->
+        <!-- vortex blur for ripple effect -->
+        <div v-if="captureEffect === 3 && ripples.length" class="vortex-blur" :style="{ left: ripples[0].style['--ox'], top: ripples[0].style['--oy'] }"></div>
+        <!-- particles layer: outside capture-bubble so coordinates are viewport-relative -->
         <template v-if="captureEffect === 0">
-          <span v-for="sp in sparkles" :key="sp.i" class="sparkle" :style="sp.style"></span>
+          <span v-for="sp in sparkles" :key="sp.i" class="sparkle" :class="{ builder: sp.isBuilder }" :style="sp.style"></span>
         </template>
         <template v-if="captureEffect === 1">
           <span v-for="w in wisps" :key="w.i" class="wisp" :style="w.style"></span>
@@ -334,11 +336,12 @@ export default {
         this.releaseBubble()
         return
       }
-      // get original bubble's screen position
       const el = event ? event.currentTarget : null
       const rect = el ? el.getBoundingClientRect() : { left: window.innerWidth/2 - 100, top: window.innerHeight/2 - 40, width: 200, height: 80 }
       const origin = { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 }
-      // original dissolves quickly
+      // center in pixels (not vw/vh — avoids unit-mixing bugs)
+      const center = { x: window.innerWidth / 2, y: window.innerHeight / 2 }
+      // original bubble shatters in place
       bubble.capturedStyle = {
         '--persona-color': bubble.style['--persona-color'],
         '--persona-glow': bubble.style['--persona-glow'],
@@ -346,93 +349,95 @@ export default {
         position: 'fixed',
         left: `${origin.x}px`,
         top: `${origin.y}px`,
-        transform: 'translate(-50%, -50%) scale(0.6)',
+        transform: 'translate(-50%, -50%) scale(0.3)',
         zIndex: 20,
-        transition: 'all 0.25s ease-in',
+        transition: 'all 0.35s ease-in',
         pointerEvents: 'none',
         opacity: 0,
-        filter: 'blur(16px)',
+        filter: 'blur(20px)',
       }
       const c = bubble.style['--persona-color']
       this.captureEffect = Math.floor(Math.random() * 4)
       this.releasing = false
-      this.generateEffectDecorations(c, origin)
+      this.generateEffectDecorations(c, origin, center)
       this.capturedBubble = bubble
       this.$nextTick(() => { this.addEscListener() })
     },
-    generateEffectDecorations(color, origin) {
+    generateEffectDecorations(color, origin, center) {
       const eff = this.captureEffect
-      const cx = '50vw', cy = '50vh'
       this.sparkles = []
       this.wisps = []
       this.shards = []
       this.ripples = []
       if (eff === 0) {
-        // firefly: 18 sparkles burst from origin, fly to center, reform bubble
-        for (let i = 0; i < 18; i++) {
-          const angle = (i / 18) * Math.PI * 2
-          const burst = 25 + Math.random() * 55
-          const size = 3 + Math.random() * 8
+        // firefly: 24 sparkles — bubble "shatters" into fireflies, they fly to center, then piece the bubble together
+        for (let i = 0; i < 24; i++) {
+          const angle = (i / 24) * Math.PI * 2 + (Math.random() - 0.5) * 0.3
+          const burst = 15 + Math.random() * 70
+          const size = 2 + Math.random() * 9
+          const isBuilder = i >= 18 // last 6 stay to "build" the outline
           this.sparkles.push({
-            i, style: {
+            i, isBuilder,
+            style: {
               '--ox': `${origin.x + Math.cos(angle) * burst}px`,
               '--oy': `${origin.y + Math.sin(angle) * burst}px`,
-              '--cx': cx, '--cy': cy,
-              '--delay': `${Math.random() * 0.35}s`,
-              '--dur': `${0.8 + Math.random() * 0.8}s`,
+              '--cx': `${center.x}px`, '--cy': `${center.y}px`,
+              '--delay': `${Math.random() * 0.4}s`,
+              '--dur': `${0.8 + Math.random() * 1.0}s`,
               '--size': `${size}px`,
+              '--builder': isBuilder ? '1' : '0',
               backgroundColor: color,
-              boxShadow: `0 0 ${size * 2}px ${size * 0.5}px ${color}bb`,
+              boxShadow: `0 0 ${size * 2}px ${size * 0.6}px ${color}cc`,
             },
           })
         }
       } else if (eff === 1) {
-        // fog: 8 wisps flow from origin to center
-        for (let i = 0; i < 8; i++) {
-          const sx = origin.x + (Math.random() - 0.5) * 90
-          const sy = origin.y + (Math.random() - 0.5) * 70
+        // fog: 10 thick mist clouds dissolve from origin, gather at center, bubble emerges
+        for (let i = 0; i < 10; i++) {
+          const sx = origin.x + (Math.random() - 0.5) * 120
+          const sy = origin.y + (Math.random() - 0.5) * 100
           this.wisps.push({
             i, style: {
               '--ox': `${sx}px`, '--oy': `${sy}px`,
-              '--cx': cx, '--cy': cy,
-              '--dur': `${0.9 + Math.random() * 0.7}s`,
-              '--delay': `${Math.random() * 0.25}s`,
-              '--size': `${60 + Math.random() * 80}px`,
-              '--op': `${0.25 + Math.random() * 0.4}`,
-              background: `radial-gradient(ellipse at center, ${color}88 0%, ${color}33 50%, transparent 75%)`,
+              '--cx': `${center.x}px`, '--cy': `${center.y}px`,
+              '--dur': `${1.0 + Math.random() * 0.8}s`,
+              '--delay': `${Math.random() * 0.3}s`,
+              '--size': `${50 + Math.random() * 90}px`,
+              '--op': `${0.3 + Math.random() * 0.45}`,
+              background: `radial-gradient(ellipse at center, ${color}aa 0%, ${color}44 50%, transparent 75%)`,
             },
           })
         }
       } else if (eff === 2) {
-        // shards: 8 fragments break from origin, reassemble at center
-        for (let i = 0; i < 8; i++) {
-          const angle = (i / 8) * Math.PI * 2
-          const burst = 40 + Math.random() * 90
+        // shards: 10 fragments — bubble literally breaks into jagged pieces, reassembles at center
+        for (let i = 0; i < 10; i++) {
+          const angle = (i / 10) * Math.PI * 2
+          const burst = 30 + Math.random() * 110
           this.shards.push({
             i, style: {
               '--ox': `${origin.x + Math.cos(angle) * burst}px`,
               '--oy': `${origin.y + Math.sin(angle) * burst}px`,
-              '--cx': cx, '--cy': cy,
-              '--delay': `${i * 0.04}s`,
-              '--rot': `${(i / 8) * 360 - 90}deg`,
-              '--size': `${16 + Math.random() * 20}px`,
+              '--cx': `${center.x}px`, '--cy': `${center.y}px`,
+              '--delay': `${i * 0.035}s`,
+              '--rot': `${(i / 10) * 360 - 90 + (Math.random() - 0.5) * 40}deg`,
+              '--size': `${14 + Math.random() * 24}px`,
               backgroundColor: color,
-              boxShadow: `0 0 8px ${color}88`,
-              opacity: 0.7 + Math.random() * 0.25,
+              boxShadow: `0 0 12px ${color}99, inset 0 0 4px ${color}44`,
+              opacity: 0.75 + Math.random() * 0.2,
             },
           })
         }
       } else {
-        // ripple: 5 rings from origin, bubble rises at center
-        for (let i = 0; i < 5; i++) {
+        // ripple: vortex — rings emanate from origin, center area blurs, bubble rises
+        for (let i = 0; i < 6; i++) {
           this.ripples.push({
             i, style: {
               '--ox': `${origin.x}px`, '--oy': `${origin.y}px`,
-              '--cx': cx, '--cy': cy,
-              '--delay': `${i * 0.18}s`,
-              '--size': `${55 + i * 38}px`,
-              borderColor: `${color}77`,
-              borderWidth: `${2.5 - i * 0.3}px`,
+              '--cx': `${center.x}px`, '--cy': `${center.y}px`,
+              '--delay': `${i * 0.15}s`,
+              '--size': `${50 + i * 42}px`,
+              borderColor: `${color}88`,
+              borderWidth: `${3 - i * 0.35}px`,
             },
           })
         }
@@ -701,16 +706,20 @@ export default {
 
 /* ── capture ── */
 .is-captured {
-  opacity: 0 !important;
+  animation: bubble-shatter 0.35s ease-in forwards !important;
   pointer-events: none;
 }
+@keyframes bubble-shatter {
+  0%   { transform: scale(1); opacity: 1; filter: blur(0); }
+  30%  { transform: scale(1.06); opacity: 1; }
+  100% { transform: scale(0.25); opacity: 0; filter: blur(18px); }
+}
 
-/* overlay with radial vignette */
 .capture-overlay {
   position: fixed;
   inset: 0;
   z-index: 15;
-  background: radial-gradient(ellipse at center, rgba(4,4,10,0.55) 0%, rgba(4,4,10,0.85) 100%);
+  background: radial-gradient(ellipse at center, rgba(4,4,10,0.5) 0%, rgba(4,4,10,0.88) 100%);
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
   display: flex;
@@ -718,20 +727,10 @@ export default {
   justify-content: center;
   cursor: pointer;
 }
-.capture-overlay.releasing {
-  pointer-events: none;
-}
-
-.overlay-fade-enter-active {
-  transition: all 0.7s ease-out;
-}
-.overlay-fade-leave-active {
-  transition: all 1.0s ease-in;
-}
-.overlay-fade-enter-from,
-.overlay-fade-leave-to {
-  opacity: 0;
-}
+.capture-overlay.releasing { pointer-events: none; }
+.overlay-fade-enter-active { transition: opacity 0.5s ease-out; }
+.overlay-fade-leave-active { transition: opacity 0.6s ease-in; }
+.overlay-fade-enter-from, .overlay-fade-leave-to { opacity: 0; }
 
 /* center stage */
 .capture-stage {
@@ -750,46 +749,50 @@ export default {
   padding: 32px 36px 24px;
   border-radius: 35% 65% 55% 45% / 45% 50% 50% 55%;
   background: var(--persona-bg, rgba(212,162,85,0.08));
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
   border: 2px solid color-mix(in srgb, var(--persona-color, #d4a255) 30%, transparent);
   box-shadow:
     0 0 80px var(--persona-glow, rgba(212,162,85,0.3)),
     inset 0 0 60px rgba(255,255,255,0.02);
-  animation: capture-reveal 1s cubic-bezier(0.34, 1.56, 0.64, 1) forwards,
-             capture-float 4s 1s ease-in-out infinite;
-  transition: transform 0.9s ease-in, opacity 0.8s ease-in;
+  animation: capture-reveal 0.5s 0.6s ease-out forwards,
+             capture-float 4s 1.2s ease-in-out infinite;
+  opacity: 0;
 }
-
-/* ── effect entry: bubble appears later, after particles arrive ── */
-.capture-bubble.effect-0 { animation: reveal-firefly 0.4s 0.6s ease-out forwards, capture-float 4s 1s ease-in-out infinite; }
-.capture-bubble.effect-1 { animation: reveal-fog 0.5s 0.5s ease-out forwards, capture-float 4s 1s ease-in-out infinite; }
-.capture-bubble.effect-2 { animation: reveal-shard 0.4s 0.4s ease-out forwards, capture-float 4s 1s ease-in-out infinite; }
-.capture-bubble.effect-3 { animation: reveal-ripple 0.4s 0.3s ease-out forwards, capture-float 4s 1s ease-in-out infinite; }
-
 .capture-bubble.releasing {
-  animation: release-dissolve 0.5s ease-in forwards !important;
+  animation: release-dissolve 0.4s ease-in forwards !important;
   pointer-events: none;
 }
 
 @keyframes capture-reveal {
-  0%   { transform: scale(0.15); opacity: 0; }
-  60%  { transform: scale(1.04); opacity: 0.9; }
+  0%   { transform: scale(0.25); opacity: 0; }
   100% { transform: scale(1); opacity: 1; }
 }
 @keyframes capture-float {
   0%, 100% { transform: translateY(0); }
-  50%      { transform: translateY(-4px); }
+  50%      { transform: translateY(-5px); }
 }
 @keyframes release-dissolve {
   0%   { transform: scale(1); opacity: 1; filter: blur(0); }
-  100% { transform: scale(0.85); opacity: 0; filter: blur(8px); }
+  100% { transform: scale(0.8); opacity: 0; filter: blur(10px); }
+}
+
+/* vortex blur for ripple */
+.vortex-blur {
+  position: absolute;
+  width: 0; height: 0;
+  pointer-events: none;
+  z-index: 16;
+  transform: translate(-50%, -50%);
+  box-shadow: 0 0 200px 100px rgba(4,4,10,0.7);
+  animation: vortex-expand 1.5s ease-out forwards;
+}
+@keyframes vortex-expand {
+  0%   { box-shadow: 0 0 0 0 rgba(4,4,10,0.95); }
+  100% { box-shadow: 0 0 300px 180px rgba(4,4,10,0.55); }
 }
 
 /* ── Effect 0: Firefly ── */
-@keyframes reveal-firefly { 0% { opacity: 0; } 100% { opacity: 1; } }
 .sparkle {
-  position: fixed;
+  position: absolute;
   width: var(--size, 8px);
   height: var(--size, 8px);
   border-radius: 50%;
@@ -797,94 +800,124 @@ export default {
   z-index: 18;
   animation: sparkle-fly var(--dur, 1.4s) var(--delay, 0s) ease-out forwards;
 }
+.sparkle.builder {
+  animation: sparkle-fly var(--dur, 1.4s) var(--delay, 0s) ease-out forwards,
+             builder-glow 2s var(--dur, 1.4s) ease-in-out infinite;
+}
 @keyframes sparkle-fly {
-  0%   { left: var(--ox); top: var(--oy); transform: scale(0.1); opacity: 0; }
-  10%  { opacity: 1; }
-  70%  { left: var(--cx); top: var(--cy); transform: scale(1); opacity: 0.85; }
-  100% { left: var(--cx); top: var(--cy); transform: scale(0.2); opacity: 0; }
+  0%   { left: var(--ox); top: var(--oy); transform: scale(0.05); opacity: 0; }
+  8%   { opacity: 1; }
+  65%  { left: var(--cx); top: var(--cy); transform: scale(1); opacity: 0.9; }
+  100% { left: var(--cx); top: var(--cy); transform: scale(0.25); opacity: 0; }
+}
+@keyframes builder-glow {
+  0%,100% { transform: translate(0,0) scale(0.5); opacity: 0.3; }
+  25%  { transform: translate(3px,-5px) scale(1.2); opacity: 0.85; }
+  50%  { transform: translate(-4px,2px) scale(0.7); opacity: 0.5; }
+  75%  { transform: translate(2px,5px) scale(1.1); opacity: 0.75; }
+}
+.capture-bubble.effect-0 .capture-text {
+  animation: text-build 0.6s 0.9s steps(18) forwards;
+  clip-path: inset(0 100% 0 0);
+}
+@keyframes text-build {
+  0%   { clip-path: inset(0 100% 0 0); }
+  100% { clip-path: inset(0 0 0 0); }
 }
 
 /* ── Effect 1: Fog ── */
-@keyframes reveal-fog {
-  0%   { opacity: 0; filter: blur(16px); }
-  100% { opacity: 1; filter: blur(0); }
-}
 .wisp {
-  position: fixed;
+  position: absolute;
   width: var(--size, 100px);
   height: var(--size, 100px);
   border-radius: 50%;
   pointer-events: none;
   z-index: 17;
   opacity: 0;
-  filter: blur(12px);
+  filter: blur(14px);
   animation: wisp-flow var(--dur, 1.2s) var(--delay, 0s) ease-out forwards;
 }
 @keyframes wisp-flow {
-  0%   { left: var(--ox); top: var(--oy); transform: scale(0.2); opacity: 0; }
-  30%  { opacity: var(--op, 0.4); }
-  70%  { left: var(--cx); top: var(--cy); transform: scale(1.3); opacity: var(--op, 0.4); }
-  100% { left: var(--cx); top: var(--cy); transform: scale(0.8); opacity: 0.1; }
+  0%   { left: var(--ox); top: var(--oy); transform: scale(0.15) rotate(0deg); opacity: 0; }
+  25%  { opacity: var(--op, 0.4); }
+  60%  { left: var(--cx); top: var(--cy); transform: scale(1.5) rotate(10deg); opacity: var(--op, 0.4); }
+  100% { left: var(--cx); top: var(--cy); transform: scale(0.6) rotate(-5deg); opacity: 0.08; }
+}
+.capture-bubble.effect-1 {
+  animation: emerge-from-fog 0.6s 0.6s ease-out forwards, capture-float 4s 1.4s ease-in-out infinite;
+  opacity: 0;
+}
+@keyframes emerge-from-fog {
+  0%   { opacity: 0; filter: blur(20px) brightness(2); }
+  100% { opacity: 1; filter: blur(0) brightness(1); }
 }
 
 /* ── Effect 2: Memory Shards ── */
-@keyframes reveal-shard {
-  0%   { transform: scale(0.2) rotate(-30deg); opacity: 0; }
-  100% { transform: scale(1) rotate(0deg); opacity: 1; }
-}
 .shard {
-  position: fixed;
+  position: absolute;
   width: var(--size, 28px);
   height: var(--size, 28px);
-  border-radius: 3px 10px 4px 8px;
+  border-radius: 2px 8px 3px 7px;
   pointer-events: none;
   z-index: 18;
-  animation: shard-fly 0.85s var(--delay, 0s) cubic-bezier(0.22, 0.61, 0.36, 1) forwards,
-             shard-pulse 3s 0.9s ease-in-out infinite;
+  animation: shard-fly 0.9s var(--delay, 0s) cubic-bezier(0.22, 0.61, 0.36, 1) forwards,
+             shard-pulse 2.8s 1s ease-in-out infinite;
 }
 @keyframes shard-fly {
-  0%   { left: var(--ox); top: var(--oy); transform: rotate(var(--rot)) scale(0.15); opacity: 0; }
-  25%  { opacity: 1; }
+  0%   { left: var(--ox); top: var(--oy); transform: rotate(var(--rot)) scale(0.1); opacity: 0; }
+  20%  { opacity: 1; }
   100% { left: var(--cx); top: var(--cy); transform: rotate(0deg) scale(1); opacity: 0.85; }
 }
 @keyframes shard-pulse {
-  0%, 100% { opacity: 0.7; transform: translate(0, 0) rotate(0deg); }
-  50%      { opacity: 0.95; transform: translate(4px, -3px) rotate(4deg); }
+  0%,100% { opacity: 0.7; transform: translate(0,0) rotate(0deg); }
+  50%     { opacity: 0.95; transform: translate(5px,-4px) rotate(5deg); }
+}
+.capture-bubble.effect-2 {
+  animation: reveal-shard 0.35s 0.5s ease-out forwards, capture-float 4s 1s ease-in-out infinite;
+  opacity: 0;
+}
+@keyframes reveal-shard {
+  0%   { transform: scale(0.1) rotate(-40deg); opacity: 0; }
+  60%  { transform: scale(1.06) rotate(3deg); opacity: 0.9; }
+  100% { transform: scale(1) rotate(0deg); opacity: 1; }
 }
 
 /* ── Effect 3: Ripple ── */
-@keyframes reveal-ripple {
-  0%   { transform: scale(0.3); opacity: 0; }
-  100% { transform: scale(1); opacity: 1; }
-}
 .ripple-ring {
-  position: fixed;
+  position: absolute;
   width: var(--size, 80px);
   height: var(--size, 80px);
   border-radius: 50%;
   border-style: solid;
   pointer-events: none;
   z-index: 17;
-  animation: ripple-from-origin 2.5s var(--delay, 0s) ease-out forwards;
+  animation: ripple-from-origin 2.2s var(--delay, 0s) ease-out forwards;
 }
 @keyframes ripple-from-origin {
-  0%   { left: var(--ox); top: var(--oy); transform: translate(-50%, -50%) scale(0.1); opacity: 0.9; }
-  80%  { left: var(--cx); top: var(--cy); transform: translate(-50%, -50%) scale(1.8); opacity: 0.4; }
-  100% { left: var(--cx); top: var(--cy); transform: translate(-50%, -50%) scale(2.2); opacity: 0; }
+  0%   { left: var(--ox); top: var(--oy); transform: translate(-50%, -50%) scale(0.05); opacity: 1; }
+  100% { left: var(--cx); top: var(--cy); transform: translate(-50%, -50%) scale(2.5); opacity: 0; }
+}
+.capture-bubble.effect-3 {
+  animation: reveal-ripple 0.35s 0.35s ease-out forwards, capture-float 4s 1s ease-in-out infinite;
+  opacity: 0;
+}
+@keyframes reveal-ripple {
+  0%   { transform: scale(0.2) translateY(20px); opacity: 0; }
+  100% { transform: scale(1) translateY(0); opacity: 1; }
 }
 .reflection {
   position: absolute;
-  inset: 8px -8px -12px 8px;
+  inset: 6px -6px -14px 6px;
   border-radius: inherit;
-  background: var(--persona-bg, rgba(212,162,85,0.06));
+  background: var(--persona-bg, rgba(212,162,85,0.05));
   pointer-events: none;
   animation: reflection-shift 3s ease-in-out infinite;
-  filter: blur(18px);
-  opacity: 0.4;
+  filter: blur(20px);
+  opacity: 0.35;
 }
 @keyframes reflection-shift {
-  0%, 100% { transform: translate(3px, 3px); opacity: 0.2; }
-  50%      { transform: translate(-3px, -3px); opacity: 0.5; }
+  0%,100% { transform: translate(2px, 4px); opacity: 0.2; }
+  50%     { transform: translate(-4px, -2px); opacity: 0.45; }
 }
 
 /* captured label */
