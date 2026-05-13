@@ -428,66 +428,62 @@ export default {
       }
     },
     sampleTextPixelsForEffect2(color, origin, center, text) {
-      if (!text) { this.shards = []; return }
+      this.shards = []
+      if (!text) return
       const canvas = document.createElement('canvas')
       const ctx = canvas.getContext('2d')
-      const fontSize = 18
-      ctx.font = `400 ${fontSize}px Georgia, 'Noto Serif SC', 'Source Han Serif SC', serif`
+      const fontSize = 20
+      const font = `400 ${fontSize}px serif`
+      ctx.font = font
       const maxWidth = 440
-      // wrap text
+      // wrap
       const lines = []
       let current = ''
       for (const char of text) {
-        if (ctx.measureText(current + char).width > maxWidth) {
-          lines.push(current)
-          current = char
-        } else { current += char }
+        if (ctx.measureText(current + char).width > maxWidth) { lines.push(current); current = char }
+        else { current += char }
       }
       if (current) lines.push(current)
-      const lineHeight = fontSize * 1.8
-      const totalH = lines.length * lineHeight
-      const maxLineW = Math.max(...lines.map(l => ctx.measureText(l).width))
-      canvas.width = Math.ceil(maxLineW) + 20
-      canvas.height = Math.ceil(totalH) + 10
+      const lineH = fontSize * 1.8
+      const totalH = lines.length * lineH + 10
+      const maxW = Math.max(...lines.map(l => ctx.measureText(l).width))
+      canvas.width = Math.ceil(maxW) + 20
+      canvas.height = Math.ceil(totalH)
 
+      // re-apply font after canvas resize (required!)
+      ctx.font = font
       ctx.fillStyle = '#ffffff'
-      ctx.font = `400 ${fontSize}px Georgia, 'Noto Serif SC', serif`
       ctx.textBaseline = 'top'
-      lines.forEach((line, li) => {
-        ctx.fillText(line, 10, 5 + li * lineHeight)
-      })
+      lines.forEach((line, li) => ctx.fillText(line, 10, 5 + li * lineH))
 
       const img = ctx.getImageData(0, 0, canvas.width, canvas.height)
       const pixels = []
-      const step = Math.max(2, Math.floor(Math.sqrt((canvas.width * canvas.height) / 800)))
+      const step = Math.max(2, Math.floor(Math.sqrt((canvas.width * canvas.height) / 600)))
       for (let y = 0; y < canvas.height; y += step) {
         for (let x = 0; x < canvas.width; x += step) {
-          const a = img.data[(y * canvas.width + x) * 4 + 3]
-          if (a > 100) pixels.push({ x, y })
+          if (img.data[(y * canvas.width + x) * 4 + 3] > 80) pixels.push({ x, y })
         }
       }
-      // sample up to 180 particles
-      const total = Math.min(pixels.length, 180)
-      const offsetX = center.x - canvas.width / 2
-      const offsetY = center.y - canvas.height / 2
-
-      for (let i = 0; i < total; i++) {
+      const limit = Math.min(pixels.length, 160)
+      const ox = center.x - canvas.width / 2
+      const oy = center.y - canvas.height / 2
+      for (let i = 0; i < limit; i++) {
         const idx = Math.floor(Math.random() * pixels.length)
-        const pixel = pixels.splice(idx, 1)[0]
-        const angle = Math.random() * Math.PI * 2
-        const burst = 40 + Math.random() * 120
+        const p = pixels.splice(idx, 1)[0]
+        const a = Math.random() * Math.PI * 2
+        const burst = 40 + Math.random() * 130
         this.shards.push({
           i,
           style: {
-            '--ox': `${origin.x + Math.cos(angle) * burst}px`,
-            '--oy': `${origin.y + Math.sin(angle) * burst}px`,
-            '--cx': `${offsetX + pixel.x}px`,
-            '--cy': `${offsetY + pixel.y}px`,
-            '--delay': `${Math.random() * 0.7}s`,
-            '--size': `${step * 1.1}px`,
+            '--ox': `${origin.x + Math.cos(a) * burst}px`,
+            '--oy': `${origin.y + Math.sin(a) * burst}px`,
+            '--cx': `${ox + p.x}px`,
+            '--cy': `${oy + p.y}px`,
+            '--delay': `${Math.random() * 0.8}s`,
+            '--size': `${Math.max(step * 1.2, 3)}px`,
             backgroundColor: color,
-            boxShadow: `0 0 ${step * 2}px ${color}88`,
-            opacity: 0.85,
+            boxShadow: `0 0 ${step}px ${color}aa`,
+            opacity: 0.9,
           },
         })
       }
