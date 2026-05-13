@@ -410,7 +410,7 @@ export default {
         }
       } else if (eff === 2) {
         // Canvas text reconstruction — bubble shatters, particles reassemble into the text stroke-by-stroke
-        this.sampleTextPixelsForEffect2(color, origin, center)
+        this.sampleTextPixelsForEffect2(color, origin, center, text)
       } else {
         // ripple: vortex — rings emanate from origin, center area blurs, bubble rises
         for (let i = 0; i < 6; i++) {
