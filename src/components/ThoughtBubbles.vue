@@ -802,8 +802,8 @@ export default {
   box-shadow:
     0 0 80px var(--persona-glow, rgba(212,162,85,0.3)),
     inset 0 0 60px rgba(255,255,255,0.02);
-  animation: capture-reveal 0.5s 0.6s ease-out forwards,
-             capture-float 4s 1.2s ease-in-out infinite;
+  animation: capture-reveal 0.4s 0.3s ease-out forwards,
+             capture-float 4s 0.8s ease-in-out infinite;
   opacity: 0;
 }
 .capture-bubble.releasing {
@@ -866,7 +866,7 @@ export default {
   75%  { transform: translate(2px,5px) scale(1.1); opacity: 0.75; }
 }
 .capture-bubble.effect-0 .capture-text {
-  animation: text-build 0.6s 0.9s steps(18) forwards;
+  animation: text-build 0.5s 0.3s steps(20) forwards;
   clip-path: inset(0 100% 0 0);
 }
 @keyframes text-build {
@@ -893,7 +893,7 @@ export default {
   100% { left: var(--cx); top: var(--cy); transform: scale(0.6) rotate(-5deg); opacity: 0.08; }
 }
 .capture-bubble.effect-1 {
-  animation: emerge-from-fog 0.6s 0.6s ease-out forwards, capture-float 4s 1.4s ease-in-out infinite;
+  animation: emerge-from-fog 0.5s 0.3s ease-out forwards, capture-float 4s 0.8s ease-in-out infinite;
   opacity: 0;
 }
 @keyframes emerge-from-fog {
@@ -917,11 +917,11 @@ export default {
   85%  { left: var(--cx); top: var(--cy); transform: scale(1.5); opacity: 1; }
   100% { left: var(--cx); top: var(--cy); transform: scale(1); opacity: 0.85; }
 }
-/* hide bubble text for effect 2 — text is formed by pixels */
-.capture-bubble.effect-2 .capture-text { opacity: 0; }
-.capture-bubble.effect-2 .capture-dots { opacity: 0; }
+/* text shown faintly behind pixel reconstruction for effect 2 */
+.capture-bubble.effect-2 .capture-text { opacity: 0.12; transition: opacity 0.8s 0.5s; }
+.capture-bubble.effect-2 .capture-dots { opacity: 0.25; }
 .capture-bubble.effect-2 {
-  animation: reveal-shard 0.3s 0.8s ease-out forwards, capture-float 4s 1.5s ease-in-out infinite;
+  animation: reveal-shard 0.35s 0.2s ease-out forwards, capture-float 4s 0.7s ease-in-out infinite;
   opacity: 0;
   background: transparent;
   border-color: color-mix(in srgb, var(--persona-color, #d4a255) 12%, transparent);
@@ -947,7 +947,7 @@ export default {
   100% { left: var(--cx); top: var(--cy); transform: translate(-50%, -50%) scale(2.5); opacity: 0; }
 }
 .capture-bubble.effect-3 {
-  animation: reveal-ripple 0.35s 0.35s ease-out forwards, capture-float 4s 1s ease-in-out infinite;
+  animation: reveal-ripple 0.35s 0.2s ease-out forwards, capture-float 4s 0.7s ease-in-out infinite;
   opacity: 0;
 }
 @keyframes reveal-ripple {
