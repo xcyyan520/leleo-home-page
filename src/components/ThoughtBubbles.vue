@@ -172,6 +172,7 @@ const PERSONAS = [
 
 let nextId = 0
 const STORAGE_KEY = 'thoughts-custom-bubbles'
+const MAX_CUSTOM = 10
 
 export default {
   name: 'ThoughtBubbles',
@@ -534,8 +535,9 @@ export default {
       }
 
       this.visibleBubbles.push(bubble)
+      const limit = this.isMobile ? 4 : this.maxBubbles
       // trim only non-custom bubbles
-      while (this.visibleBubbles.filter(b => !b.isCustom).length > this.maxBubbles) {
+      while (this.visibleBubbles.filter(b => !b.isCustom).length > limit) {
         const idx = this.visibleBubbles.findIndex(b => !b.isCustom)
         if (idx !== -1) this.visibleBubbles.splice(idx, 1)
       }
@@ -549,7 +551,7 @@ export default {
 
     startBubbleCycle() {
       const scheduleNext = () => {
-        const delay = 800 + Math.random() * 2000
+        const delay = this.isMobile ? 1500 + Math.random() * 3500 : 800 + Math.random() * 2000
         this.bubbleTimer = setTimeout(() => {
           this.spawnBubble()
           scheduleNext()
@@ -605,6 +607,11 @@ export default {
       }
 
       this.visibleBubbles.push(bubble)
+      // trim oldest custom bubbles if over limit
+      while (this.visibleBubbles.filter(b => b.isCustom).length > MAX_CUSTOM) {
+        const idx = this.visibleBubbles.findIndex(b => b.isCustom)
+        if (idx !== -1) this.visibleBubbles.splice(idx, 1)
+      }
       this.saveCustomBubbles()
 
       this.showAddForm = false
@@ -618,10 +625,11 @@ export default {
         if (!raw) return
         const saved = JSON.parse(raw)
         if (!Array.isArray(saved)) return
+        const recent = saved.slice(-MAX_CUSTOM) // only load last N
         const color = '#c0b0a0'
         const shapes = ['bubble-round', 'bubble-organic', 'bubble-wide']
         const now = Date.now()
-        saved.forEach((item, i) => {
+        recent.forEach((item, i) => {
           const shapeIdx = i % 3
           const bubble = {
             id: nextId++,
@@ -1522,9 +1530,8 @@ export default {
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
     background: var(--persona-bg, rgba(212,162,85,0.12));
-    /* no breathe anim — saves GPU compositing */
-    animation: bubble-float var(--float-duration, 16s) 0s ease-in forwards,
-               bubble-wobble 5s 0s ease-in-out infinite;
+    /* mobile: only float, no wobble/breathe — saves GPU */
+    animation: bubble-float var(--float-duration, 16s) 0s ease-in forwards;
   }
   .bubble-text { font-size: 12px; line-height: 1.6; }
   .bubble-wide { max-width: 280px; }
@@ -1545,6 +1552,9 @@ export default {
   .capture-text { font-size: 15px; line-height: 1.8; }
   .orb { display: none; }
   .shard { backdrop-filter: none; -webkit-backdrop-filter: none; }
+  .thought-bubble.is-custom {
+    animation: custom-float var(--float-duration, 12s) 0s ease-out forwards;
+  }
   .add-bubble-btn {
     bottom: 16px; right: 12px;
     width: 38px; height: 38px;
