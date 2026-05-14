@@ -487,6 +487,7 @@ export default {
 
     // ── Bubble lifecycle ──
     spawnBubble() {
+      if (this.isMobile && this.visibleBubbles.length >= 3) return
       if (this.personaData.every(d => d.length === 0)) return
       let pi
       do {
@@ -595,23 +596,29 @@ export default {
           '--persona-color': color,
           '--persona-glow': 'rgba(192,176,160,0.22)',
           '--persona-bg': 'rgba(192,176,160,0.06)',
-          '--float-duration': `${8 + Math.random() * 8}s`,
-          '--float-distance': `${18 + Math.random() * 32}vh`,
-          '--wobble-amount': `${-(2 + Math.random() * 4)}deg`,
-          '--wobble2-amount': `${2 + Math.random() * 4}deg`,
+          '--float-duration': `${10 + Math.random() * 12}s`,
+          '--float-distance': `${70 + Math.random() * 25}vh`,
+          '--wobble-amount': `${-(3 + Math.random() * 6)}deg`,
+          '--wobble2-amount': `${3 + Math.random() * 6}deg`,
           '--breathe-dur': `${5 + Math.random() * 4}s`,
           '--breathe-delay': `${Math.random() * 5}s`,
-          transform: 'rotate(-3deg) scale(0.85)',
+          transform: `rotate(${-(4 + Math.random() * 8)}deg) scale(0.85)`,
         },
         born: Date.now(),
       }
 
       this.visibleBubbles.push(bubble)
-      // trim oldest custom bubbles if over limit
+      // trim oldest custom if over limit
       while (this.visibleBubbles.filter(b => b.isCustom).length > MAX_CUSTOM) {
         const idx = this.visibleBubbles.findIndex(b => b.isCustom)
         if (idx !== -1) this.visibleBubbles.splice(idx, 1)
       }
+      // auto-remove after float (same as regular)
+      const lifetime = parseFloat(bubble.style['--float-duration']) * 1000 + 2000
+      setTimeout(() => {
+        const idx = this.visibleBubbles.findIndex(b => b.id === id)
+        if (idx !== -1) this.visibleBubbles.splice(idx, 1)
+      }, lifetime)
       this.saveCustomBubbles()
 
       this.showAddForm = false
@@ -647,17 +654,24 @@ export default {
               '--persona-color': color,
               '--persona-glow': 'rgba(192,176,160,0.22)',
               '--persona-bg': 'rgba(192,176,160,0.06)',
-              '--float-duration': `${8 + Math.random() * 8}s`,
-              '--float-distance': `${18 + Math.random() * 32}vh`,
-              '--wobble-amount': `${-(2 + Math.random() * 4)}deg`,
-              '--wobble2-amount': `${2 + Math.random() * 4}deg`,
+              '--float-duration': `${10 + Math.random() * 12}s`,
+              '--float-distance': `${70 + Math.random() * 25}vh`,
+              '--wobble-amount': `${-(3 + Math.random() * 6)}deg`,
+              '--wobble2-amount': `${3 + Math.random() * 6}deg`,
               '--breathe-dur': `${5 + Math.random() * 4}s`,
               '--breathe-delay': `${Math.random() * 5}s`,
-              transform: 'rotate(-3deg) scale(0.85)',
+              transform: `rotate(${-(4 + Math.random() * 8)}deg) scale(0.85)`,
             },
-            born: now - (i * 2000), // stagger "birth" so they spawn in sequence
+            born: now - (i * 2000),
           }
           this.visibleBubbles.push(bubble)
+          // auto-remove after float
+          const bid = bubble.id
+          const lifetime = parseFloat(bubble.style['--float-duration']) * 1000 + 2000
+          setTimeout(() => {
+            const idx = this.visibleBubbles.findIndex(b => b.id === bid)
+            if (idx !== -1) this.visibleBubbles.splice(idx, 1)
+          }, lifetime)
         })
       } catch (e) { /* ignore corrupt storage */ }
     },
@@ -1083,19 +1097,6 @@ export default {
 .dot:nth-child(2) { width: 8px; height: 8px; opacity: 0.28; }
 .dot:nth-child(3) { width: 6px; height: 6px; }
 .dot:nth-child(4) { width: 5px; height: 5px; opacity: 0.22; }
-
-/* custom bubble: float up and stay visible */
-.thought-bubble.is-custom {
-  animation:
-    custom-float var(--float-duration, 12s) 0s ease-out forwards,
-    bubble-wobble 6s 1s ease-in-out infinite,
-    bubble-breathe var(--breathe-dur, 6s) var(--breathe-delay, 0s) ease-in-out infinite;
-}
-@keyframes custom-float {
-  0%   { bottom: -10%; opacity: 0; transform: rotate(-4deg) scale(0.7); }
-  6%   { opacity: 1; transform: rotate(0deg) scale(1); }
-  100% { bottom: var(--float-distance, 30vh); opacity: 0.82; transform: rotate(0deg) scale(0.92); }
-}
 
 /* float + wobble */
 @keyframes bubble-float {
@@ -1555,9 +1556,6 @@ export default {
   .capture-text { font-size: 15px; line-height: 1.8; }
   .orb { display: none; }
   .shard { backdrop-filter: none; -webkit-backdrop-filter: none; }
-  .thought-bubble.is-custom {
-    animation: custom-float var(--float-duration, 12s) 0s ease-out forwards;
-  }
   .add-bubble-btn {
     bottom: 16px; right: 12px;
     width: 38px; height: 38px;
