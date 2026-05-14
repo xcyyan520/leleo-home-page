@@ -83,10 +83,7 @@
               <span class="c-dot" v-for="n in capturedBubble.dotCount" :key="n"></span>
             </div>
           </div>
-          <div class="capture-hint">
-            <span class="hint-desk">点击空白处释放</span>
-            <button class="hint-mob-btn" @click="releaseBubble">✕ 关闭</button>
-          </div>
+          <div class="capture-hint">点击空白处释放</div>
         </div>
       </div>
     </transition>
@@ -910,6 +907,9 @@ export default {
   background: #08080f;
   overflow: hidden;
   cursor: default;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 /* ── Ambient orbs ── */
@@ -1433,8 +1433,6 @@ export default {
   letter-spacing: 0.1em;
   animation: hint-fade 3s ease-in-out infinite;
 }
-.hint-mob-btn { display: none; }
-.hint-desk { display: inline; }
 @keyframes hint-fade {
   0%, 100% { opacity: 0.25; }
   50%      { opacity: 0.55; }
@@ -1568,18 +1566,11 @@ export default {
     -webkit-backdrop-filter: none;
   }
   .add-form-card { padding: 20px 16px 16px; }
-  .hint-desk { display: none; }
-  .hint-mob-btn {
-    display: inline-block;
-    padding: 8px 24px;
-    border-radius: 10px;
-    border: 1px solid rgba(255,255,255,0.12);
-    background: rgba(255,255,255,0.04);
-    color: rgba(220,215,205,0.55);
-    font-family: 'Georgia', 'Noto Serif SC', serif;
-    font-size: 13px;
-    cursor: pointer;
-    letter-spacing: 0.06em;
+  /* kill mobile tap highlight flash */
+  .capture-overlay {
+    -webkit-tap-highlight-color: transparent;
+    -webkit-user-select: none;
+    user-select: none;
   }
   .form-textarea { font-size: 13px; }
   .add-form-overlay {
