@@ -1,16 +1,18 @@
 <template>
   <div class="thought-chamber" ref="chamber">
-    <!-- ambient particles -->
-    <div class="particle-field">
-      <span
-        v-for="p in particles"
-        :key="p.id"
-        class="dust-particle"
-        :style="p.style"
-      ></span>
+    <!-- ambient light orbs -->
+    <div class="ambient-orbs" v-if="!reduceMotion">
+      <span v-for="o in ambientOrbs" :key="o.id" class="orb" :style="o.style"></span>
     </div>
 
-    <!-- starfield -->
+    <!-- canvas constellation particles -->
+    <canvas
+      ref="particleCanvas"
+      class="particle-canvas"
+      v-if="!reduceMotion"
+    ></canvas>
+
+    <!-- starfield (fallback when canvas disabled) -->
     <div class="starfield">
       <span
         v-for="s in stars"
@@ -30,6 +32,7 @@
         :style="b.id === (capturedBubble && capturedBubble.id) ? b.capturedStyle : b.style"
         @click.stop="captureBubble(b, $event)"
       >
+        <span class="bubble-highlight"></span>
         <span class="bubble-label">{{ b.personaLabel }}</span>
         <p class="bubble-text">{{ b.text }}</p>
         <div class="bubble-dots">
@@ -41,31 +44,37 @@
     <!-- capture overlay -->
     <transition name="overlay-fade">
       <div v-if="capturedBubble" class="capture-overlay" :class="{ releasing }" @click="releaseBubble">
-        <!-- vortex blur for ripple effect -->
-        <div v-if="captureEffect === 3 && ripples.length" class="vortex-blur" :style="{ left: ripples[0].style['--ox'], top: ripples[0].style['--oy'] }"></div>
-        <!-- particles layer: outside capture-bubble so coordinates are viewport-relative -->
+        <!-- Effect 0: Glass Shatter -->
         <template v-if="captureEffect === 0">
-          <span v-for="sp in sparkles" :key="sp.i" class="sparkle" :class="{ builder: sp.isBuilder }" :style="sp.style"></span>
+          <span v-for="sh in shards" :key="sh.i" class="shard" :style="sh.style"></span>
         </template>
+
+        <!-- Effect 1: Particle Star Cluster -->
         <template v-if="captureEffect === 1">
-          <span v-for="w in wisps" :key="w.i" class="wisp" :style="w.style"></span>
+          <span v-for="sp in clusterParticles" :key="sp.i" class="cluster-particle" :style="sp.style"></span>
         </template>
-        <!-- effect 2 has no particles — typewriter text instead -->
+
+        <!-- Effect 2: Vortex Suction -->
+        <template v-if="captureEffect === 2">
+          <span v-for="vx in vortexArms" :key="vx.i" class="vortex-arm" :style="vx.style"></span>
+        </template>
+
+        <!-- Effect 3: Aurora Streams -->
         <template v-if="captureEffect === 3">
-          <span v-for="r in ripples" :key="r.i" class="ripple-ring" :style="r.style"></span>
+          <span v-for="au in auroraBeams" :key="au.i" class="aurora-beam" :style="au.style"></span>
         </template>
 
         <div class="capture-stage" @click.stop>
           <div
             class="capture-bubble"
-            :class="[capturedBubble.personaClass, `effect-${captureEffect}`, { releasing }]"
+            :class="[capturedBubble.personaClass, `ce-${captureEffect}`, { releasing }]"
             :style="{
               '--persona-color': capturedBubble.style['--persona-color'],
               '--persona-glow': capturedBubble.style['--persona-glow'],
               '--persona-bg': capturedBubble.style['--persona-bg'],
             }"
           >
-            <span v-if="captureEffect === 3" class="reflection"></span>
+            <span class="capture-highlight"></span>
             <span class="capture-label">{{ capturedBubble.personaLabel }} · 思考中</span>
             <p class="capture-text" v-if="captureEffect !== 2">{{ capturedBubble.text }}</p>
             <p class="capture-text typing" v-if="captureEffect === 2">{{ typedText }}<span class="typing-cursor" :class="{ blink: !typingTimer }">|</span></p>
@@ -139,8 +148,8 @@ export default {
   data() {
     return {
       visibleBubbles: [],
-      particles: [],
       stars: [],
+      ambientOrbs: [],
       personaData: [[], [], [], []],
       bubbleTimer: null,
       maxBubbles: 7,
@@ -149,16 +158,33 @@ export default {
       releasing: false,
       typedText: '',
       typingTimer: null,
-      sparkles: [],
-      wisps: [],
+      // canvas particles
+      canvasCtx: null,
+      canvasParticles: [],
+      canvasWidth: 0,
+      canvasHeight: 0,
+      mouseX: -1000,
+      mouseY: -1000,
+      rafId: null,
+      animPaused: false,
+      reduceMotion: false,
+      isMobile: false,
+      // effect data
       shards: [],
-      ripples: [],
-      recentTexts: [], // { text, personaIndex, time } — 10s dedup
+      clusterParticles: [],
+      vortexArms: [],
+      auroraBeams: [],
+      recentTexts: [],
     }
   },
   async mounted() {
-    this.generateParticles()
+    this.reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    this.isMobile = window.innerWidth < 768
+    this.generateAmbientOrbs()
     this.generateStars()
+    if (!this.reduceMotion) {
+      this.$nextTick(() => this.initCanvas())
+    }
     await this.loadAllTexts()
     this.startBubbleCycle()
     document.addEventListener('click', this.handleClick)
@@ -166,28 +192,34 @@ export default {
   beforeUnmount() {
     clearInterval(this.bubbleTimer)
     this.stopTyping()
+    this.stopCanvas()
     document.removeEventListener('click', this.handleClick)
     this.removeEscListener()
   },
   methods: {
-    generateParticles() {
-      const ps = []
-      for (let i = 0; i < 40; i++) {
-        ps.push({
-          id: `p${i}`,
-          style: {
-            left: `${Math.random() * 100}%`,
-            top: `${Math.random() * 100}%`,
-            width: `${2 + Math.random() * 4}px`,
-            height: `${2 + Math.random() * 4}px`,
-            opacity: 0.15 + Math.random() * 0.35,
-            animationDelay: `${Math.random() * 12}s`,
-            animationDuration: `${8 + Math.random() * 16}s`,
-          },
-        })
-      }
-      this.particles = ps
+    // ── Ambient orbs ──
+    generateAmbientOrbs() {
+      const colors = [
+        'rgba(180,160,140,0.10)',
+        'rgba(160,170,190,0.08)',
+        'rgba(190,150,160,0.09)',
+        'rgba(150,170,160,0.07)',
+      ]
+      this.ambientOrbs = colors.map((c, i) => ({
+        id: `orb${i}`,
+        style: {
+          left: `${10 + i * 25 + Math.random() * 10}%`,
+          top: `${15 + (i % 2) * 50 + Math.random() * 15}%`,
+          width: `${250 + Math.random() * 300}px`,
+          height: `${250 + Math.random() * 300}px`,
+          background: `radial-gradient(circle, ${c} 0%, transparent 70%)`,
+          animationDelay: `${i * 5 + Math.random() * 3}s`,
+          animationDuration: `${18 + Math.random() * 14}s`,
+        },
+      }))
     },
+
+    // ── Stars ──
     generateStars() {
       const ss = []
       for (let i = 0; i < 60; i++) {
@@ -206,6 +238,170 @@ export default {
       }
       this.stars = ss
     },
+
+    // ── Canvas constellation ──
+    initCanvas() {
+      const canvas = this.$refs.particleCanvas
+      if (!canvas) return
+      this.canvasCtx = canvas.getContext('2d')
+      this.resizeCanvas()
+      this.spawnCanvasParticles()
+      window.addEventListener('resize', this.resizeCanvas)
+      document.addEventListener('mousemove', this.onMouseMove)
+      document.addEventListener('visibilitychange', this.onVisibility)
+      this.animateCanvas()
+    },
+
+    resizeCanvas() {
+      const canvas = this.$refs.particleCanvas
+      if (!canvas) return
+      const dpr = window.devicePixelRatio || 1
+      this.canvasWidth = window.innerWidth
+      this.canvasHeight = window.innerHeight
+      canvas.width = this.canvasWidth * dpr
+      canvas.height = this.canvasHeight * dpr
+      canvas.style.width = this.canvasWidth + 'px'
+      canvas.style.height = this.canvasHeight + 'px'
+      this.canvasCtx.setTransform(dpr, 0, 0, dpr, 0, 0)
+    },
+
+    spawnCanvasParticles() {
+      this.canvasParticles = []
+      const count = this.isMobile ? 35 : 80
+      for (let i = 0; i < count; i++) {
+        this.canvasParticles.push({
+          x: Math.random() * this.canvasWidth,
+          y: Math.random() * this.canvasHeight,
+          vx: (Math.random() - 0.5) * 0.4,
+          vy: (Math.random() - 0.5) * 0.4,
+          size: 1 + Math.random() * 2.5,
+          opacity: 0.25 + Math.random() * 0.5,
+          hue: 35 + Math.random() * 15, // warm golden range
+        })
+      }
+    },
+
+    onMouseMove(e) {
+      this.mouseX = e.clientX
+      this.mouseY = e.clientY
+    },
+
+    onVisibility() {
+      this.animPaused = document.hidden
+    },
+
+    animateCanvas() {
+      if (this.animPaused || this.reduceMotion) {
+        this.rafId = requestAnimationFrame(() => this.animateCanvas())
+        return
+      }
+      const ctx = this.canvasCtx
+      const w = this.canvasWidth
+      const h = this.canvasHeight
+      if (!ctx || w === 0) {
+        this.rafId = requestAnimationFrame(() => this.animateCanvas())
+        return
+      }
+
+      ctx.clearRect(0, 0, w, h)
+
+      const particles = this.canvasParticles
+      const mx = this.mouseX
+      const my = this.mouseY
+      const fastPath = this.isMobile
+
+      // Update + draw particles
+      for (const p of particles) {
+        // Mouse interaction (skip on mobile touch — no continuous mousemove)
+        if (!fastPath) {
+          const dx = p.x - mx
+          const dy = p.y - my
+          const dist = Math.sqrt(dx * dx + dy * dy)
+          if (dist < 160 && dist > 0.1) {
+            const force = (160 - dist) / 160
+            p.vx += (dx / dist) * force * 0.06
+            p.vy += (dy / dist) * force * 0.06
+          }
+        }
+
+        p.vx += (Math.random() - 0.5) * 0.015
+        p.vy += (Math.random() - 0.5) * 0.015
+        p.vx *= 0.998
+        p.vy *= 0.998
+
+        const speed = Math.sqrt(p.vx * p.vx + p.vy * p.vy)
+        if (speed > 1.2) {
+          p.vx = (p.vx / speed) * 1.2
+          p.vy = (p.vy / speed) * 1.2
+        }
+
+        p.x += p.vx
+        p.y += p.vy
+
+        if (p.x < -20) p.x = w + 20
+        if (p.x > w + 20) p.x = -20
+        if (p.y < -20) p.y = h + 20
+        if (p.y > h + 20) p.y = -20
+
+        if (fastPath) {
+          // Mobile: simple circle, no gradient
+          ctx.beginPath()
+          ctx.arc(p.x, p.y, p.size * 2, 0, Math.PI * 2)
+          ctx.fillStyle = `rgba(200,185,160,${p.opacity * 0.6})`
+          ctx.fill()
+        } else {
+          // Desktop: glow + core
+          const glow = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.size * 3)
+          glow.addColorStop(0, `rgba(200,185,160,${p.opacity})`)
+          glow.addColorStop(1, 'rgba(200,185,160,0)')
+          ctx.beginPath()
+          ctx.arc(p.x, p.y, p.size * 3, 0, Math.PI * 2)
+          ctx.fillStyle = glow
+          ctx.fill()
+          ctx.beginPath()
+          ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2)
+          ctx.fillStyle = `rgba(220,210,190,${p.opacity + 0.15})`
+          ctx.fill()
+        }
+      }
+
+      // Draw connections (desktop only — O(n²) is heavy on mobile)
+      if (!fastPath) {
+        const connDist = 140
+        for (let i = 0; i < particles.length; i++) {
+          for (let j = i + 1; j < particles.length; j++) {
+            const a = particles[i]
+            const b = particles[j]
+            const dx = a.x - b.x
+            const dy = a.y - b.y
+            const dist = dx * dx + dy * dy
+            if (dist < connDist * connDist) {
+              const alpha = 0.07 * (1 - Math.sqrt(dist) / connDist)
+              ctx.beginPath()
+              ctx.moveTo(a.x, a.y)
+              ctx.lineTo(b.x, b.y)
+              ctx.strokeStyle = `rgba(180,170,150,${alpha})`
+              ctx.lineWidth = 0.5
+              ctx.stroke()
+            }
+          }
+        }
+      }
+
+      this.rafId = requestAnimationFrame(() => this.animateCanvas())
+    },
+
+    stopCanvas() {
+      if (this.rafId) {
+        cancelAnimationFrame(this.rafId)
+        this.rafId = null
+      }
+      window.removeEventListener('resize', this.resizeCanvas)
+      document.removeEventListener('mousemove', this.onMouseMove)
+      document.removeEventListener('visibilitychange', this.onVisibility)
+    },
+
+    // ── Data loading ──
     async loadAllTexts() {
       for (let i = 0; i < PERSONAS.length; i++) {
         try {
@@ -217,6 +413,7 @@ export default {
         }
       }
     },
+
     parseParagraphs(raw) {
       const blocks = raw
         .split(/\n\n+/)
@@ -230,29 +427,31 @@ export default {
       }
       return blocks
     },
+
     pickRandom(arr) {
       if (!arr || arr.length === 0) return '……'
       return arr[Math.floor(Math.random() * arr.length)]
     },
+
     getFreshText(pi) {
       const now = Date.now()
       const all = this.personaData[pi]
       if (!all.length) return '……'
-      // filter out texts shown in last 10s for this persona
       const recent = this.recentTexts.filter(r => r.time > now - 10000)
       const recentSet = new Set(recent.map(r => r.text))
       const fresh = all.filter(t => !recentSet.has(t))
       if (fresh.length === 0) return this.pickRandom(all)
       return this.pickRandom(fresh)
     },
+
     pruneRecentTexts() {
       const now = Date.now()
       this.recentTexts = this.recentTexts.filter(r => r.time > now - 10000)
     },
+
+    // ── Bubble lifecycle ──
     spawnBubble() {
       if (this.personaData.every(d => d.length === 0)) return
-
-      // pick persona with data
       let pi
       do {
         pi = Math.floor(Math.random() * PERSONAS.length)
@@ -260,19 +459,17 @@ export default {
 
       const persona = PERSONAS[pi]
       const text = this.getFreshText(pi)
-      // record for dedup
       this.recentTexts.push({ text, personaIndex: pi, time: Date.now() })
       this.pruneRecentTexts()
 
       const id = nextId++
       const shapeIdx = Math.floor(Math.random() * persona.shapes.length)
 
-      // position: cluster personas in different zones
       const zones = [
-        { xMin: 2, xMax: 35 },    // top-left zone
-        { xMin: 55, xMax: 93 },    // top-right zone
-        { xMin: 20, xMax: 50 },    // center zone
-        { xMin: 5, xMax: 90 },     // wide spread
+        { xMin: 2, xMax: 35 },
+        { xMin: 55, xMax: 93 },
+        { xMin: 20, xMax: 50 },
+        { xMin: 5, xMax: 90 },
       ]
       const zone = zones[pi]
       const xPos = zone.xMin + Math.random() * (zone.xMax - zone.xMin)
@@ -289,32 +486,30 @@ export default {
           bottom: `${-(10 + Math.random() * 8)}%`,
           '--persona-color': persona.color,
           '--persona-glow': persona.glow,
-          '--persona-bg': `${persona.color}14`,
+          '--persona-bg': `${persona.color}10`,
           '--float-duration': `${10 + Math.random() * 12}s`,
           '--float-distance': `${70 + Math.random() * 25}vh`,
           '--wobble-amount': `${-(3 + Math.random() * 6)}deg`,
           '--wobble2-amount': `${3 + Math.random() * 6}deg`,
+          '--breathe-dur': `${5 + Math.random() * 4}s`,
+          '--breathe-delay': `${Math.random() * 5}s`,
           transform: `rotate(${-(4 + Math.random() * 8)}deg) scale(0.85)`,
         },
         born: Date.now(),
       }
 
       this.visibleBubbles.push(bubble)
-
-      // remove old bubbles if too many
       while (this.visibleBubbles.length > this.maxBubbles) {
         this.visibleBubbles.shift()
       }
 
-      // auto-remove after animation
       const lifetime = parseFloat(bubble.style['--float-duration']) * 1000 + 2000
       setTimeout(() => {
         const idx = this.visibleBubbles.findIndex(b => b.id === id)
-        if (idx !== -1) {
-          this.visibleBubbles.splice(idx, 1)
-        }
+        if (idx !== -1) this.visibleBubbles.splice(idx, 1)
       }, lifetime)
     },
+
     startBubbleCycle() {
       const scheduleNext = () => {
         const delay = 1800 + Math.random() * 4200
@@ -323,27 +518,27 @@ export default {
           scheduleNext()
         }, delay)
       }
-      // spawn first bubble quickly
       setTimeout(() => this.spawnBubble(), 400)
       scheduleNext()
     },
+
     handleClick() {
-      // spawn extra bubble on click
       if (this.visibleBubbles.length < this.maxBubbles + 2) {
         this.spawnBubble()
       }
     },
+
+    // ── Capture ──
     captureBubble(bubble, event) {
       if (this.capturedBubble && this.capturedBubble.id === bubble.id) {
         this.releaseBubble()
         return
       }
       const el = event ? event.currentTarget : null
-      const rect = el ? el.getBoundingClientRect() : { left: window.innerWidth/2 - 100, top: window.innerHeight/2 - 40, width: 200, height: 80 }
+      const rect = el ? el.getBoundingClientRect() : { left: window.innerWidth / 2 - 100, top: window.innerHeight / 2 - 40, width: 200, height: 80 }
       const origin = { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 }
-      // center in pixels (not vw/vh — avoids unit-mixing bugs)
       const center = { x: window.innerWidth / 2, y: window.innerHeight / 2 }
-      // original bubble shatters in place
+
       bubble.capturedStyle = {
         '--persona-color': bubble.style['--persona-color'],
         '--persona-glow': bubble.style['--persona-glow'],
@@ -358,94 +553,173 @@ export default {
         opacity: 0,
         filter: 'blur(20px)',
       }
-      const c = bubble.style['--persona-color']
+
       this.captureEffect = Math.floor(Math.random() * 4)
       this.releasing = false
-      this.generateEffectDecorations(c, origin, center, bubble.text)
+      this.generateEffectDecorations(bubble.style['--persona-color'] || '#d4a255', origin, center, bubble.text)
       this.capturedBubble = bubble
       this.$nextTick(() => { this.addEscListener() })
     },
+
     generateEffectDecorations(color, origin, center, text) {
-      const eff = this.captureEffect
-      this.sparkles = []
-      this.wisps = []
       this.shards = []
-      this.ripples = []
+      this.clusterParticles = []
+      this.vortexArms = []
+      this.auroraBeams = []
+      const eff = this.captureEffect
+
       if (eff === 0) {
-        // firefly: 24 sparkles — bubble "shatters" into fireflies, they fly to center, then piece the bubble together
-        for (let i = 0; i < 24; i++) {
-          const angle = (i / 24) * Math.PI * 2 + (Math.random() - 0.5) * 0.3
-          const burst = 15 + Math.random() * 70
-          const size = 2 + Math.random() * 9
-          const isBuilder = i >= 18 // last 6 stay to "build" the outline
-          this.sparkles.push({
-            i, isBuilder,
+        // ── Glass Shatter ──
+        const shardCount = this.isMobile ? 14 : 24
+        for (let i = 0; i < shardCount; i++) {
+          const angle = (i / shardCount) * Math.PI * 2 + (Math.random() - 0.5) * 0.4
+          const burstR = 60 + Math.random() * 160
+          const midX = origin.x + Math.cos(angle) * burstR
+          const midY = origin.y + Math.sin(angle) * burstR
+          const size = 6 + Math.random() * 30
+          this.shards.push({
+            i,
             style: {
-              '--ox': `${origin.x + Math.cos(angle) * burst}px`,
-              '--oy': `${origin.y + Math.sin(angle) * burst}px`,
+              '--ox': `${origin.x}px`, '--oy': `${origin.y}px`,
+              '--mx': `${midX}px`, '--my': `${midY}px`,
               '--cx': `${center.x}px`, '--cy': `${center.y}px`,
-              '--delay': `${Math.random() * 0.4}s`,
-              '--dur': `${0.8 + Math.random() * 1.0}s`,
+              '--delay': `${Math.random() * 0.15}s`,
+              '--dur': `${0.9 + Math.random() * 0.6}s`,
               '--size': `${size}px`,
-              '--builder': isBuilder ? '1' : '0',
-              backgroundColor: color,
-              boxShadow: `0 0 ${size * 2}px ${size * 0.6}px ${color}cc`,
+              '--rot': `${Math.random() * 360}deg`,
+              '--rot2': `${(Math.random() - 0.5) * 180}deg`,
+              width: `${size}px`,
+              height: `${size * (0.4 + Math.random() * 1.2)}px`,
+              background: `rgba(${this.hexToRgb(color)},0.25)`,
+              borderColor: `rgba(${this.hexToRgb(color)},0.5)`,
+              boxShadow: `0 0 ${size * 0.6}px rgba(${this.hexToRgb(color)},0.4)`,
             },
           })
         }
       } else if (eff === 1) {
-        // fog: 10 thick mist clouds dissolve from origin, gather at center, bubble emerges
-        for (let i = 0; i < 10; i++) {
-          const sx = origin.x + (Math.random() - 0.5) * 120
-          const sy = origin.y + (Math.random() - 0.5) * 100
-          this.wisps.push({
-            i, style: {
+        // ── Particle Star Cluster: burst → converge → dissolve ──
+        const clusterCount = this.isMobile ? 16 : 30
+        for (let i = 0; i < clusterCount; i++) {
+          const angle = (i / clusterCount) * Math.PI * 2
+          const startR = 10 + Math.random() * 60
+          const midR = 100 + Math.random() * 200
+          const sx = origin.x + Math.cos(angle) * startR
+          const sy = origin.y + Math.sin(angle) * startR
+          const mx = origin.x + Math.cos(angle) * midR + (Math.random() - 0.5) * 80
+          const my = origin.y + Math.sin(angle) * midR + (Math.random() - 0.5) * 80
+          const size = 2 + Math.random() * 5
+          this.clusterParticles.push({
+            i,
+            style: {
               '--ox': `${sx}px`, '--oy': `${sy}px`,
+              '--mx': `${mx}px`, '--my': `${my}px`,
               '--cx': `${center.x}px`, '--cy': `${center.y}px`,
-              '--dur': `${1.0 + Math.random() * 0.8}s`,
-              '--delay': `${Math.random() * 0.3}s`,
-              '--size': `${50 + Math.random() * 90}px`,
-              '--op': `${0.3 + Math.random() * 0.45}`,
-              background: `radial-gradient(ellipse at center, ${color}aa 0%, ${color}44 50%, transparent 75%)`,
+              '--delay': `${Math.random() * 0.2}s`,
+              '--dur': `${1.0 + Math.random() * 0.5}s`,
+              '--size': `${size}px`,
+              width: `${size}px`,
+              height: `${size}px`,
+              backgroundColor: color,
+              boxShadow: `0 0 ${size * 3}px ${size}px ${color}`,
             },
           })
         }
       } else if (eff === 2) {
-        // Canvas text reconstruction — bubble shatters, particles reassemble into the text stroke-by-stroke
+        // ── Vortex Suction ──
         this.startTypingEffect(text)
-      } else {
-        // ripple: vortex — rings emanate from origin, center area blurs, bubble rises
-        for (let i = 0; i < 6; i++) {
-          this.ripples.push({
-            i, style: {
-              '--ox': `${origin.x}px`, '--oy': `${origin.y}px`,
+        const arms = this.isMobile ? 5 : 8
+        for (let i = 0; i < arms; i++) {
+          const angle = (i / arms) * Math.PI * 2 + (Math.random() - 0.5) * 0.5
+          const startR = 30 + Math.random() * 80
+          const sx = origin.x + Math.cos(angle) * startR
+          const sy = origin.y + Math.sin(angle) * startR
+          this.vortexArms.push({
+            i,
+            style: {
+              '--ox': `${sx}px`, '--oy': `${sy}px`,
               '--cx': `${center.x}px`, '--cy': `${center.y}px`,
-              '--delay': `${i * 0.15}s`,
-              '--size': `${50 + i * 42}px`,
-              borderColor: `${color}88`,
-              borderWidth: `${3 - i * 0.35}px`,
+              '--delay': `${i * 0.06}s`,
+              '--dur': `${1.0 + Math.random() * 0.35}s`,
+              '--spin': `${540 + Math.random() * 360}deg`,
+              '--size': `${8 + Math.random() * 14}px`,
+              '--color': color,
+              width: `${8 + Math.random() * 14}px`,
+              height: `${8 + Math.random() * 14}px`,
+            },
+          })
+        }
+      } else {
+        // ── Aurora Streams ──
+        const corners = [
+          { x: -80, y: -80, angle: 45 },
+          { x: window.innerWidth + 80, y: -80, angle: 135 },
+          { x: -80, y: window.innerHeight + 80, angle: -45 },
+          { x: window.innerWidth + 80, y: window.innerHeight + 80, angle: -135 },
+        ]
+        for (let i = 0; i < 4; i++) {
+          const c = corners[i]
+          const hue = this.colorToHue(color) + (i - 1.5) * 15
+          this.auroraBeams.push({
+            i,
+            style: {
+              '--ox': `${c.x}px`, '--oy': `${c.y}px`,
+              '--cx': `${center.x}px`, '--cy': `${center.y}px`,
+              '--delay': `${i * 0.1}s`,
+              '--dur': `${1.0 + i * 0.12}s`,
+              '--hue': hue,
+              '--angle': `${c.angle}deg`,
+              width: `${200 + Math.random() * 100}px`,
             },
           })
         }
       }
     },
+
+    // ── Helpers ──
+    hexToRgb(hex) {
+      const h = hex.replace('#', '')
+      const r = parseInt(h.substring(0, 2), 16)
+      const g = parseInt(h.substring(2, 4), 16)
+      const b = parseInt(h.substring(4, 6), 16)
+      return `${r},${g},${b}`
+    },
+
+    colorToHue(hex) {
+      const h = hex.replace('#', '')
+      const r = parseInt(h.substring(0, 2), 16) / 255
+      const g = parseInt(h.substring(2, 4), 16) / 255
+      const b = parseInt(h.substring(4, 6), 16) / 255
+      const max = Math.max(r, g, b), min = Math.min(r, g, b)
+      let hue = 0
+      if (max === min) return 0
+      const d = max - min
+      if (max === r) hue = ((g - b) / d) % 6
+      else if (max === g) hue = (b - r) / d + 2
+      else hue = (r - g) / d + 4
+      return Math.round(hue * 60)
+    },
+
+    // ── Typing ──
     startTypingEffect(text) {
       this.stopTyping()
       this.typedText = ''
       if (!text) return
       let i = 0
       const chars = [...text]
-      const delay = 80 + Math.random() * 60 // 80-140ms per tick
+      const delay = 80 + Math.random() * 60
       this.typingTimer = setInterval(() => {
         if (i >= chars.length) { this.stopTyping(); return }
-        const count = 1 + Math.floor(Math.random() * 2) // 1-2 chars per tick
+        const count = 1 + Math.floor(Math.random() * 2)
         this.typedText += chars.slice(i, i + count).join('')
         i += count
       }, delay)
     },
+
     stopTyping() {
       if (this.typingTimer) { clearInterval(this.typingTimer); this.typingTimer = null }
     },
+
+    // ── Release ──
     releaseBubble() {
       if (this.releasing) return
       this.releasing = true
@@ -454,19 +728,21 @@ export default {
         this.capturedBubble = null
         this.releasing = false
         this.typedText = ''
-        this.sparkles = []
-        this.wisps = []
         this.shards = []
-        this.ripples = []
+        this.clusterParticles = []
+        this.vortexArms = []
+        this.auroraBeams = []
         this.removeEscListener()
-      }, 400)
+      }, 500)
     },
+
     addEscListener() {
       this._escHandler = (e) => {
         if (e.key === 'Escape') this.releaseBubble()
       }
       document.addEventListener('keydown', this._escHandler)
     },
+
     removeEscListener() {
       if (this._escHandler) {
         document.removeEventListener('keydown', this._escHandler)
@@ -487,68 +763,103 @@ export default {
   cursor: default;
 }
 
-/* ── particle dust ── */
-.dust-particle {
+/* ── Ambient orbs ── */
+.orb {
   position: absolute;
   border-radius: 50%;
-  background: rgba(180,170,150,0.4);
-  animation: dust-drift linear infinite;
+  filter: blur(70px);
+  opacity: 0.7;
   pointer-events: none;
+  z-index: 0;
+  animation: orb-drift linear infinite;
 }
-@keyframes dust-drift {
-  0%   { transform: translate(0, 0) scale(1); }
-  25%  { transform: translate(15px, -25px) scale(1.3); }
-  50%  { transform: translate(-10px, -50px) scale(0.8); }
-  75%  { transform: translate(-20px, -30px) scale(1.1); }
-  100% { transform: translate(5px, 5px) scale(1); }
+@keyframes orb-drift {
+  0%   { transform: translate(0, 0) scale(0.8); }
+  25%  { transform: translate(40px, -30px) scale(1.15); }
+  50%  { transform: translate(-20px, -60px) scale(0.9); }
+  75%  { transform: translate(-50px, -15px) scale(1.1); }
+  100% { transform: translate(0, 0) scale(0.8); }
 }
 
-/* ── stars ── */
+/* ── Canvas constellation ── */
+.particle-canvas {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* ── Stars ── */
 .star {
   position: absolute;
   border-radius: 50%;
   background: #fff;
   animation: star-twinkle ease-in-out infinite;
   pointer-events: none;
+  z-index: 0;
 }
 @keyframes star-twinkle {
   0%, 100% { opacity: 0.15; }
   50%      { opacity: 0.7; }
 }
 
-/* ── bubble layer ── */
+/* ── Bubble layer ── */
 .bubble-layer {
   position: absolute;
   inset: 0;
   z-index: 2;
 }
 
-/* ── thought bubble ── */
+/* ── Liquid Glass thought bubble ── */
 .thought-bubble {
   position: absolute;
   max-width: 320px;
   padding: 18px 22px 14px;
-  border-radius: 24px;
-  background: var(--persona-bg);
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
-  border: 1px solid color-mix(in srgb, var(--persona-color) 25%, transparent);
+  backdrop-filter: blur(14px) saturate(130%);
+  -webkit-backdrop-filter: blur(14px) saturate(130%);
+  background: var(--persona-bg, rgba(212,162,85,0.06));
+  border: 1px solid color-mix(in srgb, var(--persona-color, #d4a255) 22%, transparent);
+  border-top: 1px solid color-mix(in srgb, var(--persona-color, #d4a255) 40%, transparent);
   box-shadow:
-    0 0 30px var(--persona-glow),
-    inset 0 0 30px rgba(255,255,255,0.015);
+    0 8px 40px var(--persona-glow),
+    0 0 0 1px rgba(255,255,255,0.02) inset,
+    0 1px 0 rgba(255,255,255,0.04) inset;
   animation:
     bubble-float var(--float-duration, 16s) 0s ease-in forwards,
-    bubble-wobble 5s 0s ease-in-out infinite;
-  transition: opacity 1s ease;
+    bubble-wobble 5s 0s ease-in-out infinite,
+    bubble-breathe var(--breathe-dur, 6s) var(--breathe-delay, 0s) ease-in-out infinite;
+  transition: opacity 1s ease, transform 0.3s ease;
+  cursor: pointer;
+  overflow: hidden;
+}
+.thought-bubble:hover {
+  transform: scale(1.04) translateY(-2px);
+  box-shadow:
+    0 12px 50px var(--persona-glow),
+    0 0 0 1px rgba(255,255,255,0.04) inset,
+    0 1px 0 rgba(255,255,255,0.06) inset;
 }
 
-/* bubble shapes */
-.bubble-round {
-  border-radius: 40% 60% 55% 45% / 45% 50% 50% 55%;
+/* Top highlight stripe */
+.bubble-highlight {
+  position: absolute;
+  top: 0; left: 8%; right: 8%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent);
+  pointer-events: none;
 }
-.bubble-organic {
-  border-radius: 35% 65% 50% 50% / 55% 40% 60% 45%;
+
+/* Breathing shape animation */
+@keyframes bubble-breathe {
+  0%, 100% { border-radius: 40% 60% 55% 45% / 45% 50% 50% 55%; }
+  25%  { border-radius: 55% 45% 40% 60% / 52% 42% 58% 48%; }
+  50%  { border-radius: 42% 58% 52% 48% / 48% 55% 45% 55%; }
+  75%  { border-radius: 58% 42% 48% 52% / 42% 52% 48% 58%; }
 }
+
+/* shape overrides — use base shapes as starting point, breathe anim does the morphing */
+.bubble-round  { border-radius: 40% 60% 55% 45% / 45% 50% 50% 55%; }
+.bubble-organic { border-radius: 35% 65% 50% 50% / 55% 40% 60% 45%; }
 .bubble-wide {
   border-radius: 30% 70% 60% 40% / 60% 40% 55% 45%;
   max-width: 380px;
@@ -562,13 +873,12 @@ export default {
   max-width: 230px;
 }
 
-/* persona color tints */
+/* persona tints */
 .persona-qiuz { --persona-tint: rgba(212,162,85,0.13); }
 .persona-yan  { --persona-tint: rgba(201,122,124,0.13); }
 .persona-yin  { --persona-tint: rgba(125,171,140,0.13); }
 .persona-bei  { --persona-tint: rgba(106,140,181,0.13); }
 
-/* bubble label */
 .bubble-label {
   display: inline-block;
   font-size: 10px;
@@ -578,9 +888,9 @@ export default {
   opacity: 0.6;
   margin-bottom: 6px;
   font-family: 'Georgia', 'Noto Serif SC', serif;
+  position: relative;
+  z-index: 1;
 }
-
-/* bubble text */
 .bubble-text {
   font-size: 14px;
   line-height: 1.7;
@@ -589,19 +899,20 @@ export default {
   font-weight: 400;
   letter-spacing: 0.02em;
   word-break: break-word;
+  position: relative;
+  z-index: 1;
 }
-
-/* thought dots (comic bubble tail) */
 .bubble-dots {
   display: flex;
   gap: 6px;
   margin-top: 10px;
   justify-content: flex-end;
   padding-right: 12px;
+  position: relative;
+  z-index: 1;
 }
 .dot {
-  width: 7px;
-  height: 7px;
+  width: 7px; height: 7px;
   border-radius: 50%;
   background: var(--persona-color);
   opacity: 0.35;
@@ -611,30 +922,14 @@ export default {
 .dot:nth-child(3) { width: 6px; height: 6px; }
 .dot:nth-child(4) { width: 5px; height: 5px; opacity: 0.22; }
 
-/* animations */
+/* float + wobble */
 @keyframes bubble-float {
-  0% {
-    bottom: calc(-10% - 0px);
-    opacity: 0;
-    transform: rotate(var(--wobble-amount)) scale(0.75);
-  }
-  8% {
-    opacity: 1;
-    transform: rotate(0deg) scale(1);
-  }
-  75% {
-    opacity: 0.8;
-  }
-  95% {
-    opacity: 0.1;
-  }
-  100% {
-    bottom: var(--float-distance);
-    opacity: 0;
-    transform: rotate(var(--wobble2-amount)) scale(0.7);
-  }
+  0%   { bottom: calc(-10% - 0px); opacity: 0; transform: rotate(var(--wobble-amount)) scale(0.75); }
+  8%   { opacity: 1; transform: rotate(0deg) scale(1); }
+  75%  { opacity: 0.8; }
+  95%  { opacity: 0.1; }
+  100% { bottom: var(--float-distance); opacity: 0; transform: rotate(var(--wobble2-amount)) scale(0.7); }
 }
-
 @keyframes bubble-wobble {
   0%, 100% { margin-left: 0; }
   25%  { margin-left: 8px; }
@@ -642,58 +937,32 @@ export default {
 }
 
 /* transition group */
-.bubble-enter-active {
-  transition: all 0.8s ease-out;
-}
-.bubble-leave-active {
-  transition: all 1.5s ease-in;
-}
-.bubble-enter-from {
-  opacity: 0;
-  transform: scale(0.6) translateY(30px);
-}
-.bubble-leave-to {
-  opacity: 0;
-  transform: scale(0.5) translateY(-30px);
-}
+.bubble-enter-active { transition: all 0.8s ease-out; }
+.bubble-leave-active { transition: all 1.5s ease-in; }
+.bubble-enter-from { opacity: 0; transform: scale(0.6) translateY(30px); }
+.bubble-leave-to   { opacity: 0; transform: scale(0.5) translateY(-30px); }
 
-/* ── back link ── */
+/* ── Back link ── */
 .back-link {
-  position: fixed;
-  bottom: 28px;
-  left: 50%;
+  position: fixed; bottom: 28px; left: 50%;
   transform: translateX(-50%);
   z-index: 10;
-  display: flex;
-  align-items: center;
-  gap: 6px;
+  display: flex; align-items: center; gap: 6px;
   text-decoration: none;
   color: rgba(200,195,185,0.45);
   font-family: 'Georgia', 'Noto Serif SC', serif;
-  font-size: 13px;
-  letter-spacing: 0.08em;
+  font-size: 13px; letter-spacing: 0.08em;
   transition: color 0.4s ease;
 }
-.back-link:hover {
-  color: rgba(220,210,195,0.8);
-}
-.back-arrow {
-  font-size: 15px;
-  transition: transform 0.3s ease;
-}
-.back-link:hover .back-arrow {
-  transform: translateX(-4px);
-}
+.back-link:hover { color: rgba(220,210,195,0.8); }
+.back-arrow { font-size: 15px; transition: transform 0.3s ease; }
+.back-link:hover .back-arrow { transform: translateX(-4px); }
 
-/* ── title hint ── */
+/* ── Title hint ── */
 .title-hint {
-  position: fixed;
-  top: 32px;
-  right: 36px;
+  position: fixed; top: 32px; right: 36px;
   z-index: 10;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
+  display: flex; flex-direction: column; align-items: flex-end;
   pointer-events: none;
 }
 .hint-line {
@@ -705,11 +974,10 @@ export default {
 .hint-sub {
   font-size: 10px;
   color: rgba(200,195,185,0.18);
-  letter-spacing: 0.12em;
-  margin-top: 2px;
+  letter-spacing: 0.12em; margin-top: 2px;
 }
 
-/* ── capture ── */
+/* ── Capture overlay ── */
 .is-captured {
   animation: bubble-shatter 0.35s ease-in forwards !important;
   pointer-events: none;
@@ -721,15 +989,12 @@ export default {
 }
 
 .capture-overlay {
-  position: fixed;
-  inset: 0;
+  position: fixed; inset: 0;
   z-index: 15;
-  background: radial-gradient(ellipse at center, rgba(4,4,10,0.5) 0%, rgba(4,4,10,0.88) 100%);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  background: radial-gradient(ellipse at center, rgba(4,4,10,0.45) 0%, rgba(4,4,10,0.9) 100%);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  display: flex; align-items: center; justify-content: center;
   cursor: pointer;
 }
 .capture-overlay.releasing { pointer-events: none; }
@@ -737,233 +1002,100 @@ export default {
 .overlay-fade-leave-active { transition: opacity 0.6s ease-in; }
 .overlay-fade-enter-from, .overlay-fade-leave-to { opacity: 0; }
 
-/* center stage */
 .capture-stage {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 18px;
+  display: flex; flex-direction: column; align-items: center; gap: 18px;
   cursor: default;
 }
 
-/* captured bubble at center */
+/* ── Capture bubble ── */
 .capture-bubble {
   position: relative;
-  max-width: 440px;
-  min-width: 260px;
+  max-width: 440px; min-width: 260px;
   padding: 32px 36px 24px;
-  border-radius: 35% 65% 55% 45% / 45% 50% 50% 55%;
-  background: var(--persona-bg, rgba(212,162,85,0.08));
-  border: 2px solid color-mix(in srgb, var(--persona-color, #d4a255) 30%, transparent);
+  backdrop-filter: blur(20px) saturate(140%);
+  -webkit-backdrop-filter: blur(20px) saturate(140%);
+  background: var(--persona-bg, rgba(212,162,85,0.06));
+  border: 1.5px solid color-mix(in srgb, var(--persona-color, #d4a255) 28%, transparent);
+  border-top: 1.5px solid color-mix(in srgb, var(--persona-color, #d4a255) 45%, transparent);
   box-shadow:
-    0 0 80px var(--persona-glow, rgba(212,162,85,0.3)),
-    inset 0 0 60px rgba(255,255,255,0.02);
-  animation: capture-reveal 0.4s 0.3s ease-out forwards,
-             capture-float 4s 0.8s ease-in-out infinite;
+    0 0 100px var(--persona-glow),
+    0 20px 60px rgba(0,0,0,0.4),
+    0 0 0 1px rgba(255,255,255,0.03) inset,
+    0 1px 0 rgba(255,255,255,0.05) inset;
   opacity: 0;
+  overflow: hidden;
 }
 .capture-bubble.releasing {
-  animation: release-dissolve 0.4s ease-in forwards !important;
+  animation: release-dissolve 0.5s ease-in forwards !important;
   pointer-events: none;
+}
+.capture-highlight {
+  position: absolute;
+  top: 0; left: 6%; right: 6%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+  pointer-events: none;
+}
+
+/* Reveal timings per effect */
+.capture-bubble.ce-0 {
+  animation: capture-reveal 0.4s 0.7s ease-out forwards,
+             capture-float 4s 1.2s ease-in-out infinite;
+}
+.capture-bubble.ce-1 {
+  animation: capture-reveal 0.4s 0.6s ease-out forwards,
+             capture-float 4s 1.1s ease-in-out infinite;
+}
+.capture-bubble.ce-2 {
+  animation: capture-reveal 0.35s 1.0s ease-out forwards,
+             capture-float 4s 1.5s ease-in-out infinite;
+  border-radius: 35% 65% 55% 45% / 45% 50% 50% 55%;
+}
+.capture-bubble.ce-3 {
+  animation: emerge-aurora 0.5s 0.7s ease-out forwards,
+             capture-float 4s 1.2s ease-in-out infinite;
 }
 
 @keyframes capture-reveal {
-  0%   { transform: scale(0.25); opacity: 0; }
-  100% { transform: scale(1); opacity: 1; }
+  0%   { transform: scale(0.3); opacity: 0; filter: blur(8px); }
+  100% { transform: scale(1); opacity: 1; filter: blur(0); }
+}
+@keyframes emerge-aurora {
+  0%   { transform: scale(0.6); opacity: 0; filter: brightness(2.5) blur(12px); }
+  100% { transform: scale(1); opacity: 1; filter: brightness(1) blur(0); }
 }
 @keyframes capture-float {
   0%, 100% { transform: translateY(0); }
-  50%      { transform: translateY(-5px); }
+  50%      { transform: translateY(-6px); }
 }
 @keyframes release-dissolve {
   0%   { transform: scale(1); opacity: 1; filter: blur(0); }
-  100% { transform: scale(0.8); opacity: 0; filter: blur(10px); }
+  100% { transform: scale(0.75); opacity: 0; filter: blur(14px); }
 }
 
-/* vortex blur for ripple */
-.vortex-blur {
-  position: absolute;
-  width: 0; height: 0;
-  pointer-events: none;
-  z-index: 16;
-  transform: translate(-50%, -50%);
-  box-shadow: 0 0 200px 100px rgba(4,4,10,0.7);
-  animation: vortex-expand 1.5s ease-out forwards;
-}
-@keyframes vortex-expand {
-  0%   { box-shadow: 0 0 0 0 rgba(4,4,10,0.95); }
-  100% { box-shadow: 0 0 300px 180px rgba(4,4,10,0.55); }
-}
-
-/* ── Effect 0: Firefly ── */
-.sparkle {
-  position: absolute;
-  width: var(--size, 8px);
-  height: var(--size, 8px);
-  border-radius: 50%;
-  pointer-events: none;
-  z-index: 18;
-  animation-name: sparkle-fly;
-  animation-duration: var(--dur, 1.4s);
-  animation-delay: var(--delay, 0s);
-  animation-timing-function: ease-out;
-  animation-fill-mode: forwards;
-}
-.sparkle.builder {
-  animation-name: sparkle-fly, builder-glow;
-  animation-duration: var(--dur, 1.4s), 2s;
-  animation-delay: var(--delay, 0s), var(--dur, 1.4s);
-  animation-timing-function: ease-out, ease-in-out;
-  animation-fill-mode: forwards, none;
-  animation-iteration-count: 1, infinite;
-}
-@keyframes sparkle-fly {
-  0%   { left: var(--ox); top: var(--oy); transform: scale(0.05); opacity: 0; }
-  8%   { opacity: 1; }
-  65%  { left: var(--cx); top: var(--cy); transform: scale(1); opacity: 0.9; }
-  100% { left: var(--cx); top: var(--cy); transform: scale(0.25); opacity: 0; }
-}
-@keyframes builder-glow {
-  0%,100% { transform: translate(0,0) scale(0.5); opacity: 0.3; }
-  25%  { transform: translate(3px,-5px) scale(1.2); opacity: 0.85; }
-  50%  { transform: translate(-4px,2px) scale(0.7); opacity: 0.5; }
-  75%  { transform: translate(2px,5px) scale(1.1); opacity: 0.75; }
-}
-
-/* ── Effect 1: Fog ── */
-.wisp {
-  position: absolute;
-  width: var(--size, 100px);
-  height: var(--size, 100px);
-  border-radius: 50%;
-  pointer-events: none;
-  z-index: 17;
-  opacity: 0;
-  filter: blur(14px);
-  animation-name: wisp-flow;
-  animation-duration: var(--dur, 1.2s);
-  animation-delay: var(--delay, 0s);
-  animation-timing-function: ease-out;
-  animation-fill-mode: forwards;
-}
-@keyframes wisp-flow {
-  0%   { left: var(--ox); top: var(--oy); transform: scale(0.15) rotate(0deg); opacity: 0; }
-  25%  { opacity: var(--op, 0.4); }
-  60%  { left: var(--cx); top: var(--cy); transform: scale(1.5) rotate(10deg); opacity: var(--op, 0.4); }
-  100% { left: var(--cx); top: var(--cy); transform: scale(0.6) rotate(-5deg); opacity: 0.08; }
-}
-.capture-bubble.effect-1 {
-  animation: emerge-from-fog 0.5s 0.3s ease-out forwards, capture-float 4s 0.8s ease-in-out infinite;
-  opacity: 0;
-}
-@keyframes emerge-from-fog {
-  0%   { opacity: 0; filter: blur(20px) brightness(2); }
-  100% { opacity: 1; filter: blur(0) brightness(1); }
-}
-
-/* ── Effect 2: Typewriter ── */
-.capture-bubble.effect-2 {
-  animation: reveal-shard 0.35s 0.15s ease-out forwards, capture-float 4s 0.6s ease-in-out infinite;
-  opacity: 0;
-}
-@keyframes reveal-shard {
-  0%   { opacity: 0; }
-  100% { opacity: 1; }
-}
-.capture-text.typing {
-  min-height: 1.7em;
-}
-.typing-cursor {
-  display: inline;
-  color: var(--persona-color, #d4a255);
-  font-weight: 300;
-  animation: cursor-blink 0.8s step-end infinite;
-}
-.typing-cursor.blink {
-  animation: cursor-blink 0.8s step-end infinite;
-}
-@keyframes cursor-blink {
-  0%, 100% { opacity: 1; }
-  50%      { opacity: 0; }
-}
-
-/* ── Effect 3: Ripple ── */
-.ripple-ring {
-  position: absolute;
-  width: var(--size, 80px);
-  height: var(--size, 80px);
-  border-radius: 50%;
-  border-style: solid;
-  pointer-events: none;
-  z-index: 17;
-  animation-name: ripple-from-origin;
-  animation-duration: 2.2s;
-  animation-delay: var(--delay, 0s);
-  animation-timing-function: ease-out;
-  animation-fill-mode: forwards;
-}
-@keyframes ripple-from-origin {
-  0%   { left: var(--ox); top: var(--oy); transform: translate(-50%, -50%) scale(0.05); opacity: 1; }
-  100% { left: var(--cx); top: var(--cy); transform: translate(-50%, -50%) scale(2.5); opacity: 0; }
-}
-.capture-bubble.effect-3 {
-  animation: reveal-ripple 0.35s 0.2s ease-out forwards, capture-float 4s 0.7s ease-in-out infinite;
-  opacity: 0;
-}
-@keyframes reveal-ripple {
-  0%   { transform: scale(0.2) translateY(20px); opacity: 0; }
-  100% { transform: scale(1) translateY(0); opacity: 1; }
-}
-.reflection {
-  position: absolute;
-  inset: 6px -6px -14px 6px;
-  border-radius: inherit;
-  background: var(--persona-bg, rgba(212,162,85,0.05));
-  pointer-events: none;
-  animation: reflection-shift 3s ease-in-out infinite;
-  filter: blur(20px);
-  opacity: 0.35;
-}
-@keyframes reflection-shift {
-  0%,100% { transform: translate(2px, 4px); opacity: 0.2; }
-  50%     { transform: translate(-4px, -2px); opacity: 0.45; }
-}
-
-/* captured label */
 .capture-label {
   display: inline-block;
-  font-size: 12px;
-  letter-spacing: 0.2em;
+  font-size: 12px; letter-spacing: 0.2em;
   text-transform: uppercase;
   color: var(--persona-color, #d4a255);
-  opacity: 0.7;
-  margin-bottom: 10px;
+  opacity: 0.7; margin-bottom: 10px;
   font-family: 'Georgia', 'Noto Serif SC', serif;
+  position: relative; z-index: 1;
 }
-
-/* captured text */
 .capture-text {
-  font-size: 18px;
-  line-height: 2;
+  font-size: 18px; line-height: 2;
   color: rgba(230, 225, 215, 0.92);
   font-family: 'Georgia', 'Noto Serif SC', 'Source Han Serif SC', serif;
-  font-weight: 400;
-  letter-spacing: 0.04em;
-  word-break: break-word;
-  text-align: center;
+  font-weight: 400; letter-spacing: 0.04em;
+  word-break: break-word; text-align: center;
+  position: relative; z-index: 1;
 }
-
-/* captured dots */
 .capture-dots {
-  display: flex;
-  gap: 8px;
-  margin-top: 14px;
-  justify-content: center;
+  display: flex; gap: 8px; margin-top: 14px; justify-content: center;
+  position: relative; z-index: 1;
 }
 .c-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
+  width: 8px; height: 8px; border-radius: 50%;
   background: var(--persona-color, #d4a255);
   opacity: 0.4;
   animation: dot-pulse 1.8s ease-in-out infinite;
@@ -971,13 +1103,25 @@ export default {
 .c-dot:nth-child(2) { animation-delay: 0.25s; width: 10px; height: 10px; opacity: 0.32; }
 .c-dot:nth-child(3) { animation-delay: 0.5s; }
 .c-dot:nth-child(4) { animation-delay: 0.75s; width: 6px; height: 6px; opacity: 0.28; }
-
 @keyframes dot-pulse {
   0%, 100% { opacity: 0.4; transform: scale(1); }
   50%      { opacity: 0.85; transform: scale(1.4); }
 }
 
-/* capture hint */
+/* Typewriter */
+.capture-text.typing { min-height: 1.7em; }
+.typing-cursor {
+  display: inline;
+  color: var(--persona-color, #d4a255);
+  font-weight: 300;
+  animation: cursor-blink 0.8s step-end infinite;
+}
+.typing-cursor.blink { animation: cursor-blink 0.8s step-end infinite; }
+@keyframes cursor-blink {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0; }
+}
+
 .capture-hint {
   font-size: 12px;
   color: rgba(200, 195, 185, 0.35);
@@ -990,21 +1134,130 @@ export default {
   50%      { opacity: 0.55; }
 }
 
-/* ── responsive ── */
+/* ════════════════════════════════════════
+   EFFECT 0: Glass Shatter
+   ════════════════════════════════════════ */
+.shard {
+  position: absolute;
+  border-radius: 2px;
+  border: 1px solid;
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+  pointer-events: none;
+  z-index: 18;
+  animation: shard-fly var(--dur, 1.4s) var(--delay, 0s) ease-out forwards;
+}
+@keyframes shard-fly {
+  0%   { left: var(--ox); top: var(--oy); transform: translate(-50%,-50%) scale(0) rotate(0deg); opacity: 0; }
+  8%   { opacity: 1; }
+  30%  { left: var(--mx); top: var(--my); transform: translate(-50%,-50%) scale(1.1) rotate(var(--rot)); opacity: 0.95; }
+  100% { left: var(--cx); top: var(--cy); transform: translate(-50%,-50%) scale(0.15) rotate(var(--rot2)); opacity: 0; }
+}
+
+/* ════════════════════════════════════════
+   EFFECT 1: Particle Star Cluster
+   ════════════════════════════════════════ */
+.cluster-particle {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 18;
+  animation: cluster-burst var(--dur, 1.4s) var(--delay, 0s) ease-out forwards;
+}
+@keyframes cluster-burst {
+  0%   { left: var(--ox); top: var(--oy); transform: translate(-50%,-50%) scale(0); opacity: 0; }
+  12%  { opacity: 1; }
+  45%  { left: var(--mx); top: var(--my); transform: translate(-50%,-50%) scale(1.15); opacity: 0.9; }
+  85%  { left: var(--cx); top: var(--cy); transform: translate(-50%,-50%) scale(0.6); opacity: 0.4; }
+  100% { left: var(--cx); top: var(--cy); transform: translate(-50%,-50%) scale(0.05); opacity: 0; }
+}
+
+/* ════════════════════════════════════════
+   EFFECT 2: Vortex Suction
+   ════════════════════════════════════════ */
+.vortex-arm {
+  position: absolute;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  border-top-color: var(--color, #d4a255);
+  border-left-color: color-mix(in srgb, var(--color, #d4a255) 50%, transparent);
+  pointer-events: none;
+  z-index: 17;
+  opacity: 0;
+  filter: blur(1px);
+  animation: vortex-suck var(--dur, 1.2s) var(--delay, 0s) cubic-bezier(0.25, 0, 0.35, 1) forwards;
+}
+@keyframes vortex-suck {
+  0%   { left: var(--ox); top: var(--oy); width: 4px; height: 4px; transform: translate(-50%,-50%) rotate(0deg); opacity: 0; }
+  15%  { opacity: 0.85; }
+  55%  { left: var(--cx); top: var(--cy); transform: translate(-50%,-50%) rotate(var(--spin)); opacity: 0.6; }
+  85%  { left: var(--cx); top: var(--cy); width: var(--size); height: var(--size); transform: translate(-50%,-50%) rotate(calc(var(--spin) * 1.6)); opacity: 0.2; }
+  100% { left: var(--cx); top: var(--cy); width: 2px; height: 2px; transform: translate(-50%,-50%) rotate(calc(var(--spin) * 2.2)); opacity: 0; }
+}
+
+/* ════════════════════════════════════════
+   EFFECT 3: Aurora Streams
+   ════════════════════════════════════════ */
+.aurora-beam {
+  position: absolute;
+  height: 160px;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 17;
+  opacity: 0;
+  filter: blur(35px);
+  animation: aurora-flow var(--dur, 1.2s) var(--delay, 0s) ease-out forwards;
+  background: linear-gradient(
+    var(--angle, 135deg),
+    hsl(var(--hue, 30), 60%, 65%) 0%,
+    hsl(var(--hue, 30), 50%, 50%) 30%,
+    transparent 70%
+  );
+}
+@keyframes aurora-flow {
+  0%   { left: var(--ox); top: var(--oy); transform: translate(-50%,-50%) scale(0.1); opacity: 0; }
+  30%  { opacity: 0.7; }
+  60%  { left: var(--cx); top: var(--cy); transform: translate(-50%,-50%) scale(1.3); opacity: 0.9; }
+  100% { left: var(--cx); top: var(--cy); transform: translate(-50%,-50%) scale(1.6); opacity: 0; }
+}
+
+/* ── Responsive ── */
 @media (max-width: 600px) {
   .thought-bubble {
     max-width: 240px;
     padding: 14px 16px 10px;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    background: var(--persona-bg, rgba(212,162,85,0.12));
+    /* no breathe anim — saves GPU compositing */
+    animation: bubble-float var(--float-duration, 16s) 0s ease-in forwards,
+               bubble-wobble 5s 0s ease-in-out infinite;
   }
   .bubble-text { font-size: 12px; line-height: 1.6; }
   .bubble-wide { max-width: 280px; }
   .bubble-tall { max-width: 200px; }
   .bubble-small { max-width: 180px; }
   .capture-bubble {
-    max-width: 300px;
-    min-width: 200px;
+    max-width: 300px; min-width: 200px;
     padding: 24px 22px 18px;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    background: var(--persona-bg, rgba(212,162,85,0.08));
+  }
+  .capture-overlay {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    background: radial-gradient(ellipse at center, rgba(4,4,10,0.6) 0%, rgba(4,4,10,0.95) 100%);
   }
   .capture-text { font-size: 15px; line-height: 1.8; }
+  .orb { display: none; }
+  .shard { backdrop-filter: none; -webkit-backdrop-filter: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .thought-bubble { animation: none !important; }
+  .capture-bubble { animation: none !important; opacity: 1; }
+  .star { animation: none !important; opacity: 0.4; }
+  .shard, .cluster-particle, .vortex-arm, .aurora-beam { animation-duration: 0.1s !important; }
 }
 </style>
