@@ -28,10 +28,11 @@
         v-for="b in visibleBubbles"
         :key="b.id"
         class="thought-bubble"
-        :class="[b.personaClass, b.shapeClass, { 'is-captured': capturedBubble && capturedBubble.id === b.id }]"
+        :class="[b.personaClass, b.shapeClass, { 'is-captured': capturedBubble && capturedBubble.id === b.id, 'is-custom': b.isCustom }]"
         :style="b.id === (capturedBubble && capturedBubble.id) ? b.capturedStyle : b.style"
         @click.stop="captureBubble(b, $event)"
       >
+        <button v-if="b.isCustom" class="bubble-delete-btn" @click.stop="deleteCustomBubble(b.id)" title="移除">×</button>
         <span class="bubble-highlight"></span>
         <span class="bubble-label">{{ b.personaLabel }}</span>
         <p class="bubble-text">{{ b.text }}</p>
@@ -171,6 +172,7 @@ const PERSONAS = [
 ]
 
 let nextId = 0
+const STORAGE_KEY = 'thoughts-custom-bubbles'
 
 export default {
   name: 'ThoughtBubbles',
@@ -219,6 +221,7 @@ export default {
       this.$nextTick(() => this.initCanvas())
     }
     await this.loadAllTexts()
+    this.loadCustomBubbles()
     this.startBubbleCycle()
     document.addEventListener('click', this.handleClick)
   },
@@ -532,8 +535,10 @@ export default {
       }
 
       this.visibleBubbles.push(bubble)
-      while (this.visibleBubbles.length > this.maxBubbles) {
-        this.visibleBubbles.shift()
+      // trim only non-custom bubbles
+      while (this.visibleBubbles.filter(b => !b.isCustom).length > this.maxBubbles) {
+        const idx = this.visibleBubbles.findIndex(b => !b.isCustom)
+        if (idx !== -1) this.visibleBubbles.splice(idx, 1)
       }
 
       const lifetime = parseFloat(bubble.style['--float-duration']) * 1000 + 2000
@@ -572,46 +577,95 @@ export default {
       const shapeIdx = Math.floor(Math.random() * 3)
       const shapes = ['bubble-round', 'bubble-organic', 'bubble-wide']
       const color = '#c0b0a0'
-      const xPos = 15 + Math.random() * 70
 
       const bubble = {
         id,
         text,
         date: formattedDate,
+        rawDate: dateStr, // stored for localStorage
+        isCustom: true,
         personaClass: 'persona-custom',
         shapeClass: shapes[shapeIdx],
         personaLabel: dateStr ? `此刻 · ${formattedDate}` : '此刻',
         dotCount: 2,
         style: {
-          left: `${xPos}%`,
-          bottom: `${-(10 + Math.random() * 8)}%`,
+          left: `${15 + Math.random() * 70}%`,
+          bottom: '-10%',
           '--persona-color': color,
           '--persona-glow': 'rgba(192,176,160,0.22)',
           '--persona-bg': 'rgba(192,176,160,0.06)',
-          '--float-duration': `${10 + Math.random() * 12}s`,
-          '--float-distance': `${70 + Math.random() * 25}vh`,
-          '--wobble-amount': `${-(3 + Math.random() * 6)}deg`,
-          '--wobble2-amount': `${3 + Math.random() * 6}deg`,
+          '--float-duration': `${8 + Math.random() * 8}s`,
+          '--float-distance': `${18 + Math.random() * 32}vh`,
+          '--wobble-amount': `${-(2 + Math.random() * 4)}deg`,
+          '--wobble2-amount': `${2 + Math.random() * 4}deg`,
           '--breathe-dur': `${5 + Math.random() * 4}s`,
           '--breathe-delay': `${Math.random() * 5}s`,
-          transform: `rotate(${-(4 + Math.random() * 8)}deg) scale(0.85)`,
+          transform: 'rotate(-3deg) scale(0.85)',
         },
         born: Date.now(),
       }
 
       this.visibleBubbles.push(bubble)
-      while (this.visibleBubbles.length > this.maxBubbles + 1) {
-        this.visibleBubbles.shift()
-      }
-      const lifetime = parseFloat(bubble.style['--float-duration']) * 1000 + 2000
-      setTimeout(() => {
-        const idx = this.visibleBubbles.findIndex(b => b.id === id)
-        if (idx !== -1) this.visibleBubbles.splice(idx, 1)
-      }, lifetime)
+      this.saveCustomBubbles()
 
       this.showAddForm = false
       this.newText = ''
       this.newDate = ''
+    },
+
+    loadCustomBubbles() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY)
+        if (!raw) return
+        const saved = JSON.parse(raw)
+        if (!Array.isArray(saved)) return
+        const color = '#c0b0a0'
+        const shapes = ['bubble-round', 'bubble-organic', 'bubble-wide']
+        const now = Date.now()
+        saved.forEach((item, i) => {
+          const shapeIdx = i % 3
+          const bubble = {
+            id: nextId++,
+            text: item.text,
+            date: item.date ? this.formatDisplayDate(item.date) : '',
+            rawDate: item.date || '',
+            isCustom: true,
+            personaClass: 'persona-custom',
+            shapeClass: shapes[shapeIdx],
+            personaLabel: item.date ? `此刻 · ${this.formatDisplayDate(item.date)}` : '此刻',
+            dotCount: 2,
+            style: {
+              left: `${10 + (i % 5) * 18 + Math.random() * 8}%`,
+              bottom: `-${5 + Math.random() * 8}%`,
+              '--persona-color': color,
+              '--persona-glow': 'rgba(192,176,160,0.22)',
+              '--persona-bg': 'rgba(192,176,160,0.06)',
+              '--float-duration': `${8 + Math.random() * 8}s`,
+              '--float-distance': `${18 + Math.random() * 32}vh`,
+              '--wobble-amount': `${-(2 + Math.random() * 4)}deg`,
+              '--wobble2-amount': `${2 + Math.random() * 4}deg`,
+              '--breathe-dur': `${5 + Math.random() * 4}s`,
+              '--breathe-delay': `${Math.random() * 5}s`,
+              transform: 'rotate(-3deg) scale(0.85)',
+            },
+            born: now - (i * 2000), // stagger "birth" so they spawn in sequence
+          }
+          this.visibleBubbles.push(bubble)
+        })
+      } catch (e) { /* ignore corrupt storage */ }
+    },
+
+    saveCustomBubbles() {
+      const customs = this.visibleBubbles
+        .filter(b => b.isCustom)
+        .map(b => ({ text: b.text, date: b.rawDate || '' }))
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(customs))
+    },
+
+    deleteCustomBubble(id) {
+      const idx = this.visibleBubbles.findIndex(b => b.id === id)
+      if (idx !== -1) this.visibleBubbles.splice(idx, 1)
+      this.saveCustomBubbles()
     },
 
     formatDisplayDate(dateStr) {
@@ -1025,6 +1079,46 @@ export default {
 .dot:nth-child(2) { width: 8px; height: 8px; opacity: 0.28; }
 .dot:nth-child(3) { width: 6px; height: 6px; }
 .dot:nth-child(4) { width: 5px; height: 5px; opacity: 0.22; }
+
+/* custom bubble: float up and stay visible */
+.thought-bubble.is-custom {
+  animation:
+    custom-float var(--float-duration, 12s) 0s ease-out forwards,
+    bubble-wobble 6s 1s ease-in-out infinite,
+    bubble-breathe var(--breathe-dur, 6s) var(--breathe-delay, 0s) ease-in-out infinite;
+}
+@keyframes custom-float {
+  0%   { bottom: -10%; opacity: 0; transform: rotate(-4deg) scale(0.7); }
+  6%   { opacity: 1; transform: rotate(0deg) scale(1); }
+  100% { bottom: var(--float-distance, 30vh); opacity: 0.82; transform: rotate(0deg) scale(0.92); }
+}
+
+/* delete button for custom bubbles */
+.bubble-delete-btn {
+  position: absolute;
+  top: 6px; right: 8px;
+  z-index: 5;
+  width: 20px; height: 20px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255,255,255,0.06);
+  color: rgba(255,255,255,0.35);
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0;
+  transition: opacity 0.2s ease, background 0.2s ease, color 0.2s ease;
+  padding: 0;
+}
+.thought-bubble:hover .bubble-delete-btn,
+.thought-bubble:active .bubble-delete-btn {
+  opacity: 1;
+}
+.bubble-delete-btn:hover {
+  background: rgba(255,80,80,0.25);
+  color: rgba(255,200,200,0.8);
+}
 
 /* float + wobble */
 @keyframes bubble-float {
