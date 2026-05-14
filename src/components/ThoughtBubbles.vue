@@ -171,7 +171,6 @@ const PERSONAS = [
 ]
 
 let nextId = 0
-const STORAGE_KEY = 'thoughts-custom-bubbles'
 const MAX_CUSTOM = 10
 
 export default {
@@ -569,7 +568,7 @@ export default {
     },
 
     // ── Custom bubble ──
-    submitCustomBubble() {
+    async submitCustomBubble() {
       const text = this.newText.trim()
       if (!text) return
       const dateStr = this.newDate || ''
@@ -584,7 +583,7 @@ export default {
         id,
         text,
         date: formattedDate,
-        rawDate: dateStr, // stored for localStorage
+        rawDate: dateStr,
         isCustom: true,
         personaClass: 'persona-custom',
         shapeClass: shapes[shapeIdx],
@@ -621,19 +620,19 @@ export default {
       }, lifetime)
       this.recentTexts.push({ text, personaIndex: -1, time: Date.now() })
       this.pruneRecentTexts()
-      this.saveCustomBubbles()
+      this.saveCustomBubbleToApi(text, dateStr)
 
       this.showAddForm = false
       this.newText = ''
       this.newDate = ''
     },
 
-    loadCustomBubbles() {
+    async loadCustomBubbles() {
       try {
-        const raw = localStorage.getItem(STORAGE_KEY)
-        if (!raw) return
-        const saved = JSON.parse(raw)
-        if (!Array.isArray(saved)) return
+        const res = await fetch('/api/bubbles')
+        if (!res.ok) return
+        const saved = await res.json()
+        if (!Array.isArray(saved) || saved.length === 0) return
         const recent = saved.slice(this.isMobile ? -2 : -MAX_CUSTOM) // only load last N
         const color = '#c0b0a0'
         const shapes = ['bubble-round', 'bubble-organic', 'bubble-wide']
@@ -680,14 +679,17 @@ export default {
           }, lifetime)
           }, delay)
         })
-      } catch (e) { /* ignore corrupt storage */ }
+      } catch (e) { /* ignore network error */ }
     },
 
-    saveCustomBubbles() {
-      const customs = this.visibleBubbles
-        .filter(b => b.isCustom)
-        .map(b => ({ text: b.text, date: b.rawDate || '' }))
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(customs))
+    async saveCustomBubbleToApi(text, date) {
+      try {
+        await fetch('/api/bubbles', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text, date }),
+        })
+      } catch (e) { /* ignore */ }
     },
 
     formatDisplayDate(dateStr) {
