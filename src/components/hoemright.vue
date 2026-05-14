@@ -92,6 +92,7 @@
 
                   <v-card-actions :style="xs||sm||md?{'padding': '0','min-height': '0','height':'2.5rem'}:{'min-height': '0','height':'2.8rem'}">
                     <v-btn :href="item.url"
+                    rel="noreferrer"
                     target="_blank"
                       :text= "item.go"
                     ></v-btn>
