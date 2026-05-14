@@ -33,7 +33,7 @@ export async function onRequestPost(context) {
   const token = await hashPassword(password)
   const cookie = [
     `thoughts-auth=${token}`,
-    'Path=/thoughts',
+    'Path=/',
     'HttpOnly',
     'Secure',
     'SameSite=Lax',
