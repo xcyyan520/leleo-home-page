@@ -619,6 +619,8 @@ export default {
         const idx = this.visibleBubbles.findIndex(b => b.id === id)
         if (idx !== -1) this.visibleBubbles.splice(idx, 1)
       }, lifetime)
+      this.recentTexts.push({ text, personaIndex: -1, time: Date.now() })
+      this.pruneRecentTexts()
       this.saveCustomBubbles()
 
       this.showAddForm = false
@@ -668,6 +670,7 @@ export default {
             born: now - (i * 2000),
           }
           this.visibleBubbles.push(bubble)
+          this.recentTexts.push({ text: item.text, personaIndex: -1, time: Date.now() })
           // auto-remove after float
           const bid = bubble.id
           const lifetime = parseFloat(bubble.style['--float-duration']) * 1000 + 2000
