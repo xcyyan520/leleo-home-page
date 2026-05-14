@@ -32,7 +32,6 @@
         :style="b.id === (capturedBubble && capturedBubble.id) ? b.capturedStyle : b.style"
         @click.stop="captureBubble(b, $event)"
       >
-        <button v-if="b.isCustom" class="bubble-delete-btn" @click.stop="deleteCustomBubble(b.id)" title="移除">×</button>
         <span class="bubble-highlight"></span>
         <span class="bubble-label">{{ b.personaLabel }}</span>
         <p class="bubble-text">{{ b.text }}</p>
@@ -662,12 +661,6 @@ export default {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(customs))
     },
 
-    deleteCustomBubble(id) {
-      const idx = this.visibleBubbles.findIndex(b => b.id === id)
-      if (idx !== -1) this.visibleBubbles.splice(idx, 1)
-      this.saveCustomBubbles()
-    },
-
     formatDisplayDate(dateStr) {
       const d = new Date(dateStr)
       return `${d.getFullYear()}.${d.getMonth() + 1}.${d.getDate()}`
@@ -1091,33 +1084,6 @@ export default {
   0%   { bottom: -10%; opacity: 0; transform: rotate(-4deg) scale(0.7); }
   6%   { opacity: 1; transform: rotate(0deg) scale(1); }
   100% { bottom: var(--float-distance, 30vh); opacity: 0.82; transform: rotate(0deg) scale(0.92); }
-}
-
-/* delete button for custom bubbles */
-.bubble-delete-btn {
-  position: absolute;
-  top: 6px; right: 8px;
-  z-index: 5;
-  width: 20px; height: 20px;
-  border-radius: 50%;
-  border: none;
-  background: rgba(255,255,255,0.06);
-  color: rgba(255,255,255,0.35);
-  font-size: 13px;
-  line-height: 1;
-  cursor: pointer;
-  display: flex; align-items: center; justify-content: center;
-  opacity: 0;
-  transition: opacity 0.2s ease, background 0.2s ease, color 0.2s ease;
-  padding: 0;
-}
-.thought-bubble:hover .bubble-delete-btn,
-.thought-bubble:active .bubble-delete-btn {
-  opacity: 1;
-}
-.bubble-delete-btn:hover {
-  background: rgba(255,80,80,0.25);
-  color: rgba(255,200,200,0.8);
 }
 
 /* float + wobble */
