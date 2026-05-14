@@ -632,11 +632,14 @@ export default {
         if (!raw) return
         const saved = JSON.parse(raw)
         if (!Array.isArray(saved)) return
-        const recent = saved.slice(-MAX_CUSTOM) // only load last N
+        const recent = saved.slice(this.isMobile ? -2 : -MAX_CUSTOM) // only load last N
         const color = '#c0b0a0'
         const shapes = ['bubble-round', 'bubble-organic', 'bubble-wide']
         const now = Date.now()
+        const stagger = this.isMobile ? 3000 : 800
         recent.forEach((item, i) => {
+          const delay = this.isMobile ? i * stagger : i * 800
+          setTimeout(() => {
           const shapeIdx = i % 3
           const bubble = {
             id: nextId++,
@@ -672,6 +675,7 @@ export default {
             const idx = this.visibleBubbles.findIndex(b => b.id === bid)
             if (idx !== -1) this.visibleBubbles.splice(idx, 1)
           }, lifetime)
+          }, delay)
         })
       } catch (e) { /* ignore corrupt storage */ }
     },
