@@ -474,6 +474,10 @@ export default {
       if (!all.length) return '……'
       const recent = this.recentTexts.filter(r => r.time > now - 10000)
       const recentSet = new Set(recent.map(r => r.text))
+      // also block texts from custom bubbles currently on screen
+      for (const b of this.visibleBubbles) {
+        if (b.isCustom) recentSet.add(b.text)
+      }
       const fresh = all.filter(t => !recentSet.has(t))
       if (fresh.length === 0) return this.pickRandom(all)
       return this.pickRandom(fresh)
