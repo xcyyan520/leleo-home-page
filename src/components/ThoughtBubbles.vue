@@ -38,6 +38,7 @@
         <div class="bubble-dots">
           <span class="dot" v-for="n in b.dotCount" :key="n"></span>
         </div>
+        <span v-if="b.date" class="bubble-date">{{ b.date }}</span>
       </div>
     </transition-group>
 
@@ -98,6 +99,34 @@
       <span class="hint-line">思绪</span>
       <span class="hint-sub">thoughts drifting...</span>
     </div>
+
+    <!-- add bubble button -->
+    <button class="add-bubble-btn" @click="showAddForm = true" title="写下思绪">+</button>
+
+    <!-- add bubble form overlay -->
+    <transition name="overlay-fade">
+      <div v-if="showAddForm" class="add-form-overlay" @click.self="showAddForm = false">
+        <div class="add-form-card" @click.stop>
+          <span class="form-title">留下此刻思绪</span>
+          <textarea
+            v-model="newText"
+            class="form-textarea"
+            placeholder="写下你想说的……"
+            maxlength="200"
+            rows="4"
+            ref="formTextarea"
+          ></textarea>
+          <div class="form-date-row">
+            <label class="form-date-label">日期（可选）</label>
+            <input v-model="newDate" type="date" class="form-date-input" />
+          </div>
+          <div class="form-actions">
+            <button class="form-btn cancel" @click="showAddForm = false">取消</button>
+            <button class="form-btn submit" @click="submitCustomBubble" :disabled="!newText.trim()">放进气泡</button>
+          </div>
+        </div>
+      </div>
+    </transition>
   </div>
 </template>
 
@@ -169,6 +198,10 @@ export default {
       animPaused: false,
       reduceMotion: false,
       isMobile: false,
+      // add bubble form
+      showAddForm: false,
+      newText: '',
+      newDate: '',
       // effect data
       shards: [],
       clusterParticles: [],
@@ -512,13 +545,13 @@ export default {
 
     startBubbleCycle() {
       const scheduleNext = () => {
-        const delay = 1800 + Math.random() * 4200
+        const delay = 800 + Math.random() * 2000
         this.bubbleTimer = setTimeout(() => {
           this.spawnBubble()
           scheduleNext()
         }, delay)
       }
-      setTimeout(() => this.spawnBubble(), 400)
+      setTimeout(() => this.spawnBubble(), 200)
       scheduleNext()
     },
 
@@ -526,6 +559,64 @@ export default {
       if (this.visibleBubbles.length < this.maxBubbles + 2) {
         this.spawnBubble()
       }
+    },
+
+    // ── Custom bubble ──
+    submitCustomBubble() {
+      const text = this.newText.trim()
+      if (!text) return
+      const dateStr = this.newDate || ''
+      const formattedDate = dateStr ? this.formatDisplayDate(dateStr) : ''
+
+      const id = nextId++
+      const shapeIdx = Math.floor(Math.random() * 3)
+      const shapes = ['bubble-round', 'bubble-organic', 'bubble-wide']
+      const color = '#c0b0a0'
+      const xPos = 15 + Math.random() * 70
+
+      const bubble = {
+        id,
+        text,
+        date: formattedDate,
+        personaClass: 'persona-custom',
+        shapeClass: shapes[shapeIdx],
+        personaLabel: dateStr ? `此刻 · ${formattedDate}` : '此刻',
+        dotCount: 2,
+        style: {
+          left: `${xPos}%`,
+          bottom: `${-(10 + Math.random() * 8)}%`,
+          '--persona-color': color,
+          '--persona-glow': 'rgba(192,176,160,0.22)',
+          '--persona-bg': 'rgba(192,176,160,0.06)',
+          '--float-duration': `${10 + Math.random() * 12}s`,
+          '--float-distance': `${70 + Math.random() * 25}vh`,
+          '--wobble-amount': `${-(3 + Math.random() * 6)}deg`,
+          '--wobble2-amount': `${3 + Math.random() * 6}deg`,
+          '--breathe-dur': `${5 + Math.random() * 4}s`,
+          '--breathe-delay': `${Math.random() * 5}s`,
+          transform: `rotate(${-(4 + Math.random() * 8)}deg) scale(0.85)`,
+        },
+        born: Date.now(),
+      }
+
+      this.visibleBubbles.push(bubble)
+      while (this.visibleBubbles.length > this.maxBubbles + 1) {
+        this.visibleBubbles.shift()
+      }
+      const lifetime = parseFloat(bubble.style['--float-duration']) * 1000 + 2000
+      setTimeout(() => {
+        const idx = this.visibleBubbles.findIndex(b => b.id === id)
+        if (idx !== -1) this.visibleBubbles.splice(idx, 1)
+      }, lifetime)
+
+      this.showAddForm = false
+      this.newText = ''
+      this.newDate = ''
+    },
+
+    formatDisplayDate(dateStr) {
+      const d = new Date(dateStr)
+      return `${d.getFullYear()}.${d.getMonth() + 1}.${d.getDate()}`
     },
 
     // ── Capture ──
@@ -878,6 +969,19 @@ export default {
 .persona-yan  { --persona-tint: rgba(201,122,124,0.13); }
 .persona-yin  { --persona-tint: rgba(125,171,140,0.13); }
 .persona-bei  { --persona-tint: rgba(106,140,181,0.13); }
+.persona-custom { --persona-tint: rgba(192,176,160,0.10); }
+
+/* bubble date (bottom-right) */
+.bubble-date {
+  position: absolute;
+  bottom: 8px; right: 14px;
+  font-size: 9px;
+  color: var(--persona-color);
+  opacity: 0.45;
+  font-family: 'Georgia', 'Noto Serif SC', serif;
+  letter-spacing: 0.04em;
+  z-index: 1;
+}
 
 .bubble-label {
   display: inline-block;
@@ -975,6 +1079,135 @@ export default {
   font-size: 10px;
   color: rgba(200,195,185,0.18);
   letter-spacing: 0.12em; margin-top: 2px;
+}
+
+/* ── Add bubble button ── */
+.add-bubble-btn {
+  position: fixed;
+  bottom: 24px; right: 28px;
+  z-index: 12;
+  width: 44px; height: 44px;
+  border-radius: 50%;
+  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(255,255,255,0.04);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  color: rgba(220,215,205,0.6);
+  font-size: 24px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.3s ease;
+  font-family: 'Georgia', serif;
+}
+.add-bubble-btn:hover {
+  background: rgba(255,255,255,0.08);
+  color: rgba(220,215,205,0.9);
+  border-color: rgba(255,255,255,0.2);
+  transform: scale(1.08);
+  box-shadow: 0 0 20px rgba(255,255,255,0.06);
+}
+
+/* ── Add form ── */
+.add-form-overlay {
+  position: fixed; inset: 0;
+  z-index: 20;
+  background: rgba(4,4,10,0.75);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: flex; align-items: center; justify-content: center;
+}
+.add-form-card {
+  background: rgba(20,18,24,0.95);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 20px;
+  padding: 28px 24px 20px;
+  width: 380px;
+  max-width: 90vw;
+  display: flex; flex-direction: column; gap: 16px;
+  box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+}
+.form-title {
+  font-size: 15px;
+  color: rgba(220,215,205,0.7);
+  font-family: 'Georgia', 'Noto Serif SC', serif;
+  letter-spacing: 0.08em;
+  text-align: center;
+}
+.form-textarea {
+  width: 100%;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 12px;
+  padding: 12px 14px;
+  color: rgba(230,225,215,0.9);
+  font-family: 'Georgia', 'Noto Serif SC', serif;
+  font-size: 14px;
+  line-height: 1.7;
+  resize: none;
+  outline: none;
+  transition: border-color 0.3s ease;
+}
+.form-textarea::placeholder {
+  color: rgba(200,195,185,0.3);
+}
+.form-textarea:focus {
+  border-color: rgba(255,255,255,0.2);
+}
+.form-date-row {
+  display: flex; align-items: center; gap: 12px;
+}
+.form-date-label {
+  font-size: 12px;
+  color: rgba(200,195,185,0.45);
+  font-family: 'Georgia', 'Noto Serif SC', serif;
+  white-space: nowrap;
+}
+.form-date-input {
+  flex: 1;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 8px;
+  padding: 6px 10px;
+  color: rgba(220,215,205,0.8);
+  font-family: 'Georgia', 'Noto Serif SC', serif;
+  font-size: 13px;
+  outline: none;
+  color-scheme: dark;
+}
+.form-actions {
+  display: flex; gap: 10px; justify-content: flex-end;
+}
+.form-btn {
+  padding: 8px 20px;
+  border-radius: 10px;
+  border: none;
+  font-size: 13px;
+  font-family: 'Georgia', 'Noto Serif SC', serif;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+.form-btn.cancel {
+  background: rgba(255,255,255,0.04);
+  color: rgba(200,195,185,0.5);
+  border: 1px solid rgba(255,255,255,0.06);
+}
+.form-btn.cancel:hover {
+  background: rgba(255,255,255,0.08);
+  color: rgba(220,215,205,0.7);
+}
+.form-btn.submit {
+  background: rgba(200,180,160,0.12);
+  color: rgba(220,210,195,0.85);
+  border: 1px solid rgba(200,180,160,0.25);
+}
+.form-btn.submit:hover:not(:disabled) {
+  background: rgba(200,180,160,0.2);
+  border-color: rgba(200,180,160,0.4);
+}
+.form-btn.submit:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
 }
 
 /* ── Capture overlay ── */
@@ -1252,6 +1485,20 @@ export default {
   .capture-text { font-size: 15px; line-height: 1.8; }
   .orb { display: none; }
   .shard { backdrop-filter: none; -webkit-backdrop-filter: none; }
+  .add-bubble-btn {
+    bottom: 16px; right: 12px;
+    width: 38px; height: 38px;
+    font-size: 20px;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+  .add-form-card { padding: 20px 16px 16px; }
+  .form-textarea { font-size: 13px; }
+  .add-form-overlay {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    background: rgba(4,4,10,0.85);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
