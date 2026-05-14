@@ -83,7 +83,10 @@
               <span class="c-dot" v-for="n in capturedBubble.dotCount" :key="n"></span>
             </div>
           </div>
-          <div class="capture-hint">点击空白处释放</div>
+          <div class="capture-hint">
+            <span class="hint-desk">点击空白处释放</span>
+            <button class="hint-mob-btn" @click="releaseBubble">✕ 关闭</button>
+          </div>
         </div>
       </div>
     </transition>
@@ -535,7 +538,7 @@ export default {
       }
 
       this.visibleBubbles.push(bubble)
-      const limit = this.isMobile ? 4 : this.maxBubbles
+      const limit = this.isMobile ? 3 : this.maxBubbles
       // trim only non-custom bubbles
       while (this.visibleBubbles.filter(b => !b.isCustom).length > limit) {
         const idx = this.visibleBubbles.findIndex(b => !b.isCustom)
@@ -551,7 +554,7 @@ export default {
 
     startBubbleCycle() {
       const scheduleNext = () => {
-        const delay = this.isMobile ? 1500 + Math.random() * 3500 : 800 + Math.random() * 2000
+        const delay = this.isMobile ? 2500 + Math.random() * 4500 : 800 + Math.random() * 2000
         this.bubbleTimer = setTimeout(() => {
           this.spawnBubble()
           scheduleNext()
@@ -1430,6 +1433,8 @@ export default {
   letter-spacing: 0.1em;
   animation: hint-fade 3s ease-in-out infinite;
 }
+.hint-mob-btn { display: none; }
+.hint-desk { display: inline; }
 @keyframes hint-fade {
   0%, 100% { opacity: 0.25; }
   50%      { opacity: 0.55; }
@@ -1563,6 +1568,19 @@ export default {
     -webkit-backdrop-filter: none;
   }
   .add-form-card { padding: 20px 16px 16px; }
+  .hint-desk { display: none; }
+  .hint-mob-btn {
+    display: inline-block;
+    padding: 8px 24px;
+    border-radius: 10px;
+    border: 1px solid rgba(255,255,255,0.12);
+    background: rgba(255,255,255,0.04);
+    color: rgba(220,215,205,0.55);
+    font-family: 'Georgia', 'Noto Serif SC', serif;
+    font-size: 13px;
+    cursor: pointer;
+    letter-spacing: 0.06em;
+  }
   .form-textarea { font-size: 13px; }
   .add-form-overlay {
     backdrop-filter: none;
