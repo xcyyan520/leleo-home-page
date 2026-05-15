@@ -632,12 +632,30 @@ export default {
     },
 
     async loadCustomBubbles() {
+      let saved = []
       try {
         const res = await fetch('/api/bubbles')
-        if (!res.ok) return
-        const saved = await res.json()
-        if (!Array.isArray(saved) || saved.length === 0) return
-        const recent = saved.slice(this.isMobile ? -2 : -MAX_CUSTOM) // only load last N
+        if (res.ok) {
+          saved = await res.json()
+        }
+      } catch (e) { /* ignore */ }
+
+      if (!Array.isArray(saved) || saved.length === 0) {
+        const raw = localStorage.getItem('thoughts-custom-bubbles')
+        if (raw) {
+          try {
+            saved = JSON.parse(raw)
+            localStorage.removeItem('thoughts-custom-bubbles')
+            // migrate old localStorage items to D1 in background
+            saved.forEach(item => {
+              if (item && item.text) this.saveCustomBubbleToApi(item.text, item.date || '')
+            })
+          } catch (e) { saved = [] }
+        }
+      }
+      if (!Array.isArray(saved) || saved.length === 0) return
+      const count = this.isMobile ? 2 : Math.min(MAX_CUSTOM, saved.length)
+      const recent = [...saved].sort(() => Math.random() - 0.5).slice(0, count)
         const color = '#c0b0a0'
         const shapes = ['bubble-round', 'bubble-organic', 'bubble-wide']
         const now = Date.now()
@@ -645,7 +663,7 @@ export default {
         recent.forEach((item, i) => {
           const delay = this.isMobile ? i * stagger : i * 800
           setTimeout(() => {
-          const shapeIdx = i % 3
+          const shapeIdx = Math.floor(Math.random() * shapes.length)
           const bubble = {
             id: nextId++,
             text: item.text,
@@ -683,7 +701,6 @@ export default {
           }, lifetime)
           }, delay)
         })
-      } catch (e) { /* ignore network error */ }
     },
 
     async saveCustomBubbleToApi(text, date) {
