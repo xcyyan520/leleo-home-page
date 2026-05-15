@@ -437,16 +437,25 @@ export default {
     },
 
     // ── Data loading ──
+    debugLog(tag, ...args) {
+      console.log(`%c[Bubble] %c${tag}`, 'color:#d4a255;font-weight:bold', 'color:#aaa', ...args)
+    },
+
     async loadAllTexts() {
+      this.debugLog('load', 'fetching persona texts...')
       for (let i = 0; i < PERSONAS.length; i++) {
         try {
           const resp = await fetch(PERSONAS[i].file)
           const raw = await resp.text()
           this.personaData[i] = this.parseParagraphs(raw)
+          this.debugLog('OK', `${PERSONAS[i].name}: ${this.personaData[i].length} texts`)
         } catch (e) {
           this.personaData[i] = ['……']
+          this.debugLog('ERR', `${PERSONAS[i].name} fetch failed: ${e.message}`)
         }
       }
+      const total = this.personaData.reduce((s, d) => s + d.length, 0)
+      this.debugLog('done', `total ${total} paragraphs, ${PERSONAS.length} personas`)
     },
 
     parseParagraphs(raw) {
@@ -501,6 +510,8 @@ export default {
       const text = this.getFreshText(pi)
       this.recentTexts.push({ text, personaIndex: pi, time: Date.now() })
       this.pruneRecentTexts()
+
+      this.debugLog('spawn', `${persona.name} → "${text.slice(0, 20)}…"`)
 
       const id = nextId++
       const shapeIdx = Math.floor(Math.random() * persona.shapes.length)
@@ -632,30 +643,41 @@ export default {
     },
 
     async loadCustomBubbles() {
+      this.debugLog('api', 'GET /api/bubbles ...')
       let saved = []
       try {
         const res = await fetch('/api/bubbles')
         if (res.ok) {
           saved = await res.json()
+          this.debugLog('api', `GET OK → ${saved.length} bubbles from D1`)
+        } else {
+          const err = await res.text()
+          this.debugLog('api', `GET ${res.status}: ${err}`)
         }
-      } catch (e) { /* ignore */ }
+      } catch (e) {
+        this.debugLog('api', `GET error: ${e.message}`)
+      }
 
       if (!Array.isArray(saved) || saved.length === 0) {
         const raw = localStorage.getItem('thoughts-custom-bubbles')
         if (raw) {
           try {
             saved = JSON.parse(raw)
+            this.debugLog('local', `migrating ${saved.length} bubbles from localStorage → D1`)
             localStorage.removeItem('thoughts-custom-bubbles')
-            // migrate old localStorage items to D1 in background
             saved.forEach(item => {
               if (item && item.text) this.saveCustomBubbleToApi(item.text, item.date || '')
             })
           } catch (e) { saved = [] }
         }
       }
-      if (!Array.isArray(saved) || saved.length === 0) return
+      if (!Array.isArray(saved) || saved.length === 0) {
+        this.debugLog('done', 'no saved bubbles to display')
+        return
+      }
       const count = this.isMobile ? 2 : Math.min(MAX_CUSTOM, saved.length)
       const recent = [...saved].sort(() => Math.random() - 0.5).slice(0, count)
+      this.debugLog('done', `displaying ${recent.length} saved bubbles (from ${saved.length} total)`)
         const color = '#c0b0a0'
         const shapes = ['bubble-round', 'bubble-organic', 'bubble-wide']
         const now = Date.now()
@@ -704,17 +726,23 @@ export default {
     },
 
     async saveCustomBubbleToApi(text, date) {
+      this.debugLog('api', `POST /api/bubbles "${text.slice(0, 20)}…" ${date ? 'date:' + date : ''}`)
       try {
         const res = await fetch('/api/bubbles', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ text, date }),
         })
-        if (!res.ok) {
+        if (res.ok) {
+          const data = await res.json()
+          this.debugLog('api', `POST OK → id=${data.id}`)
+        } else {
           const body = await res.text()
-          console.error('bubble POST failed', res.status, body)
+          this.debugLog('api', `POST FAIL ${res.status}: ${body}`)
         }
-      } catch (e) { console.error('bubble POST error', e) }
+      } catch (e) {
+        this.debugLog('api', `POST error: ${e.message}`)
+      }
     },
 
     formatDisplayDate(dateStr) {

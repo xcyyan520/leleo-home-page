@@ -3,5 +3,12 @@
   "compatibility_date": "2025-10-10",
   "assets": {
     "directory": "./dist"
-  }
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "thoughts-db",
+      "database_id": "68f50950-bd6b-48fb-91de-36eb14eb57cb"
+    }
+  ]
 }
