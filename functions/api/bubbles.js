@@ -1,14 +1,14 @@
 export async function onRequestGet(context) {
   const { env } = context
 
-  if (!env.DB) {
+  if (!env.BD) {
     return new Response(JSON.stringify([]), {
       headers: { 'Content-Type': 'application/json' },
     })
   }
 
   try {
-    await env.DB.exec(
+    await env.BD.exec(
       `CREATE TABLE IF NOT EXISTS bubbles (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         text TEXT NOT NULL,
@@ -16,7 +16,7 @@ export async function onRequestGet(context) {
         created_at TEXT DEFAULT (datetime('now'))
       )`
     )
-    const { results } = await env.DB.prepare(
+    const { results } = await env.BD.prepare(
       'SELECT id, text, date FROM bubbles ORDER BY id DESC LIMIT 100'
     ).all()
     return new Response(JSON.stringify(results.reverse()), {
@@ -33,7 +33,7 @@ export async function onRequestGet(context) {
 export async function onRequestPost(context) {
   const { request, env } = context
 
-  if (!env.DB) {
+  if (!env.BD) {
     return new Response(JSON.stringify({ error: 'no database' }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' },
@@ -57,7 +57,7 @@ export async function onRequestPost(context) {
   }
 
   try {
-    await env.DB.exec(
+    await env.BD.exec(
       `CREATE TABLE IF NOT EXISTS bubbles (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         text TEXT NOT NULL,
@@ -65,7 +65,7 @@ export async function onRequestPost(context) {
         created_at TEXT DEFAULT (datetime('now'))
       )`
     )
-    const { meta } = await env.DB.prepare(
+    const { meta } = await env.BD.prepare(
       'INSERT INTO bubbles (text, date) VALUES (?, ?)'
     ).bind(text.trim(), date || '').run()
 
