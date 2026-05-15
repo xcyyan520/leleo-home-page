@@ -705,12 +705,16 @@ export default {
 
     async saveCustomBubbleToApi(text, date) {
       try {
-        await fetch('/api/bubbles', {
+        const res = await fetch('/api/bubbles', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ text, date }),
         })
-      } catch (e) { /* ignore */ }
+        if (!res.ok) {
+          const body = await res.text()
+          console.error('bubble POST failed', res.status, body)
+        }
+      } catch (e) { console.error('bubble POST error', e) }
     },
 
     formatDisplayDate(dateStr) {
