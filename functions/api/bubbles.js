@@ -1,14 +1,18 @@
 export async function onRequestGet(context) {
   const { env } = context
 
-  if (!env.BD) {
-    return new Response(JSON.stringify([]), {
+  if (!env.DB) {
+    return new Response(JSON.stringify({
+      error: 'no database',
+      hint: 'Missing D1 binding: DB',
+    }), {
+      status: 500,
       headers: { 'Content-Type': 'application/json' },
     })
   }
 
   try {
-    await env.BD.exec(
+    await env.DB.exec(
       `CREATE TABLE IF NOT EXISTS bubbles (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         text TEXT NOT NULL,
@@ -16,7 +20,7 @@ export async function onRequestGet(context) {
         created_at TEXT DEFAULT (datetime('now'))
       )`
     )
-    const { results } = await env.BD.prepare(
+    const { results } = await env.DB.prepare(
       'SELECT id, text, date FROM bubbles ORDER BY id DESC LIMIT 100'
     ).all()
     return new Response(JSON.stringify(results.reverse()), {
@@ -33,8 +37,11 @@ export async function onRequestGet(context) {
 export async function onRequestPost(context) {
   const { request, env } = context
 
-  if (!env.BD) {
-    return new Response(JSON.stringify({ error: 'no database' }), {
+  if (!env.DB) {
+    return new Response(JSON.stringify({
+      error: 'no database',
+      hint: 'Missing D1 binding: DB',
+    }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' },
     })
@@ -57,7 +64,7 @@ export async function onRequestPost(context) {
   }
 
   try {
-    await env.BD.exec(
+    await env.DB.exec(
       `CREATE TABLE IF NOT EXISTS bubbles (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         text TEXT NOT NULL,
@@ -65,7 +72,7 @@ export async function onRequestPost(context) {
         created_at TEXT DEFAULT (datetime('now'))
       )`
     )
-    const { meta } = await env.BD.prepare(
+    const { meta } = await env.DB.prepare(
       'INSERT INTO bubbles (text, date) VALUES (?, ?)'
     ).bind(text.trim(), date || '').run()
 

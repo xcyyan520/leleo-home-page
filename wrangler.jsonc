@@ -8,7 +8,8 @@
     {
       "binding": "DB",
       "database_name": "thoughts-db",
-      "database_id": "68f50950-bd6b-48fb-91de-36eb14eb57cb"
+      "database_id": "68f50950-bd6b-48fb-91de-36eb14eb57cb",
+      "preview_database_id": "DB"
     }
   ]
 }
