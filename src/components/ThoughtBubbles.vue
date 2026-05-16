@@ -402,23 +402,75 @@ export default {
     },
 
     // ═══ Thoughts Cycle ═══
-    findFreePosition() {
-      const maxAttempts = 20
-      for (let attempt = 0; attempt < maxAttempts; attempt++) {
-        const x = 10 + Math.random() * 75
-        const y = 15 + Math.random() * 55
-        if (!this.occupiedZones.some(z => Math.abs(z.x - x) < 18 && Math.abs(z.y - y) < 18)) {
-          return { x, y }
-        }
-      }
-      // fallback: return random anyway
-      return { x: 15 + Math.random() * 70, y: 20 + Math.random() * 45 }
+    estimateThoughtBox(text) {
+      const t = String(text || '')
+      const maxTextWidth = this.isMobile ? 160 : 220
+      const horizontalPadding = this.isMobile ? 24 : 40
+      const verticalPadding = this.isMobile ? 72 : 100
+      const fontSize = this.isMobile ? 11 : 13
+      const lineHeightPx = (this.isMobile ? 1.6 : 1.7) * fontSize
+      const approxCharsPerLine = this.isMobile ? 10 : 14
+      const lines = Math.max(1, Math.min(10, Math.ceil(t.length / approxCharsPerLine)))
+      const width = maxTextWidth + horizontalPadding
+      const height = Math.ceil(lines * lineHeightPx + verticalPadding)
+      return { width, height }
     },
 
-    addZone(x, y) {
-      this.occupiedZones.push({ x, y, time: Date.now() })
-      // cleanup old zones
-      this.occupiedZones = this.occupiedZones.filter(z => Date.now() - z.time < 35000)
+    overlapsRect(a, b, gap = 18) {
+      return !(
+        a.right + gap < b.left ||
+        a.left - gap > b.right ||
+        a.bottom + gap < b.top ||
+        a.top - gap > b.bottom
+      )
+    },
+
+    makeRectAt(xPercent, yPercent, box) {
+      const vw = window.innerWidth || 390
+      const vh = window.innerHeight || 844
+      const cx = (xPercent / 100) * vw
+      const cy = (yPercent / 100) * vh
+      const halfW = box.width / 2
+      const halfH = box.height / 2
+      return {
+        left: cx - halfW,
+        right: cx + halfW,
+        top: cy - halfH,
+        bottom: cy + halfH,
+      }
+    },
+
+    findFreePosition(text = '') {
+      const box = this.estimateThoughtBox(text)
+      const maxAttempts = this.isMobile ? 80 : 50
+      for (let attempt = 0; attempt < maxAttempts; attempt++) {
+        const x = 12 + Math.random() * 72
+        const y = 18 + Math.random() * 60
+        const rect = this.makeRectAt(x, y, box)
+        const collide = this.occupiedZones.some(z => this.overlapsRect(rect, z.rect, this.isMobile ? 22 : 18))
+        if (!collide) return { x, y, rect }
+      }
+
+      // fallback: find the candidate with least overlap
+      let best = null
+      let bestScore = Number.POSITIVE_INFINITY
+      for (let i = 0; i < 15; i++) {
+        const x = 12 + Math.random() * 72
+        const y = 18 + Math.random() * 60
+        const rect = this.makeRectAt(x, y, box)
+        const score = this.occupiedZones.reduce((acc, z) => acc + (this.overlapsRect(rect, z.rect, this.isMobile ? 22 : 18) ? 1 : 0), 0)
+        if (score < bestScore) {
+          bestScore = score
+          best = { x, y, rect }
+          if (score === 0) break
+        }
+      }
+      return best || { x: 15 + Math.random() * 70, y: 20 + Math.random() * 45, rect: this.makeRectAt(50, 50, box) }
+    },
+
+    addZone(rect) {
+      this.occupiedZones.push({ rect, time: Date.now() })
+      this.occupiedZones = this.occupiedZones.filter(z => Date.now() - z.time < 42000)
     },
 
     spawnThought() {
@@ -432,9 +484,9 @@ export default {
       this.recentTexts.push({text, personaIndex:pi, time:Date.now()})
 
       const id = nextId++
-      const pos = this.findFreePosition()
+      const pos = this.findFreePosition(text)
       const xPos = pos.x; const yPos = pos.y
-      this.addZone(xPos, yPos)
+      this.addZone(pos.rect)
       const lifetime = 22 + Math.random()*18
 
       this.visibleThoughts.push({
@@ -524,9 +576,9 @@ export default {
       const dateStr = this.newDate || ''
       const formattedDate = dateStr ? this.formatDisplayDate(dateStr) : ''
       const id = nextId++
-      const pos = this.findFreePosition()
+      const pos = this.findFreePosition(text)
       const xPos = pos.x; const yPos = pos.y
-      this.addZone(xPos, yPos)
+      this.addZone(pos.rect)
       const lifetime = 26+Math.random()*16
 
       this.visibleThoughts.push({
@@ -576,9 +628,9 @@ export default {
       recent.forEach((item,i)=>{
         setTimeout(()=>{
           const id = nextId++
-          const pos = this.findFreePosition()
+          const pos = this.findFreePosition(item.text)
           const xPos = pos.x; const yPos = pos.y
-          this.addZone(xPos, yPos)
+          this.addZone(pos.rect)
           const lifetime = 28+Math.random()*14
           this.visibleThoughts.push({
             id, text:item.text, personaCls:'persona-custom', date:item.date?this.formatDisplayDate(item.date):'',
