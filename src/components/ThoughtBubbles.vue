@@ -610,7 +610,11 @@ export default {
       this.debugLog('api', 'GET /api/bubbles ...')
       let saved = []
       try {
-        const res = await fetch('/api/bubbles')
+        const res = await fetch('/api/bubbles', {
+          credentials: 'same-origin',
+          cache: 'no-store',
+          headers: { Accept: 'application/json' },
+        })
         if (res.ok) { saved = await res.json(); this.debugLog('api', `GET OK → ${saved.length} bubbles`) }
         else { this.debugLog('api', `GET ${res.status}: ${await res.text()}`) }
       } catch(e) { this.debugLog('api', `GET error: ${e.message}`) }
@@ -621,7 +625,7 @@ export default {
         }
       }
       if (!Array.isArray(saved)||saved.length===0) return
-      const count = this.isMobile ? 2 : Math.min(MAX_CUSTOM, saved.length)
+      const count = this.isMobile ? Math.min(5, saved.length) : Math.min(MAX_CUSTOM, saved.length)
       const recent = [...saved].sort(()=>Math.random()-0.5).slice(0,count)
       this.debugLog('done', `displaying ${recent.length}/${saved.length} saved`)
       const now = Date.now()
