@@ -1,0 +1,35 @@
+{
+  "version": 2,
+  "plugins": {
+    "frontend-design@claude-plugins-official": [
+      {
+        "scope": "user",
+        "installPath": "C:\\Users\\xia-shana\\.claude\\plugins\\cache\\claude-plugins-official\\frontend-design\\1a2f18b05cf5",
+        "version": "1a2f18b05cf5",
+        "installedAt": "2026-05-12T08:05:04.305Z",
+        "lastUpdated": "2026-05-13T05:17:08.433Z",
+        "gitCommitSha": "45896c8f2fe68e68ca2a8e3554d4441f48475431"
+      }
+    ],
+    "superpowers@claude-plugins-official": [
+      {
+        "scope": "user",
+        "installPath": "C:\\Users\\xia-shana\\.claude\\plugins\\cache\\claude-plugins-official\\superpowers\\5.1.0",
+        "version": "5.1.0",
+        "installedAt": "2026-05-13T08:45:11.098Z",
+        "lastUpdated": "2026-05-13T08:45:11.098Z",
+        "gitCommitSha": "f2cbfbefebbfef77321e4c9abc9e949826bea9d7"
+      }
+    ],
+    "claude-smart@reflexioai": [
+      {
+        "scope": "user",
+        "installPath": "C:\\Users\\xia-shana\\.claude\\plugins\\cache\\reflexioai\\claude-smart\\0.2.23",
+        "version": "0.2.23",
+        "installedAt": "2026-05-13T09:20:30.426Z",
+        "lastUpdated": "2026-05-13T09:20:30.426Z",
+        "gitCommitSha": "e32b625a8836ac27b0d89d5af37b06a0b27a0dc7"
+      }
+    ]
+  }
+}

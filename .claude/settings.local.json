@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run *)",
+      "Bash(npx vite *)",
+      "Bash(npm install *)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git push *)",
+      "Bash(curl *)",
+      "Bash(npx wrangler *)",
+      "WebSearch",
+      "Bash(winget install *)",
+      "Read(//e//**)",
+      "Bash(npm list *)",
+      "Bash(winget list *)",
+      "Bash(winget uninstall *)"
+    ]
+  }
+}

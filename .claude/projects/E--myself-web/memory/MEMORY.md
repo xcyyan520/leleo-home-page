@@ -1,0 +1,1 @@
+- [项目状态](project-state.md) — leleo-home-page 部署在 xcyyan.icu，已添加思考气泡页面

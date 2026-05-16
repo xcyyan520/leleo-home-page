@@ -1,0 +1,18 @@
+{
+  "claude-plugins-official": {
+    "source": {
+      "source": "github",
+      "repo": "anthropics/claude-plugins-official"
+    },
+    "installLocation": "C:\\Users\\xia-shana\\.claude\\plugins\\marketplaces\\claude-plugins-official",
+    "lastUpdated": "2026-05-15T09:38:21.641Z"
+  },
+  "reflexioai": {
+    "source": {
+      "source": "github",
+      "repo": "ReflexioAI/claude-smart"
+    },
+    "installLocation": "C:\\Users\\xia-shana\\.claude\\plugins\\marketplaces\\reflexioai",
+    "lastUpdated": "2026-05-13T09:20:20.385Z"
+  }
+}
