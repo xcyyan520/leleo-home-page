@@ -101,7 +101,7 @@
     </div>
 
     <!-- add bubble button -->
-    <button class="add-bubble-btn" @click="showAddForm = true" title="写下思绪">+</button>
+    <button class="add-bubble-btn" @click="openAddForm" title="写下思绪">+</button>
 
     <!-- add bubble form overlay -->
     <transition name="overlay-fade">
@@ -115,6 +115,8 @@
             maxlength="200"
             rows="4"
             ref="formTextarea"
+            @keydown.ctrl.enter.prevent="submitCustomBubble"
+            @keydown.meta.enter.prevent="submitCustomBubble"
           ></textarea>
           <div class="form-date-row">
             <label class="form-date-label">日期（可选）</label>
@@ -172,6 +174,7 @@ const PERSONAS = [
 
 let nextId = 0
 const MAX_CUSTOM = 10
+const CUSTOM_STORAGE_KEY = 'thoughts-custom-bubbles'
 
 export default {
   name: 'ThoughtBubbles',
@@ -203,6 +206,8 @@ export default {
       showAddForm: false,
       newText: '',
       newDate: '',
+      syncTimer: null,
+      syncingLocal: false,
       // effect data
       shards: [],
       clusterParticles: [],
@@ -221,17 +226,27 @@ export default {
     }
     await this.loadAllTexts()
     this.loadCustomBubbles()
+    this.startSyncLoop()
     this.startBubbleCycle()
     document.addEventListener('click', this.handleClick)
   },
   beforeUnmount() {
-    clearInterval(this.bubbleTimer)
+    clearTimeout(this.bubbleTimer)
+    clearTimeout(this.syncTimer)
     this.stopTyping()
     this.stopCanvas()
     document.removeEventListener('click', this.handleClick)
     this.removeEscListener()
   },
   methods: {
+    openAddForm() {
+      this.showAddForm = true
+      this.$nextTick(() => {
+        const ta = this.$refs.formTextarea
+        if (ta && typeof ta.focus === 'function') ta.focus()
+      })
+    },
+
     // ── Ambient orbs ──
     generateAmbientOrbs() {
       const colors = [
@@ -635,20 +650,23 @@ export default {
       }, lifetime)
       this.recentTexts.push({ text, personaIndex: -1, time: Date.now() })
       this.pruneRecentTexts()
-      this.saveCustomBubbleToApi(text, dateStr)
-
       this.showAddForm = false
       this.newText = ''
       this.newDate = ''
+
+      await this.saveCustomBubble(text, dateStr)
     },
 
     async loadCustomBubbles() {
       this.debugLog('api', 'GET /api/bubbles ...')
       let saved = []
+      let apiAvailable = false
       try {
         const res = await fetch('/api/bubbles')
         if (res.ok) {
-          saved = await res.json()
+          const payload = await res.json()
+          saved = Array.isArray(payload) ? payload : []
+          apiAvailable = true
           this.debugLog('api', `GET OK → ${saved.length} bubbles from D1`)
         } else {
           const err = await res.text()
@@ -658,19 +676,20 @@ export default {
         this.debugLog('api', `GET error: ${e.message}`)
       }
 
-      if (!Array.isArray(saved) || saved.length === 0) {
-        const raw = localStorage.getItem('thoughts-custom-bubbles')
-        if (raw) {
-          try {
-            saved = JSON.parse(raw)
-            this.debugLog('local', `migrating ${saved.length} bubbles from localStorage → D1`)
-            localStorage.removeItem('thoughts-custom-bubbles')
-            saved.forEach(item => {
-              if (item && item.text) this.saveCustomBubbleToApi(item.text, item.date || '')
-            })
-          } catch (e) { saved = [] }
+      const localSaved = this.loadCustomBubblesFromLocal()
+      if (localSaved.length > 0) {
+        if (apiAvailable) {
+          this.debugLog('local', `migrating ${localSaved.length} bubbles from localStorage → D1`)
+          localSaved.forEach(item => {
+            this.saveCustomBubbleToApi(item.text, item.date || '')
+          })
+          this.clearLocalCustomBubbles()
+        } else if (saved.length === 0) {
+          saved = localSaved
+          this.debugLog('local', `using ${saved.length} local bubbles (D1 unavailable)`)
         }
       }
+
       if (!Array.isArray(saved) || saved.length === 0) {
         this.debugLog('done', 'no saved bubbles to display')
         return
@@ -725,6 +744,49 @@ export default {
         })
     },
 
+    async saveCustomBubble(text, date) {
+      const ok = await this.saveCustomBubbleToApi(text, date)
+      if (!ok) {
+        this.saveCustomBubbleToLocal(text, date)
+        this.scheduleSync(3000)
+      }
+    },
+
+    startSyncLoop() {
+      this.scheduleSync(6000)
+    },
+
+    scheduleSync(delay = 15000) {
+      clearTimeout(this.syncTimer)
+      this.syncTimer = setTimeout(async () => {
+        await this.flushLocalBubblesToApi()
+        this.scheduleSync(15000)
+      }, delay)
+    },
+
+    async flushLocalBubblesToApi() {
+      if (this.syncingLocal) return
+      const pending = this.loadCustomBubblesFromLocal()
+      if (pending.length === 0) return
+
+      this.syncingLocal = true
+      const rest = []
+      let okCount = 0
+      for (const item of pending) {
+        const ok = await this.saveCustomBubbleToApi(item.text, item.date || '')
+        if (ok) okCount++
+        else rest.push(item)
+      }
+
+      if (rest.length === 0) {
+        this.clearLocalCustomBubbles()
+      } else {
+        localStorage.setItem(CUSTOM_STORAGE_KEY, JSON.stringify(rest))
+      }
+      this.debugLog('sync', `pending→D1 ok:${okCount}, left:${rest.length}`)
+      this.syncingLocal = false
+    },
+
     async saveCustomBubbleToApi(text, date) {
       this.debugLog('api', `POST /api/bubbles "${text.slice(0, 20)}…" ${date ? 'date:' + date : ''}`)
       try {
@@ -736,6 +798,7 @@ export default {
         if (res.ok) {
           const data = await res.json()
           this.debugLog('api', `POST OK → id=${data.id}`)
+          return true
         } else {
           const body = await res.text()
           this.debugLog('api', `POST FAIL ${res.status}: ${body}`)
@@ -743,10 +806,47 @@ export default {
       } catch (e) {
         this.debugLog('api', `POST error: ${e.message}`)
       }
+      return false
+    },
+
+    loadCustomBubblesFromLocal() {
+      const raw = localStorage.getItem(CUSTOM_STORAGE_KEY)
+      if (!raw) return []
+      try {
+        const list = JSON.parse(raw)
+        if (!Array.isArray(list)) return []
+        return list
+          .filter(item => item && typeof item.text === 'string' && item.text.trim())
+          .map(item => ({
+            text: item.text.trim(),
+            date: typeof item.date === 'string' ? item.date : '',
+          }))
+      } catch (e) {
+        this.debugLog('local', `parse error: ${e.message}`)
+        return []
+      }
+    },
+
+    saveCustomBubbleToLocal(text, date) {
+      const current = this.loadCustomBubblesFromLocal()
+      current.push({ text: text.trim(), date: date || '' })
+      const trimmed = current.slice(-100)
+      localStorage.setItem(CUSTOM_STORAGE_KEY, JSON.stringify(trimmed))
+      this.debugLog('local', `fallback saved → ${trimmed.length} bubbles in localStorage`)
+    },
+
+    clearLocalCustomBubbles() {
+      localStorage.removeItem(CUSTOM_STORAGE_KEY)
     },
 
     formatDisplayDate(dateStr) {
+      if (!dateStr) return ''
+      if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+        const [y, m, d] = dateStr.split('-')
+        return `${Number(y)}.${Number(m)}.${Number(d)}`
+      }
       const d = new Date(dateStr)
+      if (Number.isNaN(d.getTime())) return dateStr
       return `${d.getFullYear()}.${d.getMonth() + 1}.${d.getDate()}`
     },
 
