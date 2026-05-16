@@ -16,8 +16,7 @@ export async function onRequestGet(context) {
       `CREATE TABLE IF NOT EXISTS bubbles (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         text TEXT NOT NULL,
-        date TEXT DEFAULT '',
-        created_at TEXT DEFAULT (datetime('now'))
+        date TEXT DEFAULT ''
       )`
     )
     const { results } = await env.DB.prepare(
@@ -27,7 +26,8 @@ export async function onRequestGet(context) {
       headers: { 'Content-Type': 'application/json' },
     })
   } catch (e) {
-    return new Response(JSON.stringify({ error: 'db error' }), {
+    const detail = e && e.message ? e.message : String(e)
+    return new Response(JSON.stringify({ error: 'db error', detail }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' },
     })
@@ -68,8 +68,7 @@ export async function onRequestPost(context) {
       `CREATE TABLE IF NOT EXISTS bubbles (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         text TEXT NOT NULL,
-        date TEXT DEFAULT '',
-        created_at TEXT DEFAULT (datetime('now'))
+        date TEXT DEFAULT ''
       )`
     )
     const { meta } = await env.DB.prepare(
@@ -80,7 +79,8 @@ export async function onRequestPost(context) {
       headers: { 'Content-Type': 'application/json' },
     })
   } catch (e) {
-    return new Response(JSON.stringify({ error: 'db error' }), {
+    const detail = e && e.message ? e.message : String(e)
+    return new Response(JSON.stringify({ error: 'db error', detail }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' },
     })
