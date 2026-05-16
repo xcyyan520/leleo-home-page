@@ -208,6 +208,7 @@ export default {
       newDate: '',
       syncTimer: null,
       syncingLocal: false,
+      savedCustomPool: [],
       // effect data
       shards: [],
       clusterParticles: [],
@@ -512,10 +513,102 @@ export default {
       this.recentTexts = this.recentTexts.filter(r => r.time > now - 10000)
     },
 
+    pickRandomSavedCustom() {
+      if (!this.savedCustomPool.length) return null
+      const blocked = new Set(this.recentTexts.map(r => r.text))
+      for (const b of this.visibleBubbles) {
+        if (b.isCustom) blocked.add(b.text)
+      }
+      const fresh = this.savedCustomPool.filter(item => item.text && !blocked.has(item.text))
+      const pool = fresh.length ? fresh : this.savedCustomPool
+      return pool[Math.floor(Math.random() * pool.length)] || null
+    },
+
+    spawnSavedCustomBubble(item, bornAt = Date.now()) {
+      if (!item || !item.text) return
+      const text = String(item.text).trim()
+      if (!text) return
+      const rawDate = typeof item.date === 'string' ? item.date : ''
+      const formattedDate = rawDate ? this.formatDisplayDate(rawDate) : ''
+      const shapeIdx = Math.floor(Math.random() * 3)
+      const shapes = ['bubble-round', 'bubble-organic', 'bubble-wide']
+      const color = '#c0b0a0'
+
+      const id = nextId++
+      const bubble = {
+        id,
+        text,
+        date: formattedDate,
+        rawDate,
+        isCustom: true,
+        personaClass: 'persona-custom',
+        shapeClass: shapes[shapeIdx],
+        personaLabel: rawDate ? `此刻 · ${formattedDate}` : '此刻',
+        dotCount: 2,
+        style: {
+          left: `${15 + Math.random() * 70}%`,
+          bottom: '-10%',
+          '--persona-color': color,
+          '--persona-glow': 'rgba(192,176,160,0.22)',
+          '--persona-bg': 'rgba(192,176,160,0.06)',
+          '--float-duration': `${10 + Math.random() * 12}s`,
+          '--float-distance': `${70 + Math.random() * 25}vh`,
+          '--wobble-amount': `${-(3 + Math.random() * 6)}deg`,
+          '--wobble2-amount': `${3 + Math.random() * 6}deg`,
+          '--breathe-dur': `${5 + Math.random() * 4}s`,
+          '--breathe-delay': `${Math.random() * 5}s`,
+          transform: `rotate(${-(4 + Math.random() * 8)}deg) scale(0.85)`,
+        },
+        born: bornAt,
+      }
+
+      this.visibleBubbles.push(bubble)
+      while (this.visibleBubbles.filter(b => b.isCustom).length > MAX_CUSTOM) {
+        const idx = this.visibleBubbles.findIndex(b => b.isCustom)
+        if (idx !== -1) this.visibleBubbles.splice(idx, 1)
+      }
+
+      const lifetime = parseFloat(bubble.style['--float-duration']) * 1000 + 2000
+      setTimeout(() => {
+        const idx = this.visibleBubbles.findIndex(b => b.id === id)
+        if (idx !== -1) this.visibleBubbles.splice(idx, 1)
+      }, lifetime)
+
+      this.recentTexts.push({ text, personaIndex: -1, time: Date.now() })
+      this.pruneRecentTexts()
+      this.debugLog('spawn-custom', `"${text.slice(0, 20)}…"`)
+    },
+
+    trySpawnSavedCustomBubble() {
+      if (!this.savedCustomPool.length) return false
+      const customOnScreen = this.visibleBubbles.filter(b => b.isCustom).length
+      const customLimit = this.isMobile ? 2 : 4
+      if (customOnScreen >= customLimit) return false
+      const chance = this.isMobile ? 0.35 : 0.22
+      if (Math.random() > chance) return false
+      const item = this.pickRandomSavedCustom()
+      if (!item) return false
+      this.spawnSavedCustomBubble(item)
+      return true
+    },
+
+    rememberCustomInPool(text, date) {
+      const cleanText = String(text || '').trim()
+      if (!cleanText) return
+      const cleanDate = typeof date === 'string' ? date : ''
+      const key = `${cleanText}@@${cleanDate}`
+      const deduped = this.savedCustomPool.filter(item => `${item.text}@@${item.date || ''}` !== key)
+      deduped.push({ text: cleanText, date: cleanDate })
+      this.savedCustomPool = deduped.slice(-120)
+    },
+
     // ── Bubble lifecycle ──
     spawnBubble() {
       if (this.isMobile && this.visibleBubbles.length >= 3) return
       if (this.personaData.every(d => d.length === 0)) return
+
+      if (this.trySpawnSavedCustomBubble()) return
+
       let pi
       do {
         pi = Math.floor(Math.random() * PERSONAS.length)
@@ -650,6 +743,7 @@ export default {
       }, lifetime)
       this.recentTexts.push({ text, personaIndex: -1, time: Date.now() })
       this.pruneRecentTexts()
+      this.rememberCustomInPool(text, dateStr)
       this.showAddForm = false
       this.newText = ''
       this.newDate = ''
@@ -701,54 +795,30 @@ export default {
         this.debugLog('done', 'no saved bubbles to display')
         return
       }
-      const count = this.isMobile ? 2 : Math.min(MAX_CUSTOM, saved.length)
-      const recent = [...saved].sort(() => Math.random() - 0.5).slice(0, count)
-      this.debugLog('done', `displaying ${recent.length} saved bubbles (from ${saved.length} total)`)
-        const color = '#c0b0a0'
-        const shapes = ['bubble-round', 'bubble-organic', 'bubble-wide']
-        const now = Date.now()
-        const stagger = this.isMobile ? 3000 : 800
-        recent.forEach((item, i) => {
-          const delay = this.isMobile ? i * stagger : i * 800
-          setTimeout(() => {
-          const shapeIdx = Math.floor(Math.random() * shapes.length)
-          const bubble = {
-            id: nextId++,
-            text: item.text,
-            date: item.date ? this.formatDisplayDate(item.date) : '',
-            rawDate: item.date || '',
-            isCustom: true,
-            personaClass: 'persona-custom',
-            shapeClass: shapes[shapeIdx],
-            personaLabel: item.date ? `此刻 · ${this.formatDisplayDate(item.date)}` : '此刻',
-            dotCount: 2,
-            style: {
-              left: `${10 + (i % 5) * 18 + Math.random() * 8}%`,
-              bottom: `-${5 + Math.random() * 8}%`,
-              '--persona-color': color,
-              '--persona-glow': 'rgba(192,176,160,0.22)',
-              '--persona-bg': 'rgba(192,176,160,0.06)',
-              '--float-duration': `${10 + Math.random() * 12}s`,
-              '--float-distance': `${70 + Math.random() * 25}vh`,
-              '--wobble-amount': `${-(3 + Math.random() * 6)}deg`,
-              '--wobble2-amount': `${3 + Math.random() * 6}deg`,
-              '--breathe-dur': `${5 + Math.random() * 4}s`,
-              '--breathe-delay': `${Math.random() * 5}s`,
-              transform: `rotate(${-(4 + Math.random() * 8)}deg) scale(0.85)`,
-            },
-            born: now - (i * 2000),
-          }
-          this.visibleBubbles.push(bubble)
-          this.recentTexts.push({ text: item.text, personaIndex: -1, time: Date.now() })
-          // auto-remove after float
-          const bid = bubble.id
-          const lifetime = parseFloat(bubble.style['--float-duration']) * 1000 + 2000
-          setTimeout(() => {
-            const idx = this.visibleBubbles.findIndex(b => b.id === bid)
-            if (idx !== -1) this.visibleBubbles.splice(idx, 1)
-          }, lifetime)
-          }, delay)
-        })
+      const normalized = saved
+        .filter(item => item && typeof item.text === 'string' && item.text.trim())
+        .map(item => ({
+          text: item.text.trim(),
+          date: typeof item.date === 'string' ? item.date : '',
+        }))
+
+      if (normalized.length === 0) {
+        this.debugLog('done', 'saved bubbles format invalid')
+        return
+      }
+
+      this.savedCustomPool = normalized.slice(-120)
+      const count = this.isMobile ? 2 : Math.min(MAX_CUSTOM, this.savedCustomPool.length)
+      const recent = [...this.savedCustomPool].sort(() => Math.random() - 0.5).slice(0, count)
+      this.debugLog('done', `displaying ${recent.length} saved bubbles (from ${this.savedCustomPool.length} total)`)
+      const now = Date.now()
+      const stagger = this.isMobile ? 3000 : 800
+      recent.forEach((item, i) => {
+        const delay = this.isMobile ? i * stagger : i * 800
+        setTimeout(() => {
+          this.spawnSavedCustomBubble(item, now - (i * 2000))
+        }, delay)
+      })
     },
 
     async saveCustomBubble(text, date) {
