@@ -679,12 +679,19 @@ export default {
       const localSaved = this.loadCustomBubblesFromLocal()
       if (localSaved.length > 0) {
         if (apiAvailable) {
-          this.debugLog('local', `migrating ${localSaved.length} bubbles from localStorage → D1`)
-          localSaved.forEach(item => {
-            this.saveCustomBubbleToApi(item.text, item.date || '')
-          })
-          this.clearLocalCustomBubbles()
-        } else if (saved.length === 0) {
+          this.debugLog('local', `syncing ${localSaved.length} local bubbles → D1`)
+          await this.flushLocalBubblesToApi()
+          try {
+            const refreshed = await fetch('/api/bubbles')
+            if (refreshed.ok) {
+              const payload = await refreshed.json()
+              saved = Array.isArray(payload) ? payload : saved
+            }
+          } catch (e) {
+            this.debugLog('api', `GET refresh error: ${e.message}`)
+          }
+        }
+        if (saved.length === 0) {
           saved = localSaved
           this.debugLog('local', `using ${saved.length} local bubbles (D1 unavailable)`)
         }
