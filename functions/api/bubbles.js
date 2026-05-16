@@ -1,3 +1,33 @@
+async function ensureBubblesSchema(db) {
+  await db.exec(
+    `CREATE TABLE IF NOT EXISTS bubbles (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      text TEXT NOT NULL,
+      date TEXT DEFAULT ''
+    )`
+  )
+
+  const { results } = await db.prepare("PRAGMA table_info('bubbles')").all()
+  const cols = new Set((results || []).map(r => String(r.name || '').toLowerCase()))
+
+  if (!cols.has('text')) {
+    await db.exec('ALTER TABLE bubbles ADD COLUMN text TEXT')
+    if (cols.has('content')) {
+      await db.exec(
+        "UPDATE bubbles SET text = content WHERE (text IS NULL OR text = '') AND content IS NOT NULL"
+      )
+    }
+    cols.add('text')
+  }
+
+  if (!cols.has('date')) {
+    await db.exec("ALTER TABLE bubbles ADD COLUMN date TEXT DEFAULT ''")
+    cols.add('date')
+  }
+
+  return { hasId: cols.has('id') }
+}
+
 export async function onRequestGet(context) {
   const { env } = context
 
@@ -12,15 +42,11 @@ export async function onRequestGet(context) {
   }
 
   try {
-    await env.DB.exec(
-      `CREATE TABLE IF NOT EXISTS bubbles (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        text TEXT NOT NULL,
-        date TEXT DEFAULT ''
-      )`
-    )
+    const schema = await ensureBubblesSchema(env.DB)
+    const idExpr = schema.hasId ? 'id' : 'rowid AS id'
+    const idOrder = schema.hasId ? 'id' : 'rowid'
     const { results } = await env.DB.prepare(
-      'SELECT id, text, date FROM bubbles ORDER BY id DESC LIMIT 100'
+      `SELECT ${idExpr}, text, COALESCE(date, '') AS date FROM bubbles ORDER BY ${idOrder} DESC LIMIT 100`
     ).all()
     return new Response(JSON.stringify(results.reverse()), {
       headers: { 'Content-Type': 'application/json' },
@@ -64,13 +90,7 @@ export async function onRequestPost(context) {
   }
 
   try {
-    await env.DB.exec(
-      `CREATE TABLE IF NOT EXISTS bubbles (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        text TEXT NOT NULL,
-        date TEXT DEFAULT ''
-      )`
-    )
+    await ensureBubblesSchema(env.DB)
     const { meta } = await env.DB.prepare(
       'INSERT INTO bubbles (text, date) VALUES (?, ?)'
     ).bind(text.trim(), date || '').run()
