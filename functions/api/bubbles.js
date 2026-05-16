@@ -1,27 +1,29 @@
 async function ensureBubblesSchema(db) {
-  await db.exec(
-    `CREATE TABLE IF NOT EXISTS bubbles (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      text TEXT NOT NULL,
-      date TEXT DEFAULT ''
-    )`
-  )
+  const exists = await db
+    .prepare("SELECT 1 AS ok FROM sqlite_master WHERE type='table' AND name='bubbles' LIMIT 1")
+    .first()
+
+  if (!exists) {
+    await db
+      .prepare("CREATE TABLE bubbles (id INTEGER PRIMARY KEY AUTOINCREMENT, text TEXT NOT NULL, date TEXT DEFAULT '')")
+      .run()
+  }
 
   const { results } = await db.prepare("PRAGMA table_info('bubbles')").all()
   const cols = new Set((results || []).map(r => String(r.name || '').toLowerCase()))
 
   if (!cols.has('text')) {
-    await db.exec('ALTER TABLE bubbles ADD COLUMN text TEXT')
+    await db.prepare('ALTER TABLE bubbles ADD COLUMN text TEXT').run()
     if (cols.has('content')) {
-      await db.exec(
-        "UPDATE bubbles SET text = content WHERE (text IS NULL OR text = '') AND content IS NOT NULL"
-      )
+      await db
+        .prepare("UPDATE bubbles SET text = content WHERE (text IS NULL OR text = '') AND content IS NOT NULL")
+        .run()
     }
     cols.add('text')
   }
 
   if (!cols.has('date')) {
-    await db.exec("ALTER TABLE bubbles ADD COLUMN date TEXT DEFAULT ''")
+    await db.prepare("ALTER TABLE bubbles ADD COLUMN date TEXT DEFAULT ''").run()
     cols.add('date')
   }
 
