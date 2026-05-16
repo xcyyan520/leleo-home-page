@@ -1,130 +1,77 @@
 <template>
-  <div class="thought-chamber" ref="chamber">
-    <!-- ambient light orbs -->
-    <div class="ambient-orbs" v-if="!reduceMotion">
-      <span v-for="o in ambientOrbs" :key="o.id" class="orb" :style="o.style"></span>
-    </div>
-
-    <!-- canvas constellation particles -->
-    <canvas
-      ref="particleCanvas"
-      class="particle-canvas"
-      v-if="!reduceMotion"
-    ></canvas>
-
-    <!-- starfield (fallback when canvas disabled) -->
+  <div class="nebula-chamber" ref="chamber" @mousemove="onMouseMove" @touchmove="onTouchMove">
+    <!-- ═══ Layer 1: Deep Space ═══ -->
     <div class="starfield">
-      <span
-        v-for="s in stars"
-        :key="s.id"
-        class="star"
-        :style="s.style"
-      ></span>
+      <span v-for="s in stars" :key="s.id" class="star" :style="s.style"></span>
     </div>
 
-    <!-- thinking bubbles -->
-    <transition-group name="bubble" tag="div" class="bubble-layer">
+    <!-- ═══ Layer 2: Nebula Clouds (parallax layers) ═══ -->
+    <div class="nebula-layer nebula-deep" :style="nebulaDriftDeep">
+      <span v-for="n in nebulae.filter(x=>x.depth===0)" :key="n.id" class="nebula-cloud nebula-cloud--deep" :style="n.style"></span>
+    </div>
+    <div class="nebula-layer nebula-mid" :style="nebulaDriftMid">
+      <span v-for="n in nebulae.filter(x=>x.depth===1)" :key="n.id" class="nebula-cloud nebula-cloud--mid" :style="n.style"></span>
+    </div>
+    <div class="nebula-layer nebula-high" :style="nebulaDriftHigh">
+      <span v-for="n in nebulae.filter(x=>x.depth===2)" :key="n.id" class="nebula-cloud nebula-cloud--highlight" :style="n.style"></span>
+    </div>
+
+    <!-- ═══ Canvas: nebula particles + accretion ring ═══ -->
+    <canvas ref="particleCanvas" class="particle-canvas"></canvas>
+
+    <!-- ═══ Layer 3: Stellar Thoughts ═══ -->
+    <transition-group name="star-birth" tag="div" class="thoughts-layer">
       <div
-        v-for="b in visibleBubbles"
-        :key="b.id"
-        class="thought-bubble"
-        :class="[b.personaClass, b.shapeClass, { 'is-captured': capturedBubble && capturedBubble.id === b.id, 'is-custom': b.isCustom }]"
-        :style="b.id === (capturedBubble && capturedBubble.id) ? b.capturedStyle : b.style"
-        @click.stop="captureBubble(b, $event)"
+        v-for="t in visibleThoughts"
+        :key="t.id"
+        class="stellar-thought"
+        :class="[t.personaCls, { captured: capturedId === t.id }]"
+        :style="capturedId === t.id ? t.capturedStyle : t.style"
+        @click.stop="capture(t, $event)"
       >
-        <span class="bubble-highlight"></span>
-        <span class="bubble-label">{{ b.personaLabel }}</span>
-        <p class="bubble-text">{{ b.text }}</p>
-        <div class="bubble-dots">
-          <span class="dot" v-for="n in b.dotCount" :key="n"></span>
-        </div>
-        <span v-if="b.date" class="bubble-date">{{ b.date }}</span>
+        <span class="stellar-core"></span>
+        <span class="stellar-aura"></span>
+        <p class="stellar-text">{{ t.text }}</p>
+        <span v-if="t.date" class="stellar-date">{{ t.date }}</span>
       </div>
     </transition-group>
 
-    <!-- capture overlay -->
-    <transition name="overlay-fade">
-      <div v-if="capturedBubble" class="capture-overlay" :class="{ releasing }" @click="releaseBubble">
-        <!-- Effect 0: Glass Shatter -->
-        <template v-if="captureEffect === 0">
-          <span v-for="sh in shards" :key="sh.i" class="shard" :style="sh.style"></span>
-        </template>
-
-        <!-- Effect 1: Particle Star Cluster -->
-        <template v-if="captureEffect === 1">
-          <span v-for="sp in clusterParticles" :key="sp.i" class="cluster-particle" :style="sp.style"></span>
-        </template>
-
-        <!-- Effect 2: Vortex Suction -->
-        <template v-if="captureEffect === 2">
-          <span v-for="vx in vortexArms" :key="vx.i" class="vortex-arm" :style="vx.style"></span>
-        </template>
-
-        <!-- Effect 3: Aurora Streams -->
-        <template v-if="captureEffect === 3">
-          <span v-for="au in auroraBeams" :key="au.i" class="aurora-beam" :style="au.style"></span>
-        </template>
-
+    <!-- ═══ Layer 4: Capture Overlay ═══ -->
+    <transition name="capture-fade">
+      <div v-if="capturedId !== null" class="capture-overlay" @click="release">
+        <!-- Light rays -->
+        <span v-for="r in (isMobile ? 6 : 12)" :key="'r'+r" class="capture-ray" :style="rayStyle(r)"></span>
         <div class="capture-stage" @click.stop>
-          <div
-            class="capture-bubble"
-            :class="[capturedBubble.personaClass, `ce-${captureEffect}`, { releasing }]"
-            :style="{
-              '--persona-color': capturedBubble.style['--persona-color'],
-              '--persona-glow': capturedBubble.style['--persona-glow'],
-              '--persona-bg': capturedBubble.style['--persona-bg'],
-            }"
-          >
-            <span class="capture-highlight"></span>
-            <span class="capture-label">{{ capturedBubble.personaLabel }} · 思考中</span>
-            <p class="capture-text" v-if="captureEffect !== 2">{{ capturedBubble.text }}</p>
-            <p class="capture-text typing" v-if="captureEffect === 2">{{ typedText }}<span class="typing-cursor" :class="{ blink: !typingTimer }">|</span></p>
-            <div class="capture-dots">
-              <span class="c-dot" v-for="n in capturedBubble.dotCount" :key="n"></span>
-            </div>
+          <div class="capture-star" :style="captureStarStyle">
+            <span class="capture-core"></span>
+            <span class="capture-aura"></span>
+            <span class="capture-aura capture-aura--outer"></span>
+            <span class="capture-label">{{ capturedLabel }} · 凝视中</span>
+            <p class="capture-text">{{ capturedText }}</p>
           </div>
           <div class="capture-hint">点击空白处释放</div>
         </div>
       </div>
     </transition>
 
-    <!-- back link -->
-    <a href="/" class="back-link">
-      <span class="back-arrow">←</span>
-      <span class="back-text">回去</span>
-    </a>
+    <!-- ═══ Layer 5: UI ═══ -->
+    <a href="/" class="back-link"><span class="back-arrow">←</span><span class="back-text">回去</span></a>
+    <div class="title-hint"><span class="hint-line">思绪</span><span class="hint-sub">stellar thoughts…</span></div>
+    <button class="add-btn" @click="showAddForm = true" title="写下思绪">+</button>
 
-    <!-- title hint -->
-    <div class="title-hint">
-      <span class="hint-line">思绪</span>
-      <span class="hint-sub">thoughts drifting...</span>
-    </div>
-
-    <!-- add bubble button -->
-    <button class="add-bubble-btn" @click="openAddForm" title="写下思绪">+</button>
-
-    <!-- add bubble form overlay -->
-    <transition name="overlay-fade">
+    <!-- Add form (unchanged) -->
+    <transition name="capture-fade">
       <div v-if="showAddForm" class="add-form-overlay" @click.self="showAddForm = false">
         <div class="add-form-card" @click.stop>
           <span class="form-title">留下此刻思绪</span>
-          <textarea
-            v-model="newText"
-            class="form-textarea"
-            placeholder="写下你想说的……"
-            maxlength="200"
-            rows="4"
-            ref="formTextarea"
-            @keydown.ctrl.enter.prevent="submitCustomBubble"
-            @keydown.meta.enter.prevent="submitCustomBubble"
-          ></textarea>
+          <textarea v-model="newText" class="form-textarea" placeholder="写下你想说的……" maxlength="200" rows="4" ref="formTextarea"></textarea>
           <div class="form-date-row">
             <label class="form-date-label">日期（可选）</label>
             <input v-model="newDate" type="date" class="form-date-input" />
           </div>
           <div class="form-actions">
             <button class="form-btn cancel" @click="showAddForm = false">取消</button>
-            <button class="form-btn submit" @click="submitCustomBubble" :disabled="!newText.trim()">放进气泡</button>
+            <button class="form-btn submit" @click="submitCustomBubble" :disabled="!newText.trim()">放进星云</button>
           </div>
         </div>
       </div>
@@ -134,1693 +81,868 @@
 
 <script>
 const PERSONAS = [
-  {
-    file: '/thoughts/shime.txt',
-    name: '阿秋',
-    cls: 'persona-qiuz',
-    color: '#d4a255',
-    glow: 'rgba(212,162,85,0.25)',
-    shapes: ['bubble-round', 'bubble-organic', 'bubble-wide'],
-    dotCount: [2, 2, 3],
-  },
-  {
-    file: '/thoughts/future.txt',
-    name: '春燕',
-    cls: 'persona-yan',
-    color: '#c97a7c',
-    glow: 'rgba(201,122,124,0.25)',
-    shapes: ['bubble-round', 'bubble-tall', 'bubble-organic'],
-    dotCount: [2, 3, 3],
-  },
-  {
-    file: '/thoughts/weiwei.txt',
-    name: '小银',
-    cls: 'persona-yin',
-    color: '#7dab8c',
-    glow: 'rgba(125,171,140,0.25)',
-    shapes: ['bubble-wide', 'bubble-round', 'bubble-small'],
-    dotCount: [2, 2, 2],
-  },
-  {
-    file: '/thoughts/chaos.txt',
-    name: '一生阳春悲',
-    cls: 'persona-bei',
-    color: '#6a8cb5',
-    glow: 'rgba(106,140,181,0.25)',
-    shapes: ['bubble-tall', 'bubble-wide', 'bubble-organic'],
-    dotCount: [3, 3, 4],
-  },
+  { file:'/thoughts/shime.txt', name:'阿秋', cls:'persona-qiuz', color:'#d4a255', glow:'rgba(212,162,85,0.3)', coreSize:14, auraSize:70 },
+  { file:'/thoughts/future.txt', name:'春燕', cls:'persona-yan',  color:'#c97a7c', glow:'rgba(201,122,124,0.3)', coreSize:11, auraSize:55 },
+  { file:'/thoughts/weiwei.txt', name:'小银', cls:'persona-yin',  color:'#7dab8c', glow:'rgba(125,171,140,0.28)', coreSize:10, auraSize:50 },
+  { file:'/thoughts/chaos.txt',  name:'一生阳春悲', cls:'persona-bei',  color:'#6a8cb5', glow:'rgba(106,140,181,0.32)', coreSize:15, auraSize:80 },
 ]
-
-let nextId = 0
 const MAX_CUSTOM = 10
-const CUSTOM_STORAGE_KEY = 'thoughts-custom-bubbles'
+let nextId = 0
 
 export default {
   name: 'ThoughtBubbles',
   data() {
     return {
-      visibleBubbles: [],
+      visibleThoughts: [],
+      capturedId: null,
+      capturedText: '',
+      capturedLabel: '',
+      captureStarStyle: {},
+      // Space
       stars: [],
-      ambientOrbs: [],
-      personaData: [[], [], [], []],
-      bubbleTimer: null,
-      maxBubbles: 7,
-      capturedBubble: null,
-      captureEffect: 0,
-      releasing: false,
-      typedText: '',
-      typingTimer: null,
-      // canvas particles
-      canvasCtx: null,
-      canvasParticles: [],
-      canvasWidth: 0,
-      canvasHeight: 0,
-      mouseX: -1000,
-      mouseY: -1000,
+      nebulae: [],
+      nebulaDriftDeep: { transform:'translate(0px,0px)' },
+      nebulaDriftMid: { transform:'translate(0px,0px)' },
+      nebulaDriftHigh: { transform:'translate(0px,0px)' },
+      // Canvas
+      canvasCtx: null, canvasParticles: [], canvasWidth: 0, canvasHeight: 0,
+      accreteParticles: [],
+      mouseX: -9999, mouseY: -9999, mouseActive: false,
       rafId: null,
-      animPaused: false,
-      reduceMotion: false,
-      isMobile: false,
-      // add bubble form
-      showAddForm: false,
-      newText: '',
-      newDate: '',
-      syncTimer: null,
-      syncingLocal: false,
-      savedCustomPool: [],
-      // effect data
-      shards: [],
-      clusterParticles: [],
-      vortexArms: [],
-      auroraBeams: [],
+      // Data
+      personaData: [[],[],[],[]],
+      // Cycle
+      thoughtTimer: null, maxThoughts: 5,
       recentTexts: [],
+      // Add form
+      showAddForm: false, newText: '', newDate: '',
+      // Flags
+      reduceMotion: false, isMobile: false,
+      occupiedZones: [],
     }
   },
   async mounted() {
     this.reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
     this.isMobile = window.innerWidth < 768
-    this.generateAmbientOrbs()
     this.generateStars()
-    if (!this.reduceMotion) {
-      this.$nextTick(() => this.initCanvas())
-    }
+    this.generateNebulae()
+    this.$nextTick(() => this.initCanvas())
     await this.loadAllTexts()
     this.loadCustomBubbles()
-    this.startSyncLoop()
-    this.startBubbleCycle()
-    document.addEventListener('click', this.handleClick)
+    this.startCycle()
+    document.addEventListener('click', this.onGlobalClick)
   },
   beforeUnmount() {
-    clearTimeout(this.bubbleTimer)
-    clearTimeout(this.syncTimer)
-    this.stopTyping()
+    clearInterval(this.thoughtTimer)
     this.stopCanvas()
-    document.removeEventListener('click', this.handleClick)
-    this.removeEscListener()
+    document.removeEventListener('click', this.onGlobalClick)
+    window.removeEventListener('mousemove', this.onMouseMove)
   },
+
   methods: {
-    openAddForm() {
-      this.showAddForm = true
-      this.$nextTick(() => {
-        const ta = this.$refs.formTextarea
-        if (ta && typeof ta.focus === 'function') ta.focus()
-      })
+    // ═══ Debug ═══
+    debugLog(tag, ...args) {
+      console.log(`%c[Nebula] %c${tag}`, 'color:#8ab4f8;font-weight:bold', 'color:#aaa', ...args)
     },
 
-    // ── Ambient orbs ──
-    generateAmbientOrbs() {
-      const colors = [
-        'rgba(180,160,140,0.10)',
-        'rgba(160,170,190,0.08)',
-        'rgba(190,150,160,0.09)',
-        'rgba(150,170,160,0.07)',
-      ]
-      this.ambientOrbs = colors.map((c, i) => ({
-        id: `orb${i}`,
-        style: {
-          left: `${10 + i * 25 + Math.random() * 10}%`,
-          top: `${15 + (i % 2) * 50 + Math.random() * 15}%`,
-          width: `${250 + Math.random() * 300}px`,
-          height: `${250 + Math.random() * 300}px`,
-          background: `radial-gradient(circle, ${c} 0%, transparent 70%)`,
-          animationDelay: `${i * 5 + Math.random() * 3}s`,
-          animationDuration: `${18 + Math.random() * 14}s`,
-        },
-      }))
-    },
-
-    // ── Stars ──
+    // ═══ Stars ═══
     generateStars() {
       const ss = []
-      for (let i = 0; i < 60; i++) {
+      for (let i = 0; i < 90; i++) {
+        const size = 0.5 + Math.random() * 2.5
         ss.push({
           id: `s${i}`,
           style: {
-            left: `${Math.random() * 100}%`,
-            top: `${Math.random() * 100}%`,
-            width: `${1 + Math.random() * 2}px`,
-            height: `${1 + Math.random() * 2}px`,
-            opacity: 0.2 + Math.random() * 0.6,
-            animationDelay: `${Math.random() * 6}s`,
-            animationDuration: `${2 + Math.random() * 5}s`,
+            left:`${Math.random()*100}%`, top:`${Math.random()*100}%`,
+            width:`${size}px`, height:`${size}px`,
+            opacity: 0.15 + Math.random()*0.7,
+            animationDelay:`${Math.random()*8}s`,
+            animationDuration:`${2+Math.random()*6}s`,
+            '--chroma': Math.random() > 0.7 ? `0 0 ${2+Math.random()*3}px rgba(180,200,255,0.3)` : 'none',
           },
         })
       }
       this.stars = ss
     },
 
-    // ── Canvas constellation ──
+    // ═══ Nebula Clouds ═══
+    generateNebulae() {
+      const configs = [
+        // Deep layers — slow, large, faint
+        { color:'70,30,130', x:5,  y:10, w:70, h:65, speed:0.3, dur:50, z:0 },
+        { color:'20,50,110', x:40, y:35, w:65, h:60, speed:0.25, dur:55, z:0 },
+        // Mid layers — medium speed, color-shifting
+        { color:'90,40,120', x:15, y:25, w:50, h:50, speed:0.5, dur:38, z:1 },
+        { color:'40,80,140', x:55, y:20, w:45, h:48, speed:0.55, dur:42, z:1 },
+        { color:'110,50,80', x:30, y:50, w:48, h:44, speed:0.45, dur:40, z:1 },
+        // Highlight layers — small, bright hotspots
+        { color:'180,140,220', x:25, y:35, w:22, h:20, speed:0.7, dur:28, z:2 },
+        { color:'140,180,210', x:60, y:45, w:18, h:22, speed:0.65, dur:30, z:2 },
+        { color:'200,160,200', x:45, y:60, w:20, h:18, speed:0.6, dur:32, z:2 },
+      ]
+      this.nebulae = configs.map((c, i) => ({
+        id: `n${i}`,
+        depth: c.z,
+        speed: c.speed,
+        style: {
+          left:`${c.x}%`, top:`${c.y}%`,
+          width:`${c.w}vw`, height:`${c.h}vh`,
+          background: c.z===2
+            ? `radial-gradient(ellipse at center, rgba(${c.color},0.22) 0%, rgba(${c.color},0.06) 50%, transparent 75%)`
+            : c.z===1
+            ? `radial-gradient(ellipse at center, rgba(${c.color},0.10) 0%, rgba(${c.color},0.02) 50%, transparent 72%)`
+            : `radial-gradient(ellipse at center, rgba(${c.color},0.06) 0%, rgba(${c.color},0.01) 45%, transparent 68%)`,
+          animationDuration:`${c.dur}s`,
+          animationDelay:`${i*3}s`,
+          '--nebula-hue-shift': `${(i%3)*120}deg`,
+        },
+      }))
+    },
+
+    // ═══ Canvas ═══
     initCanvas() {
-      const canvas = this.$refs.particleCanvas
-      if (!canvas) return
-      this.canvasCtx = canvas.getContext('2d')
+      const c = this.$refs.particleCanvas
+      if (!c) return
+      this.canvasCtx = c.getContext('2d')
       this.resizeCanvas()
-      this.spawnCanvasParticles()
+      this.spawnNebulaParticles()
       window.addEventListener('resize', this.resizeCanvas)
-      document.addEventListener('mousemove', this.onMouseMove)
-      document.addEventListener('visibilitychange', this.onVisibility)
       this.animateCanvas()
     },
 
     resizeCanvas() {
-      const canvas = this.$refs.particleCanvas
-      if (!canvas) return
+      const c = this.$refs.particleCanvas
+      if (!c) return
       const dpr = window.devicePixelRatio || 1
       this.canvasWidth = window.innerWidth
       this.canvasHeight = window.innerHeight
-      canvas.width = this.canvasWidth * dpr
-      canvas.height = this.canvasHeight * dpr
-      canvas.style.width = this.canvasWidth + 'px'
-      canvas.style.height = this.canvasHeight + 'px'
-      this.canvasCtx.setTransform(dpr, 0, 0, dpr, 0, 0)
+      c.width = this.canvasWidth * dpr
+      c.height = this.canvasHeight * dpr
+      c.style.width = this.canvasWidth+'px'
+      c.style.height = this.canvasHeight+'px'
+      this.canvasCtx.setTransform(dpr,0,0,dpr,0,0)
     },
 
-    spawnCanvasParticles() {
+    spawnNebulaParticles() {
       this.canvasParticles = []
-      const count = this.isMobile ? 35 : 80
+      const count = this.isMobile ? 30 : 70
+      const hues = [260,210,320,200,290,230,170,340,250,180]
       for (let i = 0; i < count; i++) {
+        const isShootingStar = i < (this.isMobile ? 2 : 5)
         this.canvasParticles.push({
-          x: Math.random() * this.canvasWidth,
-          y: Math.random() * this.canvasHeight,
-          vx: (Math.random() - 0.5) * 0.4,
-          vy: (Math.random() - 0.5) * 0.4,
-          size: 1 + Math.random() * 2.5,
-          opacity: 0.25 + Math.random() * 0.5,
-          hue: 35 + Math.random() * 15, // warm golden range
+          x: Math.random()*this.canvasWidth, y: Math.random()*this.canvasHeight,
+          vx: isShootingStar ? 1.5+Math.random()*3 : (Math.random()-0.5)*0.25,
+          vy: isShootingStar ? 0.2+Math.random()*0.5 : (Math.random()-0.5)*0.25,
+          size: isShootingStar ? 1.5+Math.random()*2 : 0.5+Math.random()*2.5,
+          opacity: isShootingStar ? 0.6+Math.random()*0.4 : 0.08+Math.random()*0.22,
+          hue: hues[Math.floor(Math.random()*hues.length)],
+          life: Math.random()*400, maxLife: isShootingStar ? 200+Math.random()*100 : 400+Math.random()*200,
+          isShootingStar,
         })
       }
     },
 
-    onMouseMove(e) {
-      this.mouseX = e.clientX
-      this.mouseY = e.clientY
-    },
-
-    onVisibility() {
-      this.animPaused = document.hidden
+    onMouseMove(e) { this.mouseX = e.clientX; this.mouseY = e.clientY; this.mouseActive = true },
+    onTouchMove(e) {
+      if (e.touches[0]) {
+        this.mouseX = e.touches[0].clientX; this.mouseY = e.touches[0].clientY
+        this.mouseActive = true
+      }
     },
 
     animateCanvas() {
-      if (this.animPaused || this.reduceMotion) {
-        this.rafId = requestAnimationFrame(() => this.animateCanvas())
-        return
-      }
-      const ctx = this.canvasCtx
-      const w = this.canvasWidth
-      const h = this.canvasHeight
-      if (!ctx || w === 0) {
-        this.rafId = requestAnimationFrame(() => this.animateCanvas())
-        return
-      }
+      const ctx = this.canvasCtx; const w = this.canvasWidth; const h = this.canvasHeight
+      if (!ctx || w===0) { this.rafId = requestAnimationFrame(()=>this.animateCanvas()); return }
 
-      ctx.clearRect(0, 0, w, h)
+      ctx.clearRect(0,0,w,h)
+      const mx = this.mouseX, my = this.mouseY
+      const captured = this.capturedId !== null
 
-      const particles = this.canvasParticles
-      const mx = this.mouseX
-      const my = this.mouseY
-      const fastPath = this.isMobile
+      // Nebula parallax drift
+      const baseX = this.mouseActive ? (mx/w - 0.5)*18 : 0
+      const baseY = this.mouseActive ? (my/h - 0.5)*18 : 0
+      this.nebulaDriftDeep = { transform:`translate(${baseX*0.2}px, ${baseY*0.2}px)` }
+      this.nebulaDriftMid  = { transform:`translate(${baseX*0.6}px, ${baseY*0.6}px)` }
+      this.nebulaDriftHigh = { transform:`translate(${baseX*1.1}px, ${baseY*1.1}px)` }
 
-      // Update + draw particles
-      for (const p of particles) {
-        // Mouse interaction (skip on mobile touch — no continuous mousemove)
-        if (!fastPath) {
-          const dx = p.x - mx
-          const dy = p.y - my
-          const dist = Math.sqrt(dx * dx + dy * dy)
-          if (dist < 160 && dist > 0.1) {
-            const force = (160 - dist) / 160
-            p.vx += (dx / dist) * force * 0.06
-            p.vy += (dy / dist) * force * 0.06
-          }
+      // Draw nebula particles
+      for (const p of this.canvasParticles) {
+        // Mouse pull (skip shooting stars)
+        if (!p.isShootingStar && this.mouseActive && !captured) {
+          const dx = p.x-mx, dy = p.y-my
+          const dist = Math.sqrt(dx*dx+dy*dy)
+          if (dist < 220 && dist > 1) { const f = (220-dist)/220; p.vx += (dx/dist)*f*0.025; p.vy += (dy/dist)*f*0.025 }
         }
-
-        p.vx += (Math.random() - 0.5) * 0.015
-        p.vy += (Math.random() - 0.5) * 0.015
-        p.vx *= 0.998
-        p.vy *= 0.998
-
-        const speed = Math.sqrt(p.vx * p.vx + p.vy * p.vy)
-        if (speed > 1.2) {
-          p.vx = (p.vx / speed) * 1.2
-          p.vy = (p.vy / speed) * 1.2
+        // Captured: push outward from center (skip shooting stars)
+        if (!p.isShootingStar && captured) {
+          const cx=w/2, cy=h/2
+          const dx=p.x-cx, dy=p.y-cy
+          const dist = Math.sqrt(dx*dx+dy*dy)
+          if (dist < 350 && dist > 1) { const f = (350-dist)/350; p.vx += (dx/dist)*f*0.1; p.vy += (dy/dist)*f*0.1 }
         }
-
-        p.x += p.vx
-        p.y += p.vy
-
-        if (p.x < -20) p.x = w + 20
-        if (p.x > w + 20) p.x = -20
-        if (p.y < -20) p.y = h + 20
-        if (p.y > h + 20) p.y = -20
-
-        if (fastPath) {
-          // Mobile: simple circle, no gradient
+        if (!p.isShootingStar) {
+          p.vx += (Math.random()-0.5)*0.008; p.vy += (Math.random()-0.5)*0.008
+          p.vx *= 0.997; p.vy *= 0.997
+          const speed = Math.sqrt(p.vx*p.vx+p.vy*p.vy)
+          if (speed > 0.7) { p.vx = (p.vx/speed)*0.7; p.vy = (p.vy/speed)*0.7 }
+        }
+        p.x += p.vx; p.y += p.vy
+        // Shooting stars: wrap around
+        if (p.isShootingStar) {
+          if (p.x > w+50 || p.y > h+50) { p.x = -50; p.y = Math.random()*h*0.7 }
+          if (p.x < -50) { p.x = w+50; p.y = Math.random()*h*0.7 }
+        } else {
+          if (p.x<-30) p.x=w+30; if (p.x>w+30) p.x=-30
+          if (p.y<-30) p.y=h+30; if (p.y>h+30) p.y=-30
+        }
+        p.life++; if (p.life > p.maxLife) { p.life=0; p.opacity = p.isShootingStar ? 0.6+Math.random()*0.4 : 0.08+Math.random()*0.2 }
+        const lifeFade = p.life < 30 ? p.life/30 : p.life > p.maxLife-30 ? (p.maxLife-p.life)/30 : 1
+        if (p.isShootingStar) {
+          // Shooting star with trail
           ctx.beginPath()
-          ctx.arc(p.x, p.y, p.size * 2, 0, Math.PI * 2)
-          ctx.fillStyle = `rgba(200,185,160,${p.opacity * 0.6})`
+          ctx.moveTo(p.x, p.y)
+          ctx.lineTo(p.x-p.vx*8, p.y-p.vy*8)
+          ctx.strokeStyle = `hsla(${p.hue},50%,80%,${p.opacity*lifeFade*0.8})`
+          ctx.lineWidth = p.size*0.8
+          ctx.stroke()
+          // Glow dot
+          ctx.beginPath()
+          ctx.arc(p.x, p.y, p.size, 0, Math.PI*2)
+          ctx.fillStyle = `hsla(${p.hue},20%,90%,${p.opacity*lifeFade})`
           ctx.fill()
         } else {
-          // Desktop: glow + core
-          const glow = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.size * 3)
-          glow.addColorStop(0, `rgba(200,185,160,${p.opacity})`)
-          glow.addColorStop(1, 'rgba(200,185,160,0)')
           ctx.beginPath()
-          ctx.arc(p.x, p.y, p.size * 3, 0, Math.PI * 2)
-          ctx.fillStyle = glow
-          ctx.fill()
-          ctx.beginPath()
-          ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2)
-          ctx.fillStyle = `rgba(220,210,190,${p.opacity + 0.15})`
+          ctx.arc(p.x, p.y, p.size, 0, Math.PI*2)
+          ctx.fillStyle = `hsla(${p.hue},50%,65%,${p.opacity*lifeFade})`
           ctx.fill()
         }
       }
 
-      // Draw connections (desktop only — O(n²) is heavy on mobile)
-      if (!fastPath) {
-        const connDist = 140
-        for (let i = 0; i < particles.length; i++) {
-          for (let j = i + 1; j < particles.length; j++) {
-            const a = particles[i]
-            const b = particles[j]
-            const dx = a.x - b.x
-            const dy = a.y - b.y
-            const dist = dx * dx + dy * dy
-            if (dist < connDist * connDist) {
-              const alpha = 0.07 * (1 - Math.sqrt(dist) / connDist)
-              ctx.beginPath()
-              ctx.moveTo(a.x, a.y)
-              ctx.lineTo(b.x, b.y)
-              ctx.strokeStyle = `rgba(180,170,150,${alpha})`
-              ctx.lineWidth = 0.5
-              ctx.stroke()
-            }
+      // Vignette
+      if (!this.isMobile) {
+        const vignette = ctx.createRadialGradient(w/2,h/2, w*0.55, w/2,h/2, w*0.9)
+        vignette.addColorStop(0, 'rgba(3,3,10,0)')
+        vignette.addColorStop(1, 'rgba(3,3,10,0.35)')
+        ctx.fillStyle = vignette
+        ctx.fillRect(0,0,w,h)
+      }
+
+      // Capture: accretion ring
+      if (captured && !this.reduceMotion) {
+        this.accreteParticles = this.accreteParticles || []
+        const maxAccrete = this.isMobile ? 25 : 40
+        const spawnRate = this.isMobile ? 2 : 3
+        const maxTotal = this.isMobile ? 35 : 60
+        if (this.accreteParticles.length < maxAccrete) {
+          for (let i=0; i<spawnRate; i++) {
+            this.accreteParticles.push({
+              angle: Math.random()*Math.PI*2,
+              radius: 80+Math.random()*100,
+              speed: 0.008+Math.random()*0.015,
+              size: 1+Math.random()*3,
+              opacity: 0.3+Math.random()*0.5,
+              hue: [40,200,320,160,280][Math.floor(Math.random()*5)],
+            })
           }
         }
+        const cx = w/2, cy = h/2
+        for (const a of this.accreteParticles) {
+          a.angle += a.speed
+          a.radius += (Math.random()-0.5)*0.6
+          a.radius = Math.max(60, Math.min(180, a.radius))
+          const ax = cx + Math.cos(a.angle)*a.radius
+          const ay = cy + Math.sin(a.angle)*a.radius*0.55
+          ctx.beginPath()
+          ctx.arc(ax, ay, a.size, 0, Math.PI*2)
+          ctx.fillStyle = `hsla(${a.hue},60%,70%,${a.opacity})`
+          ctx.fill()
+        }
+        // Trim accretion
+        if (this.accreteParticles.length > maxTotal) this.accreteParticles.splice(0, this.accreteParticles.length-maxTotal)
+      } else {
+        this.accreteParticles = []
       }
 
-      this.rafId = requestAnimationFrame(() => this.animateCanvas())
+      this.rafId = requestAnimationFrame(()=>this.animateCanvas())
     },
 
     stopCanvas() {
-      if (this.rafId) {
-        cancelAnimationFrame(this.rafId)
-        this.rafId = null
-      }
+      if (this.rafId) { cancelAnimationFrame(this.rafId); this.rafId = null }
       window.removeEventListener('resize', this.resizeCanvas)
-      document.removeEventListener('mousemove', this.onMouseMove)
-      document.removeEventListener('visibilitychange', this.onVisibility)
     },
 
-    // ── Data loading ──
-    debugLog(tag, ...args) {
-      console.log(`%c[Bubble] %c${tag}`, 'color:#d4a255;font-weight:bold', 'color:#aaa', ...args)
-    },
-
+    // ═══ Data ═══
     async loadAllTexts() {
       this.debugLog('load', 'fetching persona texts...')
-      for (let i = 0; i < PERSONAS.length; i++) {
+      for (let i=0; i<PERSONAS.length; i++) {
         try {
           const resp = await fetch(PERSONAS[i].file)
           const raw = await resp.text()
           this.personaData[i] = this.parseParagraphs(raw)
           this.debugLog('OK', `${PERSONAS[i].name}: ${this.personaData[i].length} texts`)
-        } catch (e) {
-          this.personaData[i] = ['……']
-          this.debugLog('ERR', `${PERSONAS[i].name} fetch failed: ${e.message}`)
-        }
+        } catch(e) { this.personaData[i]=['……']; this.debugLog('ERR', `${PERSONAS[i].name}: ${e.message}`) }
       }
-      const total = this.personaData.reduce((s, d) => s + d.length, 0)
-      this.debugLog('done', `total ${total} paragraphs, ${PERSONAS.length} personas`)
     },
-
     parseParagraphs(raw) {
-      const blocks = raw
-        .split(/\n\n+/)
-        .map(b => b.replace(/\n/g, ' ').trim())
-        .filter(b => b.length > 6 && b.length < 220)
-      if (blocks.length === 0) {
-        return raw
-          .split(/\n/)
-          .map(b => b.trim())
-          .filter(b => b.length > 4 && b.length < 220)
-      }
+      const blocks = raw.split(/\n\n+/).map(b=>b.replace(/\n/g,' ').trim()).filter(b=>b.length>6&&b.length<220)
+      if (blocks.length===0) return raw.split(/\n/).map(b=>b.trim()).filter(b=>b.length>4&&b.length<220)
       return blocks
     },
-
-    pickRandom(arr) {
-      if (!arr || arr.length === 0) return '……'
-      return arr[Math.floor(Math.random() * arr.length)]
-    },
+    pickRandom(arr) { return (!arr||arr.length===0)?'……':arr[Math.floor(Math.random()*arr.length)] },
 
     getFreshText(pi) {
-      const now = Date.now()
       const all = this.personaData[pi]
       if (!all.length) return '……'
-      const recent = this.recentTexts.filter(r => r.time > now - 10000)
-      const recentSet = new Set(recent.map(r => r.text))
-      // also block texts from custom bubbles currently on screen
-      for (const b of this.visibleBubbles) {
-        if (b.isCustom) recentSet.add(b.text)
-      }
-      const fresh = all.filter(t => !recentSet.has(t))
-      if (fresh.length === 0) return this.pickRandom(all)
-      return this.pickRandom(fresh)
-    },
-
-    pruneRecentTexts() {
       const now = Date.now()
-      this.recentTexts = this.recentTexts.filter(r => r.time > now - 10000)
+      const recent = this.recentTexts.filter(r=>r.time>now-12000)
+      const set = new Set(recent.map(r=>r.text))
+      for (const t of this.visibleThoughts) { if (t.isCustom) set.add(t.text) }
+      const fresh = all.filter(t=>!set.has(t))
+      return fresh.length>0 ? this.pickRandom(fresh) : this.pickRandom(all)
     },
 
-    pickRandomSavedCustom() {
-      if (!this.savedCustomPool.length) return null
-      const blocked = new Set(this.recentTexts.map(r => r.text))
-      for (const b of this.visibleBubbles) {
-        if (b.isCustom) blocked.add(b.text)
+    // ═══ Thoughts Cycle ═══
+    findFreePosition() {
+      const maxAttempts = 20
+      for (let attempt = 0; attempt < maxAttempts; attempt++) {
+        const x = 10 + Math.random() * 75
+        const y = 15 + Math.random() * 55
+        if (!this.occupiedZones.some(z => Math.abs(z.x - x) < 18 && Math.abs(z.y - y) < 18)) {
+          return { x, y }
+        }
       }
-      const fresh = this.savedCustomPool.filter(item => item.text && !blocked.has(item.text))
-      const pool = fresh.length ? fresh : this.savedCustomPool
-      return pool[Math.floor(Math.random() * pool.length)] || null
+      // fallback: return random anyway
+      return { x: 15 + Math.random() * 70, y: 20 + Math.random() * 45 }
     },
 
-    spawnSavedCustomBubble(item, bornAt = Date.now()) {
-      if (!item || !item.text) return
-      const text = String(item.text).trim()
-      if (!text) return
-      const rawDate = typeof item.date === 'string' ? item.date : ''
-      const formattedDate = rawDate ? this.formatDisplayDate(rawDate) : ''
-      const shapeIdx = Math.floor(Math.random() * 3)
-      const shapes = ['bubble-round', 'bubble-organic', 'bubble-wide']
-      const color = '#c0b0a0'
-
-      const id = nextId++
-      const bubble = {
-        id,
-        text,
-        date: formattedDate,
-        rawDate,
-        isCustom: true,
-        personaClass: 'persona-custom',
-        shapeClass: shapes[shapeIdx],
-        personaLabel: rawDate ? `此刻 · ${formattedDate}` : '此刻',
-        dotCount: 2,
-        style: {
-          left: `${15 + Math.random() * 70}%`,
-          bottom: '-10%',
-          '--persona-color': color,
-          '--persona-glow': 'rgba(192,176,160,0.22)',
-          '--persona-bg': 'rgba(192,176,160,0.06)',
-          '--float-duration': `${10 + Math.random() * 12}s`,
-          '--float-distance': `${70 + Math.random() * 25}vh`,
-          '--wobble-amount': `${-(3 + Math.random() * 6)}deg`,
-          '--wobble2-amount': `${3 + Math.random() * 6}deg`,
-          '--breathe-dur': `${5 + Math.random() * 4}s`,
-          '--breathe-delay': `${Math.random() * 5}s`,
-          transform: `rotate(${-(4 + Math.random() * 8)}deg) scale(0.85)`,
-        },
-        born: bornAt,
-      }
-
-      this.visibleBubbles.push(bubble)
-      while (this.visibleBubbles.filter(b => b.isCustom).length > MAX_CUSTOM) {
-        const idx = this.visibleBubbles.findIndex(b => b.isCustom)
-        if (idx !== -1) this.visibleBubbles.splice(idx, 1)
-      }
-
-      const lifetime = parseFloat(bubble.style['--float-duration']) * 1000 + 2000
-      setTimeout(() => {
-        const idx = this.visibleBubbles.findIndex(b => b.id === id)
-        if (idx !== -1) this.visibleBubbles.splice(idx, 1)
-      }, lifetime)
-
-      this.recentTexts.push({ text, personaIndex: -1, time: Date.now() })
-      this.pruneRecentTexts()
-      this.debugLog('spawn-custom', `"${text.slice(0, 20)}…"`)
+    addZone(x, y) {
+      this.occupiedZones.push({ x, y, time: Date.now() })
+      // cleanup old zones
+      this.occupiedZones = this.occupiedZones.filter(z => Date.now() - z.time < 35000)
     },
 
-    trySpawnSavedCustomBubble() {
-      if (!this.savedCustomPool.length) return false
-      const customOnScreen = this.visibleBubbles.filter(b => b.isCustom).length
-      const customLimit = this.isMobile ? 2 : 4
-      if (customOnScreen >= customLimit) return false
-      const chance = this.isMobile ? 0.35 : 0.22
-      if (Math.random() > chance) return false
-      const item = this.pickRandomSavedCustom()
-      if (!item) return false
-      this.spawnSavedCustomBubble(item)
-      return true
-    },
+    spawnThought() {
+      if (this.personaData.every(d=>d.length===0)) return
+      if (this.isMobile && this.visibleThoughts.length>=2) return
+      if (this.capturedId!==null) return
 
-    rememberCustomInPool(text, date) {
-      const cleanText = String(text || '').trim()
-      if (!cleanText) return
-      const cleanDate = typeof date === 'string' ? date : ''
-      const key = `${cleanText}@@${cleanDate}`
-      const deduped = this.savedCustomPool.filter(item => `${item.text}@@${item.date || ''}` !== key)
-      deduped.push({ text: cleanText, date: cleanDate })
-      this.savedCustomPool = deduped.slice(-120)
-    },
-
-    // ── Bubble lifecycle ──
-    spawnBubble() {
-      if (this.isMobile && this.visibleBubbles.length >= 3) return
-      if (this.personaData.every(d => d.length === 0)) return
-
-      if (this.trySpawnSavedCustomBubble()) return
-
-      let pi
-      do {
-        pi = Math.floor(Math.random() * PERSONAS.length)
-      } while (this.personaData[pi].length === 0)
-
+      let pi; do { pi=Math.floor(Math.random()*PERSONAS.length) } while (this.personaData[pi].length===0)
       const persona = PERSONAS[pi]
       const text = this.getFreshText(pi)
-      this.recentTexts.push({ text, personaIndex: pi, time: Date.now() })
-      this.pruneRecentTexts()
-
-      this.debugLog('spawn', `${persona.name} → "${text.slice(0, 20)}…"`)
+      this.recentTexts.push({text, personaIndex:pi, time:Date.now()})
 
       const id = nextId++
-      const shapeIdx = Math.floor(Math.random() * persona.shapes.length)
+      const pos = this.findFreePosition()
+      const xPos = pos.x; const yPos = pos.y
+      this.addZone(xPos, yPos)
+      const lifetime = 22 + Math.random()*18
 
-      const zones = [
-        { xMin: 2, xMax: 35 },
-        { xMin: 55, xMax: 93 },
-        { xMin: 20, xMax: 50 },
-        { xMin: 5, xMax: 90 },
-      ]
-      const zone = zones[pi]
-      const xPos = zone.xMin + Math.random() * (zone.xMax - zone.xMin)
-
-      const bubble = {
-        id,
-        text,
-        personaClass: persona.cls,
-        shapeClass: persona.shapes[shapeIdx],
-        personaLabel: persona.name,
-        dotCount: persona.dotCount[shapeIdx],
+      this.visibleThoughts.push({
+        id, text, personaCls: persona.cls, date:'',
+        isCustom: false,
         style: {
-          left: `${xPos}%`,
-          bottom: `${-(10 + Math.random() * 8)}%`,
-          '--persona-color': persona.color,
-          '--persona-glow': persona.glow,
-          '--persona-bg': `${persona.color}10`,
-          '--float-duration': `${10 + Math.random() * 12}s`,
-          '--float-distance': `${70 + Math.random() * 25}vh`,
-          '--wobble-amount': `${-(3 + Math.random() * 6)}deg`,
-          '--wobble2-amount': `${3 + Math.random() * 6}deg`,
-          '--breathe-dur': `${5 + Math.random() * 4}s`,
-          '--breathe-delay': `${Math.random() * 5}s`,
-          transform: `rotate(${-(4 + Math.random() * 8)}deg) scale(0.85)`,
+          left:`${xPos}%`, top:`${yPos}%`,
+          '--core-color': persona.color,
+          '--aura-color': persona.glow,
+          '--core-size': `${persona.coreSize}px`,
+          '--aura-size': `${persona.auraSize}px`,
+          '--drift-x': `${(Math.random()-0.5)*30}px`,
+          '--drift-y': `${(Math.random()-0.5)*30}px`,
+          '--lifetime': `${lifetime}s`,
+          '--emerge-delay': `${Math.random()*0.4}s`,
         },
-        born: Date.now(),
-      }
+      })
 
-      this.visibleBubbles.push(bubble)
-      const limit = this.isMobile ? 3 : this.maxBubbles
-      // trim only non-custom bubbles
-      while (this.visibleBubbles.filter(b => !b.isCustom).length > limit) {
-        const idx = this.visibleBubbles.findIndex(b => !b.isCustom)
-        if (idx !== -1) this.visibleBubbles.splice(idx, 1)
+      const limit = this.isMobile ? 2 : this.maxThoughts
+      while (this.visibleThoughts.filter(t=>!t.isCustom).length > limit) {
+        const idx = this.visibleThoughts.findIndex(t=>!t.isCustom)
+        if (idx!==-1) this.visibleThoughts.splice(idx,1)
       }
-
-      const lifetime = parseFloat(bubble.style['--float-duration']) * 1000 + 2000
-      setTimeout(() => {
-        const idx = this.visibleBubbles.findIndex(b => b.id === id)
-        if (idx !== -1) this.visibleBubbles.splice(idx, 1)
-      }, lifetime)
+      setTimeout(()=>{
+        const idx = this.visibleThoughts.findIndex(t=>t.id===id)
+        if (idx!==-1) this.visibleThoughts.splice(idx,1)
+      }, lifetime*1000+2000)
     },
 
-    startBubbleCycle() {
-      const scheduleNext = () => {
-        const delay = this.isMobile ? 2500 + Math.random() * 4500 : 800 + Math.random() * 2000
-        this.bubbleTimer = setTimeout(() => {
-          this.spawnBubble()
-          scheduleNext()
-        }, delay)
+    startCycle() {
+      const schedule = () => {
+        const delay = this.isMobile ? 4000+Math.random()*5000 : 1500+Math.random()*2500
+        this.thoughtTimer = setTimeout(()=>{ this.spawnThought(); schedule() }, delay)
       }
-      setTimeout(() => this.spawnBubble(), 200)
-      scheduleNext()
+      setTimeout(()=>this.spawnThought(), 600)
+      schedule()
     },
 
-    handleClick() {
-      if (this.visibleBubbles.length < this.maxBubbles + 2) {
-        this.spawnBubble()
+    onGlobalClick() {
+      if (this.capturedId===null && this.visibleThoughts.length<this.maxThoughts+2) this.spawnThought()
+    },
+
+    // ═══ Capture ═══
+    capture(thought, event) {
+      if (this.capturedId===thought.id) { this.release(); return }
+      this.capturedId = thought.id
+      this.capturedText = thought.text
+      this.capturedLabel = PERSONAS.find(p=>p.cls===thought.personaCls)?.name || '思绪'
+      const el = event?.currentTarget
+      const rect = el ? el.getBoundingClientRect() : { left:0, top:0, width:0, height:0 }
+      this.captureStarStyle = {
+        '--core-color': thought.style['--core-color'],
+        '--aura-color': thought.style['--aura-color'],
+        '--core-size': thought.style['--core-size'],
+        '--aura-size': thought.style['--aura-size'],
+      }
+      thought.capturedStyle = {
+        ...thought.style,
+        opacity:0, transform:'scale(0.2)', transition:'all 0.5s ease-in', pointerEvents:'none',
       }
     },
 
-    // ── Custom bubble ──
+    rayStyle(i) {
+      const total = this.isMobile ? 6 : 12
+      const angle = (i/total)*360
+      const delay = i*0.03
+      return {
+        '--ray-angle': `${angle}deg`,
+        '--ray-delay': `${delay}s`,
+        '--ray-color': this.capturedId ? this.captureStarStyle['--core-color'] : '#d4a255',
+      }
+    },
+
+    release() {
+      if (this.capturedId === null) return
+      const thought = this.visibleThoughts.find(t=>t.id===this.capturedId)
+      this.capturedId = null
+      this.capturedText = ''
+      this.accreteParticles = []
+      if (thought) { thought.capturedStyle = undefined; this.$forceUpdate() }
+    },
+
+    // ═══ Custom bubble ═══
     async submitCustomBubble() {
       const text = this.newText.trim()
       if (!text) return
       const dateStr = this.newDate || ''
       const formattedDate = dateStr ? this.formatDisplayDate(dateStr) : ''
-
       const id = nextId++
-      const shapeIdx = Math.floor(Math.random() * 3)
-      const shapes = ['bubble-round', 'bubble-organic', 'bubble-wide']
-      const color = '#c0b0a0'
+      const pos = this.findFreePosition()
+      const xPos = pos.x; const yPos = pos.y
+      this.addZone(xPos, yPos)
+      const lifetime = 26+Math.random()*16
 
-      const bubble = {
-        id,
-        text,
-        date: formattedDate,
-        rawDate: dateStr,
+      this.visibleThoughts.push({
+        id, text, personaCls:'persona-custom', date:formattedDate,
         isCustom: true,
-        personaClass: 'persona-custom',
-        shapeClass: shapes[shapeIdx],
-        personaLabel: dateStr ? `此刻 · ${formattedDate}` : '此刻',
-        dotCount: 2,
         style: {
-          left: `${15 + Math.random() * 70}%`,
-          bottom: '-10%',
-          '--persona-color': color,
-          '--persona-glow': 'rgba(192,176,160,0.22)',
-          '--persona-bg': 'rgba(192,176,160,0.06)',
-          '--float-duration': `${10 + Math.random() * 12}s`,
-          '--float-distance': `${70 + Math.random() * 25}vh`,
-          '--wobble-amount': `${-(3 + Math.random() * 6)}deg`,
-          '--wobble2-amount': `${3 + Math.random() * 6}deg`,
-          '--breathe-dur': `${5 + Math.random() * 4}s`,
-          '--breathe-delay': `${Math.random() * 5}s`,
-          transform: `rotate(${-(4 + Math.random() * 8)}deg) scale(0.85)`,
+          left:`${xPos}%`, top:`${yPos}%`,
+          '--core-color':'#c0b0a0',
+          '--aura-color':'rgba(192,176,160,0.25)',
+          '--core-size':'11px',
+          '--aura-size':'60px',
+          '--drift-x':`${(Math.random()-0.5)*25}px`,
+          '--drift-y':`${(Math.random()-0.5)*25}px`,
+          '--lifetime':`${lifetime}s`,
+          '--emerge-delay':'0.1s',
         },
-        born: Date.now(),
+      })
+      while (this.visibleThoughts.filter(t=>t.isCustom).length > MAX_CUSTOM) {
+        const idx = this.visibleThoughts.findIndex(t=>t.isCustom)
+        if (idx!==-1) this.visibleThoughts.splice(idx,1)
       }
-
-      this.visibleBubbles.push(bubble)
-      // trim oldest custom if over limit
-      while (this.visibleBubbles.filter(b => b.isCustom).length > MAX_CUSTOM) {
-        const idx = this.visibleBubbles.findIndex(b => b.isCustom)
-        if (idx !== -1) this.visibleBubbles.splice(idx, 1)
-      }
-      // auto-remove after float (same as regular)
-      const lifetime = parseFloat(bubble.style['--float-duration']) * 1000 + 2000
-      setTimeout(() => {
-        const idx = this.visibleBubbles.findIndex(b => b.id === id)
-        if (idx !== -1) this.visibleBubbles.splice(idx, 1)
-      }, lifetime)
-      this.recentTexts.push({ text, personaIndex: -1, time: Date.now() })
-      this.pruneRecentTexts()
-      this.rememberCustomInPool(text, dateStr)
-      this.showAddForm = false
-      this.newText = ''
-      this.newDate = ''
-
-      await this.saveCustomBubble(text, dateStr)
+      setTimeout(()=>{ const idx = this.visibleThoughts.findIndex(t=>t.id===id); if (idx!==-1) this.visibleThoughts.splice(idx,1) }, lifetime*1000+2000)
+      this.recentTexts.push({text, personaIndex:-1, time:Date.now()})
+      this.saveCustomBubbleToApi(text, dateStr)
+      this.showAddForm = false; this.newText = ''; this.newDate = ''
     },
 
     async loadCustomBubbles() {
       this.debugLog('api', 'GET /api/bubbles ...')
       let saved = []
-      let apiAvailable = false
       try {
         const res = await fetch('/api/bubbles')
-        if (res.ok) {
-          const payload = await res.json()
-          saved = Array.isArray(payload) ? payload : []
-          apiAvailable = true
-          this.debugLog('api', `GET OK → ${saved.length} bubbles from D1`)
-        } else {
-          const err = await res.text()
-          this.debugLog('api', `GET ${res.status}: ${err}`)
-        }
-      } catch (e) {
-        this.debugLog('api', `GET error: ${e.message}`)
-      }
-
-      const localSaved = this.loadCustomBubblesFromLocal()
-      if (localSaved.length > 0) {
-        if (apiAvailable) {
-          this.debugLog('local', `syncing ${localSaved.length} local bubbles → D1`)
-          await this.flushLocalBubblesToApi()
-          try {
-            const refreshed = await fetch('/api/bubbles')
-            if (refreshed.ok) {
-              const payload = await refreshed.json()
-              saved = Array.isArray(payload) ? payload : saved
-            }
-          } catch (e) {
-            this.debugLog('api', `GET refresh error: ${e.message}`)
-          }
-        }
-        if (saved.length === 0) {
-          saved = localSaved
-          this.debugLog('local', `using ${saved.length} local bubbles (D1 unavailable)`)
+        if (res.ok) { saved = await res.json(); this.debugLog('api', `GET OK → ${saved.length} bubbles`) }
+        else { this.debugLog('api', `GET ${res.status}: ${await res.text()}`) }
+      } catch(e) { this.debugLog('api', `GET error: ${e.message}`) }
+      if (!Array.isArray(saved)||saved.length===0) {
+        const raw = localStorage.getItem('thoughts-custom-bubbles')
+        if (raw) {
+          try { saved=JSON.parse(raw); localStorage.removeItem('thoughts-custom-bubbles'); saved.forEach(i=>{if(i&&i.text)this.saveCustomBubbleToApi(i.text,i.date||'')}) } catch{ saved=[] }
         }
       }
-
-      if (!Array.isArray(saved) || saved.length === 0) {
-        this.debugLog('done', 'no saved bubbles to display')
-        return
-      }
-      const normalized = saved
-        .filter(item => item && typeof item.text === 'string' && item.text.trim())
-        .map(item => ({
-          text: item.text.trim(),
-          date: typeof item.date === 'string' ? item.date : '',
-        }))
-
-      if (normalized.length === 0) {
-        this.debugLog('done', 'saved bubbles format invalid')
-        return
-      }
-
-      this.savedCustomPool = normalized.slice(-120)
-      const count = this.isMobile ? 2 : Math.min(MAX_CUSTOM, this.savedCustomPool.length)
-      const recent = [...this.savedCustomPool].sort(() => Math.random() - 0.5).slice(0, count)
-      this.debugLog('done', `displaying ${recent.length} saved bubbles (from ${this.savedCustomPool.length} total)`)
+      if (!Array.isArray(saved)||saved.length===0) return
+      const count = this.isMobile ? 2 : Math.min(MAX_CUSTOM, saved.length)
+      const recent = [...saved].sort(()=>Math.random()-0.5).slice(0,count)
+      this.debugLog('done', `displaying ${recent.length}/${saved.length} saved`)
       const now = Date.now()
-      const stagger = this.isMobile ? 3000 : 800
-      recent.forEach((item, i) => {
-        const delay = this.isMobile ? i * stagger : i * 800
-        setTimeout(() => {
-          this.spawnSavedCustomBubble(item, now - (i * 2000))
-        }, delay)
+      recent.forEach((item,i)=>{
+        setTimeout(()=>{
+          const id = nextId++
+          const pos = this.findFreePosition()
+          const xPos = pos.x; const yPos = pos.y
+          this.addZone(xPos, yPos)
+          const lifetime = 28+Math.random()*14
+          this.visibleThoughts.push({
+            id, text:item.text, personaCls:'persona-custom', date:item.date?this.formatDisplayDate(item.date):'',
+            isCustom:true,
+            style:{
+              left:`${xPos}%`, top:`${yPos}%`,
+              '--core-color':'#c0b0a0', '--aura-color':'rgba(192,176,160,0.25)',
+              '--core-size':'11px', '--aura-size':'60px',
+              '--drift-x':`${(Math.random()-0.5)*25}px`, '--drift-y':`${(Math.random()-0.5)*25}px`,
+              '--lifetime':`${lifetime}s`, '--emerge-delay':`${i*0.15}s`,
+            },
+          })
+          setTimeout(()=>{const idx=this.visibleThoughts.findIndex(t=>t.id===id);if(idx!==-1)this.visibleThoughts.splice(idx,1)},lifetime*1000+2000)
+        }, i*(this.isMobile?2500:600))
       })
     },
 
-    async saveCustomBubble(text, date) {
-      const ok = await this.saveCustomBubbleToApi(text, date)
-      if (!ok) {
-        this.saveCustomBubbleToLocal(text, date)
-        this.scheduleSync(3000)
-      }
-    },
-
-    startSyncLoop() {
-      this.scheduleSync(6000)
-    },
-
-    scheduleSync(delay = 15000) {
-      clearTimeout(this.syncTimer)
-      this.syncTimer = setTimeout(async () => {
-        await this.flushLocalBubblesToApi()
-        this.scheduleSync(15000)
-      }, delay)
-    },
-
-    async flushLocalBubblesToApi() {
-      if (this.syncingLocal) return
-      const pending = this.loadCustomBubblesFromLocal()
-      if (pending.length === 0) return
-
-      this.syncingLocal = true
-      const rest = []
-      let okCount = 0
-      for (const item of pending) {
-        const ok = await this.saveCustomBubbleToApi(item.text, item.date || '')
-        if (ok) okCount++
-        else rest.push(item)
-      }
-
-      if (rest.length === 0) {
-        this.clearLocalCustomBubbles()
-      } else {
-        localStorage.setItem(CUSTOM_STORAGE_KEY, JSON.stringify(rest))
-      }
-      this.debugLog('sync', `pending→D1 ok:${okCount}, left:${rest.length}`)
-      this.syncingLocal = false
-    },
-
     async saveCustomBubbleToApi(text, date) {
-      this.debugLog('api', `POST /api/bubbles "${text.slice(0, 20)}…" ${date ? 'date:' + date : ''}`)
+      this.debugLog('api', `POST /api/bubbles "${text.slice(0,20)}…"`)
       try {
-        const res = await fetch('/api/bubbles', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ text, date }),
-        })
-        if (res.ok) {
-          const data = await res.json()
-          this.debugLog('api', `POST OK → id=${data.id}`)
-          return true
-        } else {
-          const body = await res.text()
-          this.debugLog('api', `POST FAIL ${res.status}: ${body}`)
-        }
-      } catch (e) {
-        this.debugLog('api', `POST error: ${e.message}`)
-      }
-      return false
-    },
-
-    loadCustomBubblesFromLocal() {
-      const raw = localStorage.getItem(CUSTOM_STORAGE_KEY)
-      if (!raw) return []
-      try {
-        const list = JSON.parse(raw)
-        if (!Array.isArray(list)) return []
-        return list
-          .filter(item => item && typeof item.text === 'string' && item.text.trim())
-          .map(item => ({
-            text: item.text.trim(),
-            date: typeof item.date === 'string' ? item.date : '',
-          }))
-      } catch (e) {
-        this.debugLog('local', `parse error: ${e.message}`)
-        return []
-      }
-    },
-
-    saveCustomBubbleToLocal(text, date) {
-      const current = this.loadCustomBubblesFromLocal()
-      current.push({ text: text.trim(), date: date || '' })
-      const trimmed = current.slice(-100)
-      localStorage.setItem(CUSTOM_STORAGE_KEY, JSON.stringify(trimmed))
-      this.debugLog('local', `fallback saved → ${trimmed.length} bubbles in localStorage`)
-    },
-
-    clearLocalCustomBubbles() {
-      localStorage.removeItem(CUSTOM_STORAGE_KEY)
+        const res = await fetch('/api/bubbles', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({text,date}) })
+        if (res.ok) { const d=await res.json(); this.debugLog('api',`POST OK → id=${d.id}`) }
+        else { this.debugLog('api',`POST FAIL ${res.status}: ${await res.text()}`) }
+      } catch(e) { this.debugLog('api',`POST error: ${e.message}`) }
     },
 
     formatDisplayDate(dateStr) {
-      if (!dateStr) return ''
-      if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
-        const [y, m, d] = dateStr.split('-')
-        return `${Number(y)}.${Number(m)}.${Number(d)}`
-      }
       const d = new Date(dateStr)
-      if (Number.isNaN(d.getTime())) return dateStr
-      return `${d.getFullYear()}.${d.getMonth() + 1}.${d.getDate()}`
-    },
-
-    // ── Capture ──
-    captureBubble(bubble, event) {
-      if (this.capturedBubble && this.capturedBubble.id === bubble.id) {
-        this.releaseBubble()
-        return
-      }
-      const el = event ? event.currentTarget : null
-      const rect = el ? el.getBoundingClientRect() : { left: window.innerWidth / 2 - 100, top: window.innerHeight / 2 - 40, width: 200, height: 80 }
-      const origin = { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 }
-      const center = { x: window.innerWidth / 2, y: window.innerHeight / 2 }
-
-      bubble.capturedStyle = {
-        '--persona-color': bubble.style['--persona-color'],
-        '--persona-glow': bubble.style['--persona-glow'],
-        '--persona-bg': bubble.style['--persona-bg'],
-        position: 'fixed',
-        left: `${origin.x}px`,
-        top: `${origin.y}px`,
-        transform: 'translate(-50%, -50%) scale(0.3)',
-        zIndex: 20,
-        transition: 'all 0.35s ease-in',
-        pointerEvents: 'none',
-        opacity: 0,
-        filter: 'blur(20px)',
-      }
-
-      this.captureEffect = Math.floor(Math.random() * 4)
-      this.releasing = false
-      this.generateEffectDecorations(bubble.style['--persona-color'] || '#d4a255', origin, center, bubble.text)
-      this.capturedBubble = bubble
-      this.$nextTick(() => { this.addEscListener() })
-    },
-
-    generateEffectDecorations(color, origin, center, text) {
-      this.shards = []
-      this.clusterParticles = []
-      this.vortexArms = []
-      this.auroraBeams = []
-      const eff = this.captureEffect
-
-      if (eff === 0) {
-        // ── Glass Shatter ──
-        const shardCount = this.isMobile ? 14 : 24
-        for (let i = 0; i < shardCount; i++) {
-          const angle = (i / shardCount) * Math.PI * 2 + (Math.random() - 0.5) * 0.4
-          const burstR = 60 + Math.random() * 160
-          const midX = origin.x + Math.cos(angle) * burstR
-          const midY = origin.y + Math.sin(angle) * burstR
-          const size = 6 + Math.random() * 30
-          this.shards.push({
-            i,
-            style: {
-              '--ox': `${origin.x}px`, '--oy': `${origin.y}px`,
-              '--mx': `${midX}px`, '--my': `${midY}px`,
-              '--cx': `${center.x}px`, '--cy': `${center.y}px`,
-              '--delay': `${Math.random() * 0.15}s`,
-              '--dur': `${0.9 + Math.random() * 0.6}s`,
-              '--size': `${size}px`,
-              '--rot': `${Math.random() * 360}deg`,
-              '--rot2': `${(Math.random() - 0.5) * 180}deg`,
-              width: `${size}px`,
-              height: `${size * (0.4 + Math.random() * 1.2)}px`,
-              background: `rgba(${this.hexToRgb(color)},0.25)`,
-              borderColor: `rgba(${this.hexToRgb(color)},0.5)`,
-              boxShadow: `0 0 ${size * 0.6}px rgba(${this.hexToRgb(color)},0.4)`,
-            },
-          })
-        }
-      } else if (eff === 1) {
-        // ── Particle Star Cluster: burst → converge → dissolve ──
-        const clusterCount = this.isMobile ? 16 : 30
-        for (let i = 0; i < clusterCount; i++) {
-          const angle = (i / clusterCount) * Math.PI * 2
-          const startR = 10 + Math.random() * 60
-          const midR = 100 + Math.random() * 200
-          const sx = origin.x + Math.cos(angle) * startR
-          const sy = origin.y + Math.sin(angle) * startR
-          const mx = origin.x + Math.cos(angle) * midR + (Math.random() - 0.5) * 80
-          const my = origin.y + Math.sin(angle) * midR + (Math.random() - 0.5) * 80
-          const size = 2 + Math.random() * 5
-          this.clusterParticles.push({
-            i,
-            style: {
-              '--ox': `${sx}px`, '--oy': `${sy}px`,
-              '--mx': `${mx}px`, '--my': `${my}px`,
-              '--cx': `${center.x}px`, '--cy': `${center.y}px`,
-              '--delay': `${Math.random() * 0.2}s`,
-              '--dur': `${1.0 + Math.random() * 0.5}s`,
-              '--size': `${size}px`,
-              width: `${size}px`,
-              height: `${size}px`,
-              backgroundColor: color,
-              boxShadow: `0 0 ${size * 3}px ${size}px ${color}`,
-            },
-          })
-        }
-      } else if (eff === 2) {
-        // ── Vortex Suction ──
-        this.startTypingEffect(text)
-        const arms = this.isMobile ? 5 : 8
-        for (let i = 0; i < arms; i++) {
-          const angle = (i / arms) * Math.PI * 2 + (Math.random() - 0.5) * 0.5
-          const startR = 30 + Math.random() * 80
-          const sx = origin.x + Math.cos(angle) * startR
-          const sy = origin.y + Math.sin(angle) * startR
-          this.vortexArms.push({
-            i,
-            style: {
-              '--ox': `${sx}px`, '--oy': `${sy}px`,
-              '--cx': `${center.x}px`, '--cy': `${center.y}px`,
-              '--delay': `${i * 0.06}s`,
-              '--dur': `${1.0 + Math.random() * 0.35}s`,
-              '--spin': `${540 + Math.random() * 360}deg`,
-              '--size': `${8 + Math.random() * 14}px`,
-              '--color': color,
-              width: `${8 + Math.random() * 14}px`,
-              height: `${8 + Math.random() * 14}px`,
-            },
-          })
-        }
-      } else {
-        // ── Aurora Streams ──
-        const corners = [
-          { x: -80, y: -80, angle: 45 },
-          { x: window.innerWidth + 80, y: -80, angle: 135 },
-          { x: -80, y: window.innerHeight + 80, angle: -45 },
-          { x: window.innerWidth + 80, y: window.innerHeight + 80, angle: -135 },
-        ]
-        for (let i = 0; i < 4; i++) {
-          const c = corners[i]
-          const hue = this.colorToHue(color) + (i - 1.5) * 15
-          this.auroraBeams.push({
-            i,
-            style: {
-              '--ox': `${c.x}px`, '--oy': `${c.y}px`,
-              '--cx': `${center.x}px`, '--cy': `${center.y}px`,
-              '--delay': `${i * 0.1}s`,
-              '--dur': `${1.0 + i * 0.12}s`,
-              '--hue': hue,
-              '--angle': `${c.angle}deg`,
-              width: `${200 + Math.random() * 100}px`,
-            },
-          })
-        }
-      }
-    },
-
-    // ── Helpers ──
-    hexToRgb(hex) {
-      const h = hex.replace('#', '')
-      const r = parseInt(h.substring(0, 2), 16)
-      const g = parseInt(h.substring(2, 4), 16)
-      const b = parseInt(h.substring(4, 6), 16)
-      return `${r},${g},${b}`
-    },
-
-    colorToHue(hex) {
-      const h = hex.replace('#', '')
-      const r = parseInt(h.substring(0, 2), 16) / 255
-      const g = parseInt(h.substring(2, 4), 16) / 255
-      const b = parseInt(h.substring(4, 6), 16) / 255
-      const max = Math.max(r, g, b), min = Math.min(r, g, b)
-      let hue = 0
-      if (max === min) return 0
-      const d = max - min
-      if (max === r) hue = ((g - b) / d) % 6
-      else if (max === g) hue = (b - r) / d + 2
-      else hue = (r - g) / d + 4
-      return Math.round(hue * 60)
-    },
-
-    // ── Typing ──
-    startTypingEffect(text) {
-      this.stopTyping()
-      this.typedText = ''
-      if (!text) return
-      let i = 0
-      const chars = [...text]
-      const delay = 80 + Math.random() * 60
-      this.typingTimer = setInterval(() => {
-        if (i >= chars.length) { this.stopTyping(); return }
-        const count = 1 + Math.floor(Math.random() * 2)
-        this.typedText += chars.slice(i, i + count).join('')
-        i += count
-      }, delay)
-    },
-
-    stopTyping() {
-      if (this.typingTimer) { clearInterval(this.typingTimer); this.typingTimer = null }
-    },
-
-    // ── Release ──
-    releaseBubble() {
-      if (this.releasing) return
-      this.releasing = true
-      this.stopTyping()
-      setTimeout(() => {
-        this.capturedBubble = null
-        this.releasing = false
-        this.typedText = ''
-        this.shards = []
-        this.clusterParticles = []
-        this.vortexArms = []
-        this.auroraBeams = []
-        this.removeEscListener()
-      }, 500)
-    },
-
-    addEscListener() {
-      this._escHandler = (e) => {
-        if (e.key === 'Escape') this.releaseBubble()
-      }
-      document.addEventListener('keydown', this._escHandler)
-    },
-
-    removeEscListener() {
-      if (this._escHandler) {
-        document.removeEventListener('keydown', this._escHandler)
-        this._escHandler = null
-      }
+      return `${d.getFullYear()}.${d.getMonth()+1}.${d.getDate()}`
     },
   },
 }
 </script>
 
 <style scoped>
-.thought-chamber {
-  position: relative;
-  width: 100%;
-  height: 100vh;
-  background: #08080f;
-  overflow: hidden;
-  cursor: default;
-  -webkit-tap-highlight-color: transparent;
-  -webkit-user-select: none;
-  user-select: none;
+/* ═══════════════ NEBULA CHAMBER ═══════════════ */
+.nebula-chamber {
+  position:relative; width:100%; height:100vh;
+  background:#02020a; overflow:hidden;
+  cursor:default;
+  -webkit-tap-highlight-color:transparent;
+  -webkit-user-select:none; user-select:none;
+  animation:chamber-breathe 12s ease-in-out infinite;
+}
+@keyframes chamber-breathe {
+  0%,100% { background:#02020a; }
+  50%     { background:#030312; }
 }
 
-/* ── Ambient orbs ── */
-.orb {
-  position: absolute;
-  border-radius: 50%;
-  filter: blur(70px);
-  opacity: 0.7;
-  pointer-events: none;
-  z-index: 0;
-  animation: orb-drift linear infinite;
-}
-@keyframes orb-drift {
-  0%   { transform: translate(0, 0) scale(0.8); }
-  25%  { transform: translate(40px, -30px) scale(1.15); }
-  50%  { transform: translate(-20px, -60px) scale(0.9); }
-  75%  { transform: translate(-50px, -15px) scale(1.1); }
-  100% { transform: translate(0, 0) scale(0.8); }
-}
-
-/* ── Canvas constellation ── */
-.particle-canvas {
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-}
-
-/* ── Stars ── */
+/* ═══ Deep Space ═══ */
+.starfield { position:absolute; inset:0; z-index:0; pointer-events:none; }
 .star {
-  position: absolute;
-  border-radius: 50%;
-  background: #fff;
-  animation: star-twinkle ease-in-out infinite;
-  pointer-events: none;
-  z-index: 0;
+  position:absolute; border-radius:50%;
+  background:radial-gradient(circle, rgba(220,230,255,1) 0%, rgba(180,200,240,0.4) 40%, transparent 70%);
+  animation:star-twinkle ease-in-out infinite;
+  box-shadow:var(--chroma, none);
 }
 @keyframes star-twinkle {
-  0%, 100% { opacity: 0.15; }
-  50%      { opacity: 0.7; }
+  0%,100% { opacity:0.1; transform:scale(0.8); }
+  50%     { opacity:0.8; transform:scale(1.3); }
 }
 
-/* ── Bubble layer ── */
-.bubble-layer {
-  position: absolute;
-  inset: 0;
-  z-index: 2;
+/* ═══ Nebula Layers ═══ */
+.nebula-layer {
+  position:absolute; inset:-10%; z-index:1; pointer-events:none;
+  transition:transform 1.8s cubic-bezier(0.25,0,0.35,1);
+}
+.nebula-cloud {
+  position:absolute; border-radius:50%;
+  animation:nebula-breathe ease-in-out infinite alternate;
+}
+.nebula-cloud--deep { filter:blur(80px); opacity:0.5; }
+.nebula-cloud--mid { filter:blur(55px); opacity:0.55; }
+.nebula-cloud--highlight {
+  filter:blur(35px); opacity:0.65;
+  animation: nebula-breathe ease-in-out infinite alternate,
+             nebula-hue-shift 20s ease-in-out infinite;
+}
+@keyframes nebula-breathe {
+  0%   { transform:translate(0,0) scale(0.85); opacity:0.35; }
+  100% { transform:translate(2.5vw, -2vh) scale(1.15); opacity:0.7; }
+}
+@keyframes nebula-hue-shift {
+  0%,100% { filter:blur(35px) hue-rotate(0deg); }
+  33%     { filter:blur(38px) hue-rotate(var(--nebula-hue-shift, 10deg)); }
+  66%     { filter:blur(32px) hue-rotate(calc(var(--nebula-hue-shift, 10deg) * -0.5)); }
 }
 
-/* ── Liquid Glass thought bubble ── */
-.thought-bubble {
-  position: absolute;
-  max-width: 320px;
-  padding: 18px 22px 14px;
-  backdrop-filter: blur(14px) saturate(130%);
-  -webkit-backdrop-filter: blur(14px) saturate(130%);
-  background: var(--persona-bg, rgba(212,162,85,0.06));
-  border: 1px solid color-mix(in srgb, var(--persona-color, #d4a255) 22%, transparent);
-  border-top: 1px solid color-mix(in srgb, var(--persona-color, #d4a255) 40%, transparent);
-  box-shadow:
-    0 8px 40px var(--persona-glow),
-    0 0 0 1px rgba(255,255,255,0.02) inset,
-    0 1px 0 rgba(255,255,255,0.04) inset;
-  animation:
-    bubble-float var(--float-duration, 16s) 0s ease-in forwards,
-    bubble-wobble 5s 0s ease-in-out infinite,
-    bubble-breathe var(--breathe-dur, 6s) var(--breathe-delay, 0s) ease-in-out infinite;
-  transition: opacity 1s ease, transform 0.3s ease;
-  cursor: pointer;
-  overflow: hidden;
+/* ═══ Canvas ═══ */
+.particle-canvas { position:absolute; inset:0; z-index:2; pointer-events:none; }
+
+/* ═══ Stellar Thoughts ═══ */
+.thoughts-layer { position:absolute; inset:0; z-index:3; }
+.stellar-thought {
+  position:absolute;
+  display:flex; align-items:center; justify-content:center;
+  cursor:pointer;
+  animation: emerge-star 2.5s var(--emerge-delay, 0s) cubic-bezier(0.16,1,0.3,1) forwards,
+             drift-star var(--lifetime, 30s) 2.5s ease-in-out infinite,
+             dissolve-star 2.5s calc(var(--lifetime, 30s) - 1.5s) ease-out forwards;
+  will-change:transform,opacity;
 }
-.thought-bubble:hover {
-  transform: scale(1.04) translateY(-2px);
-  box-shadow:
-    0 12px 50px var(--persona-glow),
-    0 0 0 1px rgba(255,255,255,0.04) inset,
-    0 1px 0 rgba(255,255,255,0.06) inset;
+.stellar-thought:hover { filter:brightness(1.4); }
+.stellar-thought.captured { animation:none !important; opacity:0 !important; pointer-events:none; }
+.stellar-thought.persona-custom { --core-color:#c0b0a0; --aura-color:rgba(192,176,160,0.25); }
+
+/* Core glow */
+.stellar-core {
+  position:absolute;
+  width:var(--core-size,12px); height:var(--core-size,12px);
+  border-radius:50%;
+  background:radial-gradient(circle, rgba(255,255,255,0.95) 0%, var(--core-color,#d4a255) 40%, transparent 70%);
+  box-shadow:0 0 calc(var(--core-size,12px)*2) var(--core-color,#d4a255),
+             0 0 calc(var(--core-size,12px)*6) var(--aura-color,rgba(212,162,85,0.3));
+  animation:core-pulse 3s ease-in-out infinite;
+}
+@keyframes core-pulse {
+  0%,100% { transform:scale(1); opacity:0.8; }
+  50%     { transform:scale(1.25); opacity:1; }
 }
 
-/* Top highlight stripe */
-.bubble-highlight {
-  position: absolute;
-  top: 0; left: 8%; right: 8%;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent);
-  pointer-events: none;
+/* Aura ring */
+.stellar-aura {
+  position:absolute;
+  width:var(--aura-size,60px); height:var(--aura-size,60px);
+  border-radius:50%;
+  background:radial-gradient(circle, var(--aura-color,rgba(212,162,85,0.2)) 0%, transparent 70%);
+  animation:aura-breathe 4s ease-in-out infinite;
+}
+@keyframes aura-breathe {
+  0%,100% { transform:scale(0.8); opacity:0.4; }
+  50%     { transform:scale(1.2); opacity:0.7; }
 }
 
-/* Breathing shape animation */
-@keyframes bubble-breathe {
-  0%, 100% { border-radius: 40% 60% 55% 45% / 45% 50% 50% 55%; }
-  25%  { border-radius: 55% 45% 40% 60% / 52% 42% 58% 48%; }
-  50%  { border-radius: 42% 58% 52% 48% / 48% 55% 45% 55%; }
-  75%  { border-radius: 58% 42% 48% 52% / 42% 52% 48% 58%; }
+/* Text */
+.stellar-text {
+  position:relative; z-index:1;
+  font-size:13px; line-height:1.7; color:rgba(225,220,210,0.82);
+  font-family:'Georgia','Noto Serif SC',serif;
+  text-align:center; max-width:220px;
+  padding:50px 20px;
+  letter-spacing:0.03em;
+  text-shadow:0 0 20px var(--aura-color,rgba(212,162,85,0.3));
+}
+.stellar-date {
+  position:absolute; bottom:28px; right:24px;
+  font-size:9px; color:var(--core-color,#d4a255); opacity:0.45;
+  font-family:'Georgia','Noto Serif SC',serif; letter-spacing:0.05em; z-index:1;
 }
 
-/* shape overrides — use base shapes as starting point, breathe anim does the morphing */
-.bubble-round  { border-radius: 40% 60% 55% 45% / 45% 50% 50% 55%; }
-.bubble-organic { border-radius: 35% 65% 50% 50% / 55% 40% 60% 45%; }
-.bubble-wide {
-  border-radius: 30% 70% 60% 40% / 60% 40% 55% 45%;
-  max-width: 380px;
+/* Emerge / Dissolve / Drift */
+@keyframes emerge-star {
+  0%   { transform:scale(0) translate(0,0); opacity:0; filter:blur(20px) brightness(3); }
+  20%  { opacity:0.5; filter:blur(4px) brightness(2); }
+  40%  { opacity:0.85; filter:blur(1px) brightness(1.2); }
+  100% { transform:scale(1) translate(0,0); opacity:1; filter:blur(0) brightness(1); }
 }
-.bubble-tall {
-  border-radius: 45% 55% 45% 55% / 40% 45% 55% 60%;
-  max-width: 260px;
+@keyframes dissolve-star {
+  0%   { opacity:1; filter:blur(0); transform:scale(1); }
+  100% { opacity:0; filter:blur(20px) brightness(0.3); transform:scale(0.3); }
 }
-.bubble-small {
-  border-radius: 42% 58% 52% 48% / 48% 52% 48% 52%;
-  max-width: 230px;
-}
-
-/* persona tints */
-.persona-qiuz { --persona-tint: rgba(212,162,85,0.13); }
-.persona-yan  { --persona-tint: rgba(201,122,124,0.13); }
-.persona-yin  { --persona-tint: rgba(125,171,140,0.13); }
-.persona-bei  { --persona-tint: rgba(106,140,181,0.13); }
-.persona-custom { --persona-tint: rgba(192,176,160,0.10); }
-
-/* bubble date (bottom-right) */
-.bubble-date {
-  position: absolute;
-  bottom: 8px; right: 14px;
-  font-size: 9px;
-  color: var(--persona-color);
-  opacity: 0.45;
-  font-family: 'Georgia', 'Noto Serif SC', serif;
-  letter-spacing: 0.04em;
-  z-index: 1;
+@keyframes drift-star {
+  0%,100% { transform:translate(0, 0); }
+  25%     { transform:translate(var(--drift-x, 10px), calc(var(--drift-y, -10px)*0.5)); }
+  50%     { transform:translate(calc(var(--drift-x, 10px)*0.3), var(--drift-y, -10px)); }
+  75%     { transform:translate(calc(var(--drift-x, 10px)*-0.5), calc(var(--drift-y, -10px)*0.7)); }
 }
 
-.bubble-label {
-  display: inline-block;
-  font-size: 10px;
-  letter-spacing: 0.15em;
-  text-transform: uppercase;
-  color: var(--persona-color);
-  opacity: 0.6;
-  margin-bottom: 6px;
-  font-family: 'Georgia', 'Noto Serif SC', serif;
-  position: relative;
-  z-index: 1;
-}
-.bubble-text {
-  font-size: 14px;
-  line-height: 1.7;
-  color: rgba(220,215,205,0.9);
-  font-family: 'Georgia', 'Noto Serif SC', 'Source Han Serif SC', serif;
-  font-weight: 400;
-  letter-spacing: 0.02em;
-  word-break: break-word;
-  position: relative;
-  z-index: 1;
-}
-.bubble-dots {
-  display: flex;
-  gap: 6px;
-  margin-top: 10px;
-  justify-content: flex-end;
-  padding-right: 12px;
-  position: relative;
-  z-index: 1;
-}
-.dot {
-  width: 7px; height: 7px;
-  border-radius: 50%;
-  background: var(--persona-color);
-  opacity: 0.35;
-}
-.dot:nth-child(1) { width: 6px; height: 6px; }
-.dot:nth-child(2) { width: 8px; height: 8px; opacity: 0.28; }
-.dot:nth-child(3) { width: 6px; height: 6px; }
-.dot:nth-child(4) { width: 5px; height: 5px; opacity: 0.22; }
+/* Transition group */
+.star-birth-enter-active { transition:all 1.5s cubic-bezier(0.16,1,0.3,1); }
+.star-birth-leave-active { transition:all 2.5s ease-out; }
+.star-birth-enter-from,.star-birth-leave-to { opacity:0; transform:scale(0); filter:blur(20px); }
 
-/* float + wobble */
-@keyframes bubble-float {
-  0%   { bottom: calc(-10% - 0px); opacity: 0; transform: rotate(var(--wobble-amount)) scale(0.75); }
-  8%   { opacity: 1; transform: rotate(0deg) scale(1); }
-  75%  { opacity: 0.8; }
-  95%  { opacity: 0.1; }
-  100% { bottom: var(--float-distance); opacity: 0; transform: rotate(var(--wobble2-amount)) scale(0.7); }
-}
-@keyframes bubble-wobble {
-  0%, 100% { margin-left: 0; }
-  25%  { margin-left: 8px; }
-  75%  { margin-left: -8px; }
-}
-
-/* transition group */
-.bubble-enter-active { transition: all 0.8s ease-out; }
-.bubble-leave-active { transition: all 1.5s ease-in; }
-.bubble-enter-from { opacity: 0; transform: scale(0.6) translateY(30px); }
-.bubble-leave-to   { opacity: 0; transform: scale(0.5) translateY(-30px); }
-
-/* ── Back link ── */
-.back-link {
-  position: fixed; bottom: 28px; left: 50%;
-  transform: translateX(-50%);
-  z-index: 10;
-  display: flex; align-items: center; gap: 6px;
-  text-decoration: none;
-  color: rgba(200,195,185,0.45);
-  font-family: 'Georgia', 'Noto Serif SC', serif;
-  font-size: 13px; letter-spacing: 0.08em;
-  transition: color 0.4s ease;
-}
-.back-link:hover { color: rgba(220,210,195,0.8); }
-.back-arrow { font-size: 15px; transition: transform 0.3s ease; }
-.back-link:hover .back-arrow { transform: translateX(-4px); }
-
-/* ── Title hint ── */
-.title-hint {
-  position: fixed; top: 32px; right: 36px;
-  z-index: 10;
-  display: flex; flex-direction: column; align-items: flex-end;
-  pointer-events: none;
-}
-.hint-line {
-  font-size: 22px;
-  color: rgba(200,195,185,0.3);
-  font-family: 'Georgia', 'Noto Serif SC', serif;
-  letter-spacing: 0.35em;
-}
-.hint-sub {
-  font-size: 10px;
-  color: rgba(200,195,185,0.18);
-  letter-spacing: 0.12em; margin-top: 2px;
-}
-
-/* ── Add bubble button ── */
-.add-bubble-btn {
-  position: fixed;
-  bottom: 24px; right: 28px;
-  z-index: 12;
-  width: 44px; height: 44px;
-  border-radius: 50%;
-  border: 1px solid rgba(255,255,255,0.12);
-  background: rgba(255,255,255,0.04);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  color: rgba(220,215,205,0.6);
-  font-size: 24px;
-  line-height: 1;
-  cursor: pointer;
-  display: flex; align-items: center; justify-content: center;
-  transition: all 0.3s ease;
-  font-family: 'Georgia', serif;
-}
-.add-bubble-btn:hover {
-  background: rgba(255,255,255,0.08);
-  color: rgba(220,215,205,0.9);
-  border-color: rgba(255,255,255,0.2);
-  transform: scale(1.08);
-  box-shadow: 0 0 20px rgba(255,255,255,0.06);
-}
-
-/* ── Add form ── */
-.add-form-overlay {
-  position: fixed; inset: 0;
-  z-index: 20;
-  background: rgba(4,4,10,0.75);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  display: flex; align-items: center; justify-content: center;
-}
-.add-form-card {
-  background: rgba(20,18,24,0.95);
-  border: 1px solid rgba(255,255,255,0.08);
-  border-radius: 20px;
-  padding: 28px 24px 20px;
-  width: 380px;
-  max-width: 90vw;
-  display: flex; flex-direction: column; gap: 16px;
-  box-shadow: 0 20px 50px rgba(0,0,0,0.5);
-}
-.form-title {
-  font-size: 15px;
-  color: rgba(220,215,205,0.7);
-  font-family: 'Georgia', 'Noto Serif SC', serif;
-  letter-spacing: 0.08em;
-  text-align: center;
-}
-.form-textarea {
-  width: 100%;
-  background: rgba(255,255,255,0.03);
-  border: 1px solid rgba(255,255,255,0.1);
-  border-radius: 12px;
-  padding: 12px 14px;
-  color: rgba(230,225,215,0.9);
-  font-family: 'Georgia', 'Noto Serif SC', serif;
-  font-size: 14px;
-  line-height: 1.7;
-  resize: none;
-  outline: none;
-  transition: border-color 0.3s ease;
-}
-.form-textarea::placeholder {
-  color: rgba(200,195,185,0.3);
-}
-.form-textarea:focus {
-  border-color: rgba(255,255,255,0.2);
-}
-.form-date-row {
-  display: flex; align-items: center; gap: 12px;
-}
-.form-date-label {
-  font-size: 12px;
-  color: rgba(200,195,185,0.45);
-  font-family: 'Georgia', 'Noto Serif SC', serif;
-  white-space: nowrap;
-}
-.form-date-input {
-  flex: 1;
-  background: rgba(255,255,255,0.03);
-  border: 1px solid rgba(255,255,255,0.1);
-  border-radius: 8px;
-  padding: 6px 10px;
-  color: rgba(220,215,205,0.8);
-  font-family: 'Georgia', 'Noto Serif SC', serif;
-  font-size: 13px;
-  outline: none;
-  color-scheme: dark;
-}
-.form-actions {
-  display: flex; gap: 10px; justify-content: flex-end;
-}
-.form-btn {
-  padding: 8px 20px;
-  border-radius: 10px;
-  border: none;
-  font-size: 13px;
-  font-family: 'Georgia', 'Noto Serif SC', serif;
-  cursor: pointer;
-  transition: all 0.25s ease;
-}
-.form-btn.cancel {
-  background: rgba(255,255,255,0.04);
-  color: rgba(200,195,185,0.5);
-  border: 1px solid rgba(255,255,255,0.06);
-}
-.form-btn.cancel:hover {
-  background: rgba(255,255,255,0.08);
-  color: rgba(220,215,205,0.7);
-}
-.form-btn.submit {
-  background: rgba(200,180,160,0.12);
-  color: rgba(220,210,195,0.85);
-  border: 1px solid rgba(200,180,160,0.25);
-}
-.form-btn.submit:hover:not(:disabled) {
-  background: rgba(200,180,160,0.2);
-  border-color: rgba(200,180,160,0.4);
-}
-.form-btn.submit:disabled {
-  opacity: 0.3;
-  cursor: not-allowed;
-}
-
-/* ── Capture overlay ── */
-.is-captured {
-  animation: bubble-shatter 0.35s ease-in forwards !important;
-  pointer-events: none;
-}
-@keyframes bubble-shatter {
-  0%   { transform: scale(1); opacity: 1; filter: blur(0); }
-  30%  { transform: scale(1.06); opacity: 1; }
-  100% { transform: scale(0.25); opacity: 0; filter: blur(18px); }
-}
-
+/* ═══ Capture Overlay ═══ */
 .capture-overlay {
-  position: fixed; inset: 0;
-  z-index: 15;
-  background: radial-gradient(ellipse at center, rgba(4,4,10,0.45) 0%, rgba(4,4,10,0.9) 100%);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  display: flex; align-items: center; justify-content: center;
-  cursor: pointer;
+  position:fixed; inset:0; z-index:15;
+  background:radial-gradient(ellipse at center, rgba(3,3,10,0.25) 0%, rgba(3,3,10,0.94) 100%);
+  backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px);
+  display:flex; align-items:center; justify-content:center;
+  cursor:pointer;
+  overflow:hidden;
 }
-.capture-overlay.releasing { pointer-events: none; }
-.overlay-fade-enter-active { transition: opacity 0.5s ease-out; }
-.overlay-fade-leave-active { transition: opacity 0.6s ease-in; }
-.overlay-fade-enter-from, .overlay-fade-leave-to { opacity: 0; }
+.capture-fade-enter-active { transition:opacity 0.5s ease-out; }
+.capture-fade-leave-active { transition:opacity 0.9s ease-in; }
+.capture-fade-enter-from,.capture-fade-leave-to { opacity:0; }
 
-.capture-stage {
-  display: flex; flex-direction: column; align-items: center; gap: 18px;
-  cursor: default;
+/* ── Light Rays ── */
+.capture-ray {
+  position:absolute;
+  top:50%; left:50%;
+  width:2px; height:140vh;
+  background:linear-gradient(to top, transparent 0%, var(--ray-color, #d4a255) 40%, rgba(255,255,255,0.6) 55%, transparent 100%);
+  transform-origin:center center;
+  opacity:0;
+  pointer-events:none;
+  animation:ray-pierce 0.8s var(--ray-delay, 0s) ease-out forwards,
+             ray-pulse 3s 0.8s ease-in-out infinite;
 }
-
-/* ── Capture bubble ── */
-.capture-bubble {
-  position: relative;
-  max-width: 440px; min-width: 260px;
-  padding: 32px 36px 24px;
-  backdrop-filter: blur(20px) saturate(140%);
-  -webkit-backdrop-filter: blur(20px) saturate(140%);
-  background: var(--persona-bg, rgba(212,162,85,0.06));
-  border: 1.5px solid color-mix(in srgb, var(--persona-color, #d4a255) 28%, transparent);
-  border-top: 1.5px solid color-mix(in srgb, var(--persona-color, #d4a255) 45%, transparent);
-  box-shadow:
-    0 0 100px var(--persona-glow),
-    0 20px 60px rgba(0,0,0,0.4),
-    0 0 0 1px rgba(255,255,255,0.03) inset,
-    0 1px 0 rgba(255,255,255,0.05) inset;
-  opacity: 0;
-  overflow: hidden;
+@keyframes ray-pierce {
+  0%   { transform:translate(-50%,-50%) rotate(var(--ray-angle, 0deg)) scaleY(0); opacity:0; }
+  100% { transform:translate(-50%,-50%) rotate(var(--ray-angle, 0deg)) scaleY(1); opacity:0.12; }
 }
-.capture-bubble.releasing {
-  animation: release-dissolve 0.5s ease-in forwards !important;
-  pointer-events: none;
-}
-.capture-highlight {
-  position: absolute;
-  top: 0; left: 6%; right: 6%;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
-  pointer-events: none;
+@keyframes ray-pulse {
+  0%,100% { opacity:0.08; transform:translate(-50%,-50%) rotate(var(--ray-angle, 0deg)) scaleY(1); }
+  50%     { opacity:0.16; transform:translate(-50%,-50%) rotate(var(--ray-angle, 0deg)) scaleY(1.05); }
 }
 
-/* Reveal timings per effect */
-.capture-bubble.ce-0 {
-  animation: capture-reveal 0.4s 0.7s ease-out forwards,
-             capture-float 4s 1.2s ease-in-out infinite;
-}
-.capture-bubble.ce-1 {
-  animation: capture-reveal 0.4s 0.6s ease-out forwards,
-             capture-float 4s 1.1s ease-in-out infinite;
-}
-.capture-bubble.ce-2 {
-  animation: capture-reveal 0.35s 1.0s ease-out forwards,
-             capture-float 4s 1.5s ease-in-out infinite;
-  border-radius: 35% 65% 55% 45% / 45% 50% 50% 55%;
-}
-.capture-bubble.ce-3 {
-  animation: emerge-aurora 0.5s 0.7s ease-out forwards,
-             capture-float 4s 1.2s ease-in-out infinite;
-}
+.capture-stage { display:flex; flex-direction:column; align-items:center; gap:28px; cursor:default; position:relative; z-index:1; }
 
+.capture-star {
+  position:relative;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  min-width:240px; min-height:240px;
+  animation:capture-reveal 0.6s 0.3s cubic-bezier(0.16,1,0.3,1) forwards, capture-float 4s 1s ease-in-out infinite;
+  opacity:0;
+}
 @keyframes capture-reveal {
-  0%   { transform: scale(0.3); opacity: 0; filter: blur(8px); }
-  100% { transform: scale(1); opacity: 1; filter: blur(0); }
-}
-@keyframes emerge-aurora {
-  0%   { transform: scale(0.6); opacity: 0; filter: brightness(2.5) blur(12px); }
-  100% { transform: scale(1); opacity: 1; filter: brightness(1) blur(0); }
+  0%   { transform:scale(0.05); opacity:0; filter:blur(40px) brightness(3); }
+  15%  { transform:scale(1.08); opacity:0.9; filter:blur(4px) brightness(1.8); }
+  40%  { transform:scale(0.95); opacity:1; filter:blur(0) brightness(1); }
+  100% { transform:scale(1); opacity:1; filter:blur(0); }
 }
 @keyframes capture-float {
-  0%, 100% { transform: translateY(0); }
-  50%      { transform: translateY(-6px); }
+  0%,100% { transform:translateY(0); }
+  50%     { transform:translateY(-8px); }
 }
-@keyframes release-dissolve {
-  0%   { transform: scale(1); opacity: 1; filter: blur(0); }
-  100% { transform: scale(0.75); opacity: 0; filter: blur(14px); }
+
+.capture-core {
+  position:absolute;
+  width:calc(var(--core-size,14px)*1.6); height:calc(var(--core-size,14px)*1.6);
+  border-radius:50%;
+  background:radial-gradient(circle, rgba(255,255,255,1) 0%, var(--core-color,#d4a255) 35%, transparent 70%);
+  box-shadow:0 0 calc(var(--core-size,14px)*3) var(--core-color,#d4a255),
+             0 0 calc(var(--core-size,14px)*8) var(--aura-color,rgba(212,162,85,0.4)),
+             0 0 calc(var(--core-size,14px)*15) var(--aura-color,rgba(212,162,85,0.2));
+  animation:core-pulse 2.5s ease-in-out infinite;
+}
+.capture-aura {
+  position:absolute;
+  width:calc(var(--aura-size,70px)*1.5); height:calc(var(--aura-size,70px)*1.5);
+  border-radius:50%;
+  background:radial-gradient(circle, var(--aura-color,rgba(212,162,85,0.3)) 0%, transparent 70%);
+  animation:aura-breathe 3.5s ease-in-out infinite;
+}
+.capture-aura--outer {
+  width:calc(var(--aura-size,70px)*3); height:calc(var(--aura-size,70px)*3);
+  background:radial-gradient(circle, var(--aura-color,rgba(212,162,85,0.12)) 0%, transparent 65%);
+  animation:aura-breathe 5s 0.5s ease-in-out infinite;
+  opacity:0.5;
 }
 
 .capture-label {
-  display: inline-block;
-  font-size: 12px; letter-spacing: 0.2em;
-  text-transform: uppercase;
-  color: var(--persona-color, #d4a255);
-  opacity: 0.7; margin-bottom: 10px;
-  font-family: 'Georgia', 'Noto Serif SC', serif;
-  position: relative; z-index: 1;
+  margin-top:90px;
+  font-size:11px; letter-spacing:0.2em; text-transform:uppercase;
+  color:var(--core-color,#d4a255); opacity:0.7;
+  font-family:'Georgia','Noto Serif SC',serif;
+  position:relative; z-index:1;
 }
 .capture-text {
-  font-size: 18px; line-height: 2;
-  color: rgba(230, 225, 215, 0.92);
-  font-family: 'Georgia', 'Noto Serif SC', 'Source Han Serif SC', serif;
-  font-weight: 400; letter-spacing: 0.04em;
-  word-break: break-word; text-align: center;
-  position: relative; z-index: 1;
+  font-size:17px; line-height:2.1; color:rgba(235,230,220,0.92);
+  font-family:'Georgia','Noto Serif SC',serif;
+  text-align:center; max-width:380px; padding:0 20px;
+  letter-spacing:0.05em;
+  text-shadow:0 0 30px var(--aura-color,rgba(212,162,85,0.35));
+  position:relative; z-index:1;
 }
-.capture-dots {
-  display: flex; gap: 8px; margin-top: 14px; justify-content: center;
-  position: relative; z-index: 1;
-}
-.c-dot {
-  width: 8px; height: 8px; border-radius: 50%;
-  background: var(--persona-color, #d4a255);
-  opacity: 0.4;
-  animation: dot-pulse 1.8s ease-in-out infinite;
-}
-.c-dot:nth-child(2) { animation-delay: 0.25s; width: 10px; height: 10px; opacity: 0.32; }
-.c-dot:nth-child(3) { animation-delay: 0.5s; }
-.c-dot:nth-child(4) { animation-delay: 0.75s; width: 6px; height: 6px; opacity: 0.28; }
-@keyframes dot-pulse {
-  0%, 100% { opacity: 0.4; transform: scale(1); }
-  50%      { opacity: 0.85; transform: scale(1.4); }
-}
-
-/* Typewriter */
-.capture-text.typing { min-height: 1.7em; }
-.typing-cursor {
-  display: inline;
-  color: var(--persona-color, #d4a255);
-  font-weight: 300;
-  animation: cursor-blink 0.8s step-end infinite;
-}
-.typing-cursor.blink { animation: cursor-blink 0.8s step-end infinite; }
-@keyframes cursor-blink {
-  0%, 100% { opacity: 1; }
-  50%      { opacity: 0; }
-}
-
 .capture-hint {
-  font-size: 12px;
-  color: rgba(200, 195, 185, 0.35);
-  font-family: 'Georgia', 'Noto Serif SC', serif;
-  letter-spacing: 0.1em;
-  animation: hint-fade 3s ease-in-out infinite;
+  font-size:11px; color:rgba(200,195,185,0.3);
+  font-family:'Georgia','Noto Serif SC',serif; letter-spacing:0.1em;
+  animation:hint-fade 3s ease-in-out infinite;
 }
 @keyframes hint-fade {
-  0%, 100% { opacity: 0.25; }
-  50%      { opacity: 0.55; }
+  0%,100% { opacity:0.2; }
+  50%     { opacity:0.5; }
 }
 
-/* ════════════════════════════════════════
-   EFFECT 0: Glass Shatter
-   ════════════════════════════════════════ */
-.shard {
-  position: absolute;
-  border-radius: 2px;
-  border: 1px solid;
-  backdrop-filter: blur(3px);
-  -webkit-backdrop-filter: blur(3px);
-  pointer-events: none;
-  z-index: 18;
-  animation: shard-fly var(--dur, 1.4s) var(--delay, 0s) ease-out forwards;
+/* ═══ UI ═══ */
+.back-link {
+  position:fixed; bottom:28px; left:50%; transform:translateX(-50%);
+  z-index:20; display:flex; align-items:center; gap:6px;
+  text-decoration:none;
+  color:rgba(200,195,185,0.35); font-family:'Georgia','Noto Serif SC',serif;
+  font-size:13px; letter-spacing:0.08em; transition:color 0.4s;
 }
-@keyframes shard-fly {
-  0%   { left: var(--ox); top: var(--oy); transform: translate(-50%,-50%) scale(0) rotate(0deg); opacity: 0; }
-  8%   { opacity: 1; }
-  30%  { left: var(--mx); top: var(--my); transform: translate(-50%,-50%) scale(1.1) rotate(var(--rot)); opacity: 0.95; }
-  100% { left: var(--cx); top: var(--cy); transform: translate(-50%,-50%) scale(0.15) rotate(var(--rot2)); opacity: 0; }
-}
+.back-link:hover { color:rgba(220,210,195,0.75); }
+.back-arrow { font-size:15px; transition:transform 0.3s; }
+.back-link:hover .back-arrow { transform:translateX(-4px); }
 
-/* ════════════════════════════════════════
-   EFFECT 1: Particle Star Cluster
-   ════════════════════════════════════════ */
-.cluster-particle {
-  position: absolute;
-  border-radius: 50%;
-  pointer-events: none;
-  z-index: 18;
-  animation: cluster-burst var(--dur, 1.4s) var(--delay, 0s) ease-out forwards;
+.title-hint {
+  position:fixed; top:32px; right:36px; z-index:20;
+  display:flex; flex-direction:column; align-items:flex-end; pointer-events:none;
 }
-@keyframes cluster-burst {
-  0%   { left: var(--ox); top: var(--oy); transform: translate(-50%,-50%) scale(0); opacity: 0; }
-  12%  { opacity: 1; }
-  45%  { left: var(--mx); top: var(--my); transform: translate(-50%,-50%) scale(1.15); opacity: 0.9; }
-  85%  { left: var(--cx); top: var(--cy); transform: translate(-50%,-50%) scale(0.6); opacity: 0.4; }
-  100% { left: var(--cx); top: var(--cy); transform: translate(-50%,-50%) scale(0.05); opacity: 0; }
-}
+.hint-line { font-size:22px; color:rgba(200,195,185,0.22); font-family:'Georgia','Noto Serif SC',serif; letter-spacing:0.35em; }
+.hint-sub { font-size:10px; color:rgba(200,195,185,0.12); letter-spacing:0.12em; margin-top:2px; }
 
-/* ════════════════════════════════════════
-   EFFECT 2: Vortex Suction
-   ════════════════════════════════════════ */
-.vortex-arm {
-  position: absolute;
-  border-radius: 50%;
-  border: 2px solid transparent;
-  border-top-color: var(--color, #d4a255);
-  border-left-color: color-mix(in srgb, var(--color, #d4a255) 50%, transparent);
-  pointer-events: none;
-  z-index: 17;
-  opacity: 0;
-  filter: blur(1px);
-  animation: vortex-suck var(--dur, 1.2s) var(--delay, 0s) cubic-bezier(0.25, 0, 0.35, 1) forwards;
+.add-btn {
+  position:fixed; bottom:22px; right:26px; z-index:20;
+  width:42px; height:42px; border-radius:50%;
+  border:1px solid rgba(255,255,255,0.1);
+  background:rgba(255,255,255,0.03); backdrop-filter:blur(8px);
+  color:rgba(220,215,205,0.5); font-size:22px; cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
+  transition:all 0.3s; font-family:'Georgia',serif;
 }
-@keyframes vortex-suck {
-  0%   { left: var(--ox); top: var(--oy); width: 4px; height: 4px; transform: translate(-50%,-50%) rotate(0deg); opacity: 0; }
-  15%  { opacity: 0.85; }
-  55%  { left: var(--cx); top: var(--cy); transform: translate(-50%,-50%) rotate(var(--spin)); opacity: 0.6; }
-  85%  { left: var(--cx); top: var(--cy); width: var(--size); height: var(--size); transform: translate(-50%,-50%) rotate(calc(var(--spin) * 1.6)); opacity: 0.2; }
-  100% { left: var(--cx); top: var(--cy); width: 2px; height: 2px; transform: translate(-50%,-50%) rotate(calc(var(--spin) * 2.2)); opacity: 0; }
-}
+.add-btn:hover { background:rgba(255,255,255,0.07); color:rgba(220,215,205,0.85); border-color:rgba(255,255,255,0.18); transform:scale(1.08); }
 
-/* ════════════════════════════════════════
-   EFFECT 3: Aurora Streams
-   ════════════════════════════════════════ */
-.aurora-beam {
-  position: absolute;
-  height: 160px;
-  border-radius: 50%;
-  pointer-events: none;
-  z-index: 17;
-  opacity: 0;
-  filter: blur(35px);
-  animation: aurora-flow var(--dur, 1.2s) var(--delay, 0s) ease-out forwards;
-  background: linear-gradient(
-    var(--angle, 135deg),
-    hsl(var(--hue, 30), 60%, 65%) 0%,
-    hsl(var(--hue, 30), 50%, 50%) 30%,
-    transparent 70%
-  );
+/* ═══ Add Form ═══ */
+.add-form-overlay {
+  position:fixed; inset:0; z-index:30;
+  background:rgba(3,3,10,0.78); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);
+  display:flex; align-items:center; justify-content:center;
 }
-@keyframes aurora-flow {
-  0%   { left: var(--ox); top: var(--oy); transform: translate(-50%,-50%) scale(0.1); opacity: 0; }
-  30%  { opacity: 0.7; }
-  60%  { left: var(--cx); top: var(--cy); transform: translate(-50%,-50%) scale(1.3); opacity: 0.9; }
-  100% { left: var(--cx); top: var(--cy); transform: translate(-50%,-50%) scale(1.6); opacity: 0; }
+.add-form-card {
+  background:rgba(15,13,20,0.95); border:1px solid rgba(255,255,255,0.06);
+  border-radius:18px; padding:26px 22px 18px; width:360px; max-width:90vw;
+  display:flex; flex-direction:column; gap:14px;
+  box-shadow:0 20px 50px rgba(0,0,0,0.6);
 }
+.form-title { font-size:14px; color:rgba(220,215,205,0.65); font-family:'Georgia','Noto Serif SC',serif; letter-spacing:0.08em; text-align:center; }
+.form-textarea {
+  width:100%; background:rgba(255,255,255,0.025); border:1px solid rgba(255,255,255,0.08);
+  border-radius:10px; padding:12px 14px; color:rgba(230,225,215,0.9);
+  font-family:'Georgia','Noto Serif SC',serif; font-size:13px; line-height:1.7;
+  resize:none; outline:none; transition:border-color 0.3s;
+}
+.form-textarea:focus { border-color:rgba(255,255,255,0.18); }
+.form-textarea::placeholder { color:rgba(200,195,185,0.25); }
+.form-date-row { display:flex; align-items:center; gap:10px; }
+.form-date-label { font-size:11px; color:rgba(200,195,185,0.4); font-family:'Georgia','Noto Serif SC',serif; white-space:nowrap; }
+.form-date-input {
+  flex:1; background:rgba(255,255,255,0.025); border:1px solid rgba(255,255,255,0.08);
+  border-radius:8px; padding:5px 8px; color:rgba(220,215,205,0.8);
+  font-family:'Georgia','Noto Serif SC',serif; font-size:12px; outline:none; color-scheme:dark;
+}
+.form-actions { display:flex; gap:8px; justify-content:flex-end; }
+.form-btn {
+  padding:7px 18px; border-radius:8px; border:none;
+  font-size:12px; font-family:'Georgia','Noto Serif SC',serif; cursor:pointer; transition:all 0.25s;
+}
+.form-btn.cancel { background:rgba(255,255,255,0.03); color:rgba(200,195,185,0.45); border:1px solid rgba(255,255,255,0.05); }
+.form-btn.cancel:hover { background:rgba(255,255,255,0.06); color:rgba(220,215,205,0.65); }
+.form-btn.submit { background:rgba(150,130,180,0.15); color:rgba(220,210,230,0.85); border:1px solid rgba(150,130,180,0.25); }
+.form-btn.submit:hover:not(:disabled) { background:rgba(150,130,180,0.25); border-color:rgba(150,130,180,0.4); }
+.form-btn.submit:disabled { opacity:0.3; cursor:not-allowed; }
 
-/* ── Responsive ── */
-@media (max-width: 600px) {
-  .thought-bubble {
-    max-width: 240px;
-    padding: 14px 16px 10px;
-    backdrop-filter: none;
-    -webkit-backdrop-filter: none;
-    background: var(--persona-bg, rgba(212,162,85,0.12));
-    /* mobile: only float, no wobble/breathe — saves GPU */
-    animation: bubble-float var(--float-duration, 16s) 0s ease-in forwards;
-  }
-  .bubble-text { font-size: 12px; line-height: 1.6; }
-  .bubble-wide { max-width: 280px; }
-  .bubble-tall { max-width: 200px; }
-  .bubble-small { max-width: 180px; }
-  .capture-bubble {
-    max-width: 300px; min-width: 200px;
-    padding: 24px 22px 18px;
-    backdrop-filter: none;
-    -webkit-backdrop-filter: none;
-    background: var(--persona-bg, rgba(212,162,85,0.08));
-  }
-  .capture-overlay {
-    backdrop-filter: none;
-    -webkit-backdrop-filter: none;
-    background: radial-gradient(ellipse at center, rgba(4,4,10,0.6) 0%, rgba(4,4,10,0.95) 100%);
-  }
-  .capture-text { font-size: 15px; line-height: 1.8; }
-  .orb { display: none; }
-  .shard { backdrop-filter: none; -webkit-backdrop-filter: none; }
-  .add-bubble-btn {
-    bottom: 16px; right: 12px;
-    width: 38px; height: 38px;
-    font-size: 20px;
-    backdrop-filter: none;
-    -webkit-backdrop-filter: none;
-  }
-  .add-form-card { padding: 20px 16px 16px; }
-  /* kill mobile tap highlight flash */
-  .capture-overlay {
-    -webkit-tap-highlight-color: transparent;
-    -webkit-user-select: none;
-    user-select: none;
-  }
-  .form-textarea { font-size: 13px; }
-  .add-form-overlay {
-    backdrop-filter: none;
-    -webkit-backdrop-filter: none;
-    background: rgba(4,4,10,0.85);
-  }
+/* ═══ Mobile ═══ */
+@media (max-width:600px) {
+  .nebula-chamber { animation:none; }
+  .nebula-layer { transition:transform 3s ease-out; }
+  .nebula-cloud--deep { filter:blur(50px); }
+  .nebula-cloud--mid { filter:blur(35px); }
+  .nebula-cloud--highlight { filter:blur(25px); animation:nebula-breathe ease-in-out infinite alternate; }
+  .stellar-text { font-size:11px; line-height:1.6; max-width:160px; padding:36px 12px; }
+  .stellar-thought { animation-duration:1.8s, var(--lifetime, 25s), 1.8s !important; }
+  .capture-star { min-width:160px; min-height:160px; }
+  .capture-text { font-size:13px; line-height:1.7; max-width:260px; }
+  .capture-overlay { backdrop-filter:none; -webkit-backdrop-filter:none; }
+  .capture-ray { display:none; }
+  .add-form-overlay { backdrop-filter:none; -webkit-backdrop-filter:none; background:rgba(3,3,10,0.9); }
+  .add-btn { backdrop-filter:none; -webkit-backdrop-filter:none; }
 }
-
-@media (prefers-reduced-motion: reduce) {
-  .thought-bubble { animation: none !important; }
-  .capture-bubble { animation: none !important; opacity: 1; }
-  .star { animation: none !important; opacity: 0.4; }
-  .shard, .cluster-particle, .vortex-arm, .aurora-beam { animation-duration: 0.1s !important; }
+@media (prefers-reduced-motion:reduce) {
+  .stellar-thought { animation:none !important; opacity:1; }
+  .capture-star { animation:none !important; opacity:1; }
+  .nebula-cloud { animation:none !important; }
 }
 </style>
