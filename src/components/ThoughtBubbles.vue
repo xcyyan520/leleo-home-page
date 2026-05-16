@@ -423,7 +423,7 @@ export default {
 
     spawnThought() {
       if (this.personaData.every(d=>d.length===0)) return
-      if (this.isMobile && this.visibleThoughts.length>=2) return
+      if (this.isMobile && this.visibleThoughts.length>=5) return
       if (this.capturedId!==null) return
 
       let pi; do { pi=Math.floor(Math.random()*PERSONAS.length) } while (this.personaData[pi].length===0)
@@ -453,7 +453,7 @@ export default {
         },
       })
 
-      const limit = this.isMobile ? 2 : this.maxThoughts
+      const limit = this.isMobile ? 5 : this.maxThoughts
       while (this.visibleThoughts.filter(t=>!t.isCustom).length > limit) {
         const idx = this.visibleThoughts.findIndex(t=>!t.isCustom)
         if (idx!==-1) this.visibleThoughts.splice(idx,1)
