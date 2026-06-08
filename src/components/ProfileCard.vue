@@ -37,6 +37,9 @@ export default {
   padding: 28px 20px 18px;
   text-align: center;
   animation: card-float 5s ease-in-out infinite;
+  min-width: 220px;
+  width: 100%;
+  box-sizing: border-box;
 }
 @keyframes card-float {
   0%, 100% { transform: translateY(0); }
