@@ -31,6 +31,13 @@ export async function onRequestGet(context) {
     })
   }
 
+  if (dateParam && !/^\d{4}-\d{2}-\d{2}$/.test(dateParam)) {
+    return new Response(JSON.stringify({ error: 'invalid date format, use YYYY-MM-DD' }), {
+      status: 400,
+      headers: { 'Content-Type': 'application/json' },
+    })
+  }
+
   try {
     await ensureDiarySchema(env.DB)
 
@@ -91,6 +98,13 @@ export async function onRequestPost(context) {
     })
   }
 
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+    return new Response(JSON.stringify({ error: 'invalid date format, use YYYY-MM-DD' }), {
+      status: 400,
+      headers: { 'Content-Type': 'application/json' },
+    })
+  }
+
   try {
     await ensureDiarySchema(env.DB)
 
@@ -126,6 +140,20 @@ export async function onRequestDelete(context) {
 
   if (!dateParam) {
     return new Response(JSON.stringify({ error: 'date param required' }), {
+      status: 400,
+      headers: { 'Content-Type': 'application/json' },
+    })
+  }
+
+  if (!env.DB) {
+    return new Response(JSON.stringify({ error: 'no database' }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' },
+    })
+  }
+
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dateParam)) {
+    return new Response(JSON.stringify({ error: 'invalid date format, use YYYY-MM-DD' }), {
       status: 400,
       headers: { 'Content-Type': 'application/json' },
     })
