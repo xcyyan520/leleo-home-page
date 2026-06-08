@@ -1,5 +1,5 @@
 <template>
-  <v-app class="star-desk-app" style="overflow: hidden;" :style="appFrameStyle">
+  <v-app class="star-desk-app vapp-fullscreen-background" :class="{ 'radius-before': !xs }" style="overflow: hidden;" :style="appFrameStyle">
     <!-- Loading overlay -->
     <transition name="fade">
       <div class="loading" v-show="isloading">
