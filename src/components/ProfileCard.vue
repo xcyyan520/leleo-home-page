@@ -61,6 +61,10 @@ export default {
   margin-top: 8px;
   transform: scale(0.7);
   transform-origin: center top;
+  width: 0;
+  min-width: 100%;
+  overflow: hidden;
+  min-height: 32px;
 }
 .is-mobile .profile-name { font-size: 1.1rem; }
 .is-mobile .profile-typewriter { transform: scale(0.55); }
