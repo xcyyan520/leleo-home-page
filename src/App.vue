@@ -141,6 +141,7 @@
   display: flex; flex-direction: column; gap: 16px;
   overflow-y: auto;
   padding-right: 4px;
+  min-width: 0;
 }
 .desk-right {
   flex: 1;
