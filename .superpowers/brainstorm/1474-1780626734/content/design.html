@@ -1,0 +1,118 @@
+<h2>星空桌面 — 设计蓝图</h2>
+<p class="subtitle">深邃星空画布 + 独立浮动玻璃卡片</p>
+
+<div class="split">
+  <div class="mockup">
+    <div class="mockup-header">桌面端布局（参考示意）</div>
+    <div class="mockup-body">
+      <div style="background:#0a0a1e;min-height:360px;position:relative;overflow:hidden;border-radius:8px;padding:8px;">
+        <!-- Stars -->
+        <span style="position:absolute;left:10%;top:15%;width:2px;height:2px;background:#fff;border-radius:50%;opacity:0.4"></span>
+        <span style="position:absolute;left:25%;top:30%;width:1.5px;height:1.5px;background:#fff;border-radius:50%;opacity:0.3"></span>
+        <span style="position:absolute;left:50%;top:10%;width:2px;height:2px;background:#fff;border-radius:50%;opacity:0.5"></span>
+        <span style="position:absolute;left:70%;top:25%;width:1px;height:1px;background:#fff;border-radius:50%;opacity:0.35"></span>
+        <span style="position:absolute;left:85%;top:5%;width:2px;height:2px;background:#fff;border-radius:50%;opacity:0.45"></span>
+        <span style="position:absolute;left:15%;top:55%;width:1.5px;height:1.5px;background:#fff;border-radius:50%;opacity:0.3"></span>
+        <span style="position:absolute;left:40%;top:70%;width:2px;height:2px;background:#fff;border-radius:50%;opacity:0.4"></span>
+        <span style="position:absolute;left:60%;top:50%;width:1px;height:1px;background:#fff;border-radius:50%;opacity:0.35"></span>
+
+        <!-- Profile card top-left -->
+        <div style="position:absolute;left:5%;top:8%;width:28%;background:rgba(20,18,40,0.65);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,0.06);border-radius:14px;padding:14px;text-align:center;">
+          <div style="width:50px;height:50px;border-radius:50%;background:rgba(139,122,170,0.5);margin:0 auto 8px;"></div>
+          <div style="color:rgba(220,215,210,0.85);font-size:13px;font-weight:bold;">Hi, I'm Leleo</div>
+          <div style="color:rgba(180,175,170,0.5);font-size:9px;margin-top:4px;">typewriter text...</div>
+        </div>
+
+        <!-- Skills card bottom-left -->
+        <div style="position:absolute;left:5%;bottom:8%;width:28%;background:rgba(20,18,40,0.65);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,0.06);border-radius:14px;padding:12px;">
+          <div style="color:rgba(200,195,185,0.5);font-size:10px;text-align:center;margin-bottom:6px;">Skills</div>
+          <div style="display:flex;flex-wrap:wrap;gap:3px;justify-content:center;">
+            <span style="font-size:8px;padding:2px 6px;background:rgba(139,122,170,0.2);border-radius:8px;color:rgba(200,190,220,0.7);">Vue</span>
+            <span style="font-size:8px;padding:2px 6px;background:rgba(139,122,170,0.2);border-radius:8px;color:rgba(200,190,220,0.7);">React</span>
+            <span style="font-size:8px;padding:2px 6px;background:rgba(139,122,170,0.2);border-radius:8px;color:rgba(200,190,220,0.7);">Node</span>
+            <span style="font-size:8px;padding:2px 6px;background:rgba(139,122,170,0.2);border-radius:8px;color:rgba(200,190,220,0.7);">JS</span>
+            <span style="font-size:8px;padding:2px 6px;background:rgba(139,122,170,0.2);border-radius:8px;color:rgba(200,190,220,0.7);">Docker</span>
+          </div>
+        </div>
+
+        <!-- Projects card right side -->
+        <div style="position:absolute;right:5%;top:8%;width:40%;height:82%;background:rgba(20,18,40,0.65);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,0.06);border-radius:14px;padding:14px;">
+          <div style="color:rgba(200,195,185,0.5);font-size:10px;margin-bottom:8px;">Projects</div>
+          <div style="display:flex;flex-direction:column;gap:6px;">
+            <div style="background:rgba(255,255,255,0.03);border-radius:8px;padding:8px;display:flex;align-items:center;gap:8px;">
+              <div style="width:30px;height:30px;background:rgba(139,122,170,0.3);border-radius:6px;flex-shrink:0;"></div>
+              <div><div style="color:rgba(210,200,190,0.7);font-size:10px;">Project Name</div><div style="color:rgba(160,155,145,0.4);font-size:8px;">subtitle here</div></div>
+            </div>
+            <div style="background:rgba(255,255,255,0.03);border-radius:8px;padding:8px;display:flex;align-items:center;gap:8px;">
+              <div style="width:30px;height:30px;background:rgba(150,120,140,0.3);border-radius:6px;flex-shrink:0;"></div>
+              <div><div style="color:rgba(210,200,190,0.7);font-size:10px;">Project Name</div><div style="color:rgba(160,155,145,0.4);font-size:8px;">subtitle here</div></div>
+            </div>
+            <div style="background:rgba(255,255,255,0.03);border-radius:8px;padding:8px;display:flex;align-items:center;gap:8px;">
+              <div style="width:30px;height:30px;background:rgba(120,140,160,0.3);border-radius:6px;flex-shrink:0;"></div>
+              <div><div style="color:rgba(210,200,190,0.7);font-size:10px;">Project Name</div><div style="color:rgba(160,155,145,0.4);font-size:8px;">subtitle here</div></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Music mini-player bottom-right -->
+        <div style="position:absolute;right:5%;bottom:8%;width:24%;background:rgba(20,18,40,0.7);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,0.06);border-radius:20px;padding:8px 12px;display:flex;align-items:center;gap:8px;">
+          <div style="width:28px;height:28px;border-radius:50%;background:rgba(200,170,130,0.4);flex-shrink:0;"></div>
+          <div style="flex:1;"><div style="color:rgba(210,200,190,0.7);font-size:9px;">Song Title</div><div style="color:rgba(160,155,145,0.35);font-size:7px;">Artist</div></div>
+          <div style="color:rgba(200,180,170,0.5);font-size:10px;">▶</div>
+        </div>
+
+        <!-- Top bar: social + controls -->
+        <div style="position:absolute;right:46%;top:8%;display:flex;gap:8px;align-items:center;">
+          <span style="width:18px;height:18px;background:rgba(255,255,255,0.04);border-radius:50%;"></span>
+          <span style="width:18px;height:18px;background:rgba(255,255,255,0.04);border-radius:50%;"></span>
+          <span style="width:18px;height:18px;background:rgba(255,255,255,0.04);border-radius:50%;"></span>
+          <span style="margin-left:6px;width:22px;height:22px;background:rgba(255,255,255,0.04);border-radius:50%;"></span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>核心设计理念</h3>
+  <div style="display:flex;gap:16px;flex-wrap:wrap;">
+    <div style="flex:1;min-width:180px;background:rgba(20,18,40,0.5);border-radius:10px;padding:14px;border:1px solid rgba(255,255,255,0.04);">
+      <span class="label">画布</span>
+      <p style="font-size:13px;color:rgba(200,195,185,0.7);">深邃星空背景，微弱的星点闪烁 + 星云光晕，与思绪页面一脉相承但更克制</p>
+    </div>
+    <div style="flex:1;min-width:180px;background:rgba(20,18,40,0.5);border-radius:10px;padding:14px;border:1px solid rgba(255,255,255,0.04);">
+      <span class="label">卡片</span>
+      <p style="font-size:13px;color:rgba(200,195,185,0.7);">每个模块都是独立半透明玻璃卡片，圆角柔和，微光边框，自带悬浮呼吸动画</p>
+    </div>
+    <div style="flex:1;min-width:180px;background:rgba(20,18,40,0.5);border-radius:10px;padding:14px;border:1px solid rgba(255,255,255,0.04);">
+      <span class="label">配色</span>
+      <p style="font-size:13px;color:rgba(200,195,185,0.7);">深靛蓝基底 + 柔紫/淡金点缀，低饱和度暗色调，不刺眼的二次元氛围</p>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>解决你的每一个痛点</h3>
+  <table style="width:100%;border-collapse:collapse;font-size:13px;color:rgba(200,195,185,0.75);">
+    <tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
+      <td style="padding:10px 0;color:rgba(220,140,140,0.7);width:35%">左边堆砌不明显</td>
+      <td style="padding:10px 0;">→ 每个模块都是独立卡片，分布在整个画布上，不再挤在一起</td>
+    </tr>
+    <tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
+      <td style="padding:10px 0;color:rgba(220,140,140,0.7);">音乐播放器隐藏</td>
+      <td style="padding:10px 0;">→ 底部右侧固定迷你播放器，始终可见，点击展开完整面板</td>
+    </tr>
+    <tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
+      <td style="padding:10px 0;color:rgba(220,140,140,0.7);">项目卡片单调</td>
+      <td style="padding:10px 0;">→ 紧凑横向卡片 + hover 展开效果，不再是死板的方块堆叠</td>
+    </tr>
+    <tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
+      <td style="padding:10px 0;color:rgba(220,140,140,0.7);">浮动按钮奇怪</td>
+      <td style="padding:10px 0;">→ 整合到右上角统一控制区，清晰明了</td>
+    </tr>
+    <tr>
+      <td style="padding:10px 0;color:rgba(220,140,140,0.7);">项目占比太多</td>
+      <td style="padding:10px 0;">→ 项目卡片区域缩小到3-4个精选，其余折叠或分页</td>
+    </tr>
+  </table>
+</div>

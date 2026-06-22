@@ -1,0 +1,102 @@
+<h2>星空日记 — 概念示意</h2>
+<p class="subtitle">每日记录 + 日历回溯 + 照片墙</p>
+
+<div class="split">
+  <div class="mockup">
+    <div class="mockup-header">主页上看到的样子（今日卡片）</div>
+    <div class="mockup-body">
+      <div style="background:#0a0a1e;min-height:200px;display:flex;align-items:center;justify-content:center;gap:20px;padding:16px;">
+        <!-- Today's card -->
+        <div style="background:rgba(20,18,40,0.65);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,0.05);border-radius:14px;padding:16px;min-width:220px;">
+          <div style="color:rgba(200,195,185,0.35);font-size:9px;">2026.06.07 · 今日</div>
+          <div style="color:rgba(220,210,220,0.75);font-size:13px;line-height:1.7;margin:10px 0;">"世界は美しい。悲しみと、優しさに満ちている。"</div>
+          <div style="color:rgba(180,175,170,0.35);font-size:9px;">—— 今日思绪</div>
+          <div style="background:rgba(139,122,170,0.15);border-radius:8px;height:60px;margin-top:8px;display:flex;align-items:center;justify-content:center;color:rgba(200,190,220,0.3);font-size:10px;">📷 图片（可选）</div>
+        </div>
+        <!-- Mini calendar icon -->
+        <div style="background:rgba(20,18,40,0.5);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,0.04);border-radius:12px;padding:10px;text-align:center;">
+          <div style="color:rgba(200,195,185,0.3);font-size:9px;margin-bottom:4px;">📅 回顾</div>
+          <div style="width:40px;height:40px;background:rgba(139,122,170,0.15);border-radius:8px;margin:0 auto;"></div>
+          <div style="color:rgba(180,175,170,0.3);font-size:8px;margin-top:4px;">查看过往</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="mockup">
+    <div class="mockup-header">点击日历后的浏览页</div>
+    <div class="mockup-body">
+      <div style="background:#0a0a1e;min-height:200px;padding:12px;">
+        <!-- Calendar header -->
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+          <span style="color:rgba(200,195,185,0.4);font-size:10px;">←</span>
+          <span style="color:rgba(220,215,210,0.7);font-size:12px;">2026年6月</span>
+          <span style="color:rgba(200,195,185,0.4);font-size:10px;">→</span>
+        </div>
+        <!-- Calendar grid -->
+        <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px;text-align:center;">
+          <span style="font-size:7px;color:rgba(200,195,185,0.25);">日</span><span style="font-size:7px;color:rgba(200,195,185,0.25);">一</span><span style="font-size:7px;color:rgba(200,195,185,0.25);">二</span><span style="font-size:7px;color:rgba(200,195,185,0.25);">三</span><span style="font-size:7px;color:rgba(200,195,185,0.25);">四</span><span style="font-size:7px;color:rgba(200,195,185,0.25);">五</span><span style="font-size:7px;color:rgba(200,195,185,0.25);">六</span>
+          <span style="font-size:9px;color:rgba(200,195,185,0.3);">1</span><span style="font-size:9px;color:rgba(200,195,185,0.3);">2</span><span style="font-size:9px;color:rgba(200,195,185,0.3);">3</span><span style="font-size:9px;color:rgba(200,195,185,0.3);">4</span><span style="font-size:9px;color:rgba(200,195,185,0.3);">5</span><span style="font-size:9px;color:rgba(200,195,185,0.3);">6</span><span style="background:rgba(139,122,170,0.2);border-radius:50%;padding:2px;font-size:9px;color:rgba(220,210,220,0.7);">7</span>
+          <span style="font-size:9px;color:rgba(200,195,185,0.3);">8</span><span style="font-size:9px;color:rgba(200,195,185,0.3);">9</span><span style="font-size:9px;color:rgba(200,195,185,0.3);">10</span><span style="font-size:9px;color:rgba(200,195,185,0.3);">11</span><span style="font-size:9px;color:rgba(200,195,185,0.3);">12</span><span style="font-size:9px;color:rgba(200,195,185,0.3);">13</span><span style="font-size:9px;color:rgba(200,195,185,0.3);">14</span>
+        </div>
+        <!-- Selected date preview -->
+        <div style="margin-top:8px;background:rgba(20,18,30,0.5);border-radius:8px;padding:10px;display:flex;gap:8px;align-items:center;">
+          <div style="width:40px;height:40px;background:rgba(139,122,170,0.2);border-radius:6px;flex-shrink:0;"></div>
+          <div style="flex:1;">
+            <div style="color:rgba(200,195,185,0.35);font-size:8px;">6月7日</div>
+            <div style="color:rgba(210,200,190,0.6);font-size:10px;margin-top:2px;">"世界は美しい..."</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>核心功能拆解</h3>
+  <div style="display:flex;gap:16px;flex-wrap:wrap;">
+    <div style="flex:1;min-width:140px;background:rgba(20,18,40,0.5);border-radius:10px;padding:14px;border:1px solid rgba(255,255,255,0.04);">
+      <span class="label">✏️ 每日记录</span>
+      <p style="font-size:12px;color:rgba(200,195,185,0.6);line-height:1.6;">主页上显示"今天"的小卡片，写一段话 + 可选贴一张图。一天只能记一条（或覆盖更新）</p>
+    </div>
+    <div style="flex:1;min-width:140px;background:rgba(20,18,40,0.5);border-radius:10px;padding:14px;border:1px solid rgba(255,255,255,0.04);">
+      <span class="label">📅 日历浏览</span>
+      <p style="font-size:12px;color:rgba(200,195,185,0.6);line-height:1.6;">点击回顾按钮弹出月历，有记录的日期高亮，点击任意日期查看那天写了什么</p>
+    </div>
+    <div style="flex:1;min-width:140px;background:rgba(20,18,40,0.5);border-radius:10px;padding:14px;border:1px solid rgba(255,255,255,0.04);">
+      <span class="label">🖼️ 照片墙</span>
+      <p style="font-size:12px;color:rgba(200,195,185,0.6);line-height:1.6;">汇总所有带图片的记录，每张图标注日期，鼠标悬停显示那天写了什么</p>
+    </div>
+    <div style="flex:1;min-width:140px;background:rgba(20,18,40,0.5);border-radius:10px;padding:14px;border:1px solid rgba(255,255,255,0.04);">
+      <span class="label">💾 数据存储</span>
+      <p style="font-size:12px;color:rgba(200,195,185,0.6);line-height:1.6;">文本存 D1 数据库。图片需要云端存储（R2 或外链 URL）</p>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>一个问题：图片怎么存？</h3>
+  <p class="subtitle">文本存 D1 没问题，图片需要额外方案</p>
+  <div class="options">
+    <div class="option" data-choice="r2" onclick="toggleSelect(this)">
+      <div class="letter">A</div>
+      <div class="content">
+        <h3>Cloudflare R2 上传（推荐）</h3>
+        <p>支持本地上传图片，存到 R2 对象存储，免费额度够用。需要在 Cloudflare 后台创建一个 R2 存储桶，代码层面只需加一个上传 API。图片有直链，加载快。</p>
+      </div>
+    </div>
+    <div class="option" data-choice="url" onclick="toggleSelect(this)">
+      <div class="letter">B</div>
+      <div class="content">
+        <h3>外链 URL</h3>
+        <p>不上传图片，只粘贴图片 URL（来自微博图床、imgur 等）。最简单但依赖外部服务，图可能挂。</p>
+      </div>
+    </div>
+    <div class="option" data-choice="both" onclick="toggleSelect(this)">
+      <div class="letter">C</div>
+      <div class="content">
+        <h3>两者都支持</h3>
+        <p>既可以本地上传（R2），也可以粘贴外链。最灵活，但实现量最大。</p>
+      </div>
+    </div>
+  </div>
+</div>

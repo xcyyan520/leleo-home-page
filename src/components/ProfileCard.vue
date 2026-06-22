@@ -60,7 +60,7 @@ export default {
 }
 .profile-typewriter-wrap {
   position: relative;
-  width: 100%;
+  width: 100px;
   height: 56px;
   margin-top: 8px;
 }
@@ -69,7 +69,7 @@ export default {
   left: 50%;
   top: 0;
   width: 320px;
-  transform: translateX(-50%) scale(0.7);
+  transform: translateX(-50%) scale(0.5);
   transform-origin: center top;
   pointer-events: none;
 }
