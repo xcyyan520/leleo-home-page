@@ -5,8 +5,10 @@
       <v-img :src="configdata.avatar" alt="Avatar"></v-img>
     </v-avatar>
     <div class="profile-name">{{ configdata.welcometitle }}</div>
-    <div class="profile-typewriter">
-      <typewriter />
+    <div class="profile-typewriter-wrap">
+      <div class="profile-typewriter">
+        <typewriter />
+      </div>
     </div>
   </div>
 </template>
@@ -38,9 +40,6 @@ export default {
   text-align: center;
   animation: card-float 5s ease-in-out infinite;
   width: 100%;
-  min-width: 0;
-  max-width: 100%;
-  overflow: hidden;
   box-sizing: border-box;
 }
 @keyframes card-float {
@@ -59,13 +58,21 @@ export default {
   font-family: 'Georgia', 'Noto Serif SC', serif;
   letter-spacing: 0.04em;
 }
-.profile-typewriter {
+.profile-typewriter-wrap {
+  position: relative;
+  width: 100%;
+  height: 28px;
   margin-top: 8px;
-  transform: scale(0.7);
+}
+.profile-typewriter {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  transform: translateX(-50%) scale(0.7);
   transform-origin: center top;
-  min-height: 28px;
-  overflow: hidden;
+  white-space: nowrap;
+  pointer-events: none;
 }
 .is-mobile .profile-name { font-size: 1.1rem; }
-.is-mobile .profile-typewriter { transform: scale(0.55); min-height: 28px; }
+.is-mobile .profile-typewriter { transform: translateX(-50%) scale(0.55); }
 </style>
