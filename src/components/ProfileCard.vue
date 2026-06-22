@@ -37,8 +37,10 @@ export default {
   padding: 28px 20px 18px;
   text-align: center;
   animation: card-float 5s ease-in-out infinite;
-  min-width: 220px;
   width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
   box-sizing: border-box;
 }
 @keyframes card-float {
@@ -61,11 +63,9 @@ export default {
   margin-top: 8px;
   transform: scale(0.7);
   transform-origin: center top;
-  width: 0;
-  min-width: 100%;
+  min-height: 28px;
   overflow: hidden;
-  min-height: 32px;
 }
 .is-mobile .profile-name { font-size: 1.1rem; }
-.is-mobile .profile-typewriter { transform: scale(0.55); }
+.is-mobile .profile-typewriter { transform: scale(0.55); min-height: 28px; }
 </style>
