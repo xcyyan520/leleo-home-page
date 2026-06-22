@@ -61,16 +61,16 @@ export default {
 .profile-typewriter-wrap {
   position: relative;
   width: 100%;
-  height: 28px;
+  height: 56px;
   margin-top: 8px;
 }
 .profile-typewriter {
   position: absolute;
   left: 50%;
   top: 0;
+  width: 320px;
   transform: translateX(-50%) scale(0.7);
   transform-origin: center top;
-  white-space: nowrap;
   pointer-events: none;
 }
 .is-mobile .profile-name { font-size: 1.1rem; }
