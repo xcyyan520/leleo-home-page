@@ -20,7 +20,7 @@
     <div v-show="!isloading && !isClearScreen" class="desk-canvas">
       <div class="desk-left" :style="deskLeftStyle">
         <ProfileCard :configdata="configdata" :formattedTime="formattedTime" :formattedDate="formattedDate" />
-        <DiaryCard :entry="todayDiary" :loading="diaryLoading" @edit="showDiaryEditor = true" />
+        <DiaryCard :entry="todayDiary" :loading="diaryLoading" @edit="editDiary" @add="addDiary" />
         <TagsCard :tags="personalizedtags" :socialIcons="socialPlatformIcons" />
       </div>
       <div class="desk-right" :style="deskRightStyle">
@@ -56,7 +56,7 @@
     </audio>
 
     <!-- Diary dialogs -->
-    <DiaryEditor v-if="showDiaryEditor" :existingEntry="todayDiary" @close="showDiaryEditor = false" @saved="loadTodayDiary" />
+    <DiaryEditor v-if="showDiaryEditor" :existingEntry="editingEntry" @close="showDiaryEditor = false" @saved="loadTodayDiary" />
     <CalendarDialog v-if="showCalendar" @close="showCalendar = false" />
     <PhotoWall v-if="showPhotoWall" @close="showPhotoWall = false" />
 

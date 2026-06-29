@@ -61,6 +61,7 @@ export default {
       showCalendar: false,
       showPhotoWall: false,
       todayDiary: null,
+      editingEntry: null,
       diaryLoading: false,
     }
   },
@@ -234,6 +235,9 @@ export default {
     openWallpaper() { this.tab = 'tab-2'; this.dialogSettings = true },
     openMusicPlayer() { this.tab = 'tab-3'; this.dialogSettings = true },
     toggleClearScreen() { this.isClearScreen = !this.isClearScreen },
+
+    editDiary() { this.editingEntry = this.todayDiary; this.showDiaryEditor = true },
+    addDiary() { this.editingEntry = null; this.showDiaryEditor = true },
 
     // Diary
     async loadTodayDiary() {

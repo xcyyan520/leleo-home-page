@@ -26,6 +26,10 @@
           <v-icon icon="mdi-pencil" size="12"></v-icon>
           <span>编辑</span>
         </button>
+        <button class="diary-action-btn" @click="$emit('add')">
+          <v-icon icon="mdi-plus" size="12"></v-icon>
+          <span>新增</span>
+        </button>
       </div>
     </div>
   </div>
@@ -38,7 +42,7 @@ export default {
     entry: { type: Object, default: null },
     loading: { type: Boolean, default: false },
   },
-  emits: ['edit', 'viewImage'],
+  emits: ['edit', 'add', 'viewImage'],
   data() {
     return { isMobile: false }
   },
