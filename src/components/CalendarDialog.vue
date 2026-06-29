@@ -33,11 +33,14 @@
         </div>
       </div>
 
-      <!-- Selected date preview -->
-      <div v-if="selectedEntry" class="cal-preview">
+      <!-- Selected date: multiple entries -->
+      <div v-if="selectedEntries.length > 0" class="cal-preview">
         <div class="cal-preview-date">{{ formatDate(selectedDate) }}</div>
-        <p class="cal-preview-text">{{ selectedEntry.text }}</p>
-        <img v-if="previewImage" :src="previewImage" class="cal-preview-img" @click="$emit('viewImage', previewImage)" />
+        <div v-for="item in selectedEntries" :key="item.id" class="cal-entry-item">
+          <p class="cal-preview-text">{{ item.text }}</p>
+          <img v-if="item.image_data || item.image_url" :src="item.image_data || item.image_url" class="cal-preview-img" @click="$emit('viewImage', item.image_data || item.image_url)" />
+          <button class="cal-entry-del" @click="deleteEntry(item.id)">删除</button>
+        </div>
       </div>
       <div v-else-if="selectedDate && !loadingEntry" class="cal-no-entry">
         这天没有记录
@@ -63,7 +66,7 @@ export default {
       weekdays: ['日', '一', '二', '三', '四', '五', '六'],
       allEntries: [],
       selectedDate: null,
-      selectedEntry: null,
+      selectedEntries: [],
       loadingEntry: false,
     }
   },
@@ -76,13 +79,11 @@ export default {
       const photoSet = new Set(this.allEntries.filter(e => e.has_image).map(e => e.date))
       const cells = []
 
-      // Previous month filler
       const prevDays = new Date(this.year, this.month - 1, 0).getDate()
       for (let i = firstDow - 1; i >= 0; i--) {
         cells.push({ day: prevDays - i, currentMonth: false })
       }
 
-      // Current month
       for (let d = 1; d <= daysInMonth; d++) {
         const dateStr = `${this.year}-${String(this.month).padStart(2, '0')}-${String(d).padStart(2, '0')}`
         cells.push({
@@ -95,7 +96,6 @@ export default {
         })
       }
 
-      // Next month filler
       const remaining = 7 - (cells.length % 7)
       if (remaining < 7) {
         for (let d = 1; d <= remaining; d++) {
@@ -103,10 +103,6 @@ export default {
         }
       }
       return cells
-    },
-    previewImage() {
-      if (!this.selectedEntry) return null
-      return this.selectedEntry.image_data || this.selectedEntry.image_url || null
     },
   },
   async mounted() {
@@ -123,13 +119,13 @@ export default {
       if (this.month === 1) { this.year--; this.month = 12 }
       else { this.month-- }
       this.selectedDate = null
-      this.selectedEntry = null
+      this.selectedEntries = []
     },
     nextMonth() {
       if (this.month === 12) { this.year++; this.month = 1 }
       else { this.month++ }
       this.selectedDate = null
-      this.selectedEntry = null
+      this.selectedEntries = []
     },
     async selectDate(dateStr) {
       this.selectedDate = dateStr
@@ -138,12 +134,21 @@ export default {
         const res = await fetch(`/api/diary?date=${dateStr}`)
         if (res.ok) {
           const data = await res.json()
-          this.selectedEntry = data
+          this.selectedEntries = Array.isArray(data) ? data : (data ? [data] : [])
         } else {
-          this.selectedEntry = null
+          this.selectedEntries = []
         }
-      } catch (e) { this.selectedEntry = null }
+      } catch (e) { this.selectedEntries = [] }
       this.loadingEntry = false
+    },
+    async deleteEntry(id) {
+      try {
+        const res = await fetch(`/api/diary?id=${id}`, { method: 'DELETE' })
+        if (res.ok) {
+          this.selectedEntries = this.selectedEntries.filter(e => e.id !== id)
+          await this.fetchEntries()
+        }
+      } catch (e) { console.error('Delete failed:', e) }
     },
     formatDate(dateStr) {
       if (!dateStr) return ''
@@ -163,7 +168,7 @@ export default {
 .calendar-card {
   background: rgba(15, 13, 22, 0.95);
   border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: 18px; padding: 20px; width: 380px; max-width: 92vw;
+  border-radius: 18px; padding: 20px; width: 420px; max-width: 92vw;
   max-height: 90vh; overflow-y: auto;
   box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
 }
@@ -189,11 +194,25 @@ export default {
   position: absolute; bottom: 4px;
 }
 .cal-dot--photo { background: rgba(200, 180, 130, 0.5); }
-.cal-preview { margin-top: 14px; padding: 12px; background: rgba(255,255,255,0.02); border-radius: 10px; }
-.cal-preview-date { font-size: 10px; color: rgba(200, 195, 185, 0.3); margin-bottom: 4px; }
-.cal-preview-text { font-size: 12px; color: rgba(210, 205, 195, 0.65); line-height: 1.7; font-family: 'Georgia', 'Noto Serif SC', serif; }
-.cal-preview-img { width: 100%; max-height: 160px; object-fit: cover; border-radius: 8px; margin-top: 8px; cursor: pointer; opacity: 0.8; }
+.cal-preview { margin-top: 14px; }
+.cal-preview-date { font-size: 10px; color: rgba(200, 195, 185, 0.3); margin-bottom: 8px; }
+.cal-entry-item {
+  padding: 10px 12px; margin-bottom: 8px;
+  background: rgba(255,255,255,0.02); border-radius: 10px;
+  position: relative;
+}
+.cal-preview-text { font-size: 12px; color: rgba(210, 205, 195, 0.65); line-height: 1.7; font-family: 'Georgia', 'Noto Serif SC', serif; margin: 0; }
+.cal-preview-img { width: 100%; max-height: 120px; object-fit: cover; border-radius: 8px; margin-top: 6px; cursor: pointer; opacity: 0.8; }
 .cal-preview-img:hover { opacity: 1; }
+.cal-entry-del {
+  position: absolute; top: 8px; right: 8px;
+  padding: 2px 8px; border-radius: 6px;
+  border: 1px solid rgba(220,140,140,0.2);
+  background: rgba(220,140,140,0.08);
+  color: rgba(220,140,140,0.5); font-size: 10px;
+  cursor: pointer; font-family: 'Georgia', 'Noto Serif SC', serif;
+}
+.cal-entry-del:hover { background: rgba(220,140,140,0.18); color: rgba(220,140,140,0.8); }
 .cal-no-entry { text-align: center; padding: 14px; color: rgba(180, 175, 170, 0.3); font-size: 12px; }
 .cal-loading { text-align: center; padding: 14px; }
 .cal-close { display: block; margin: 14px auto 0; padding: 6px 20px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.06); background: rgba(255,255,255,0.03); color: rgba(200,195,185,0.4); font-size: 12px; cursor: pointer; font-family: 'Georgia', 'Noto Serif SC', serif; }

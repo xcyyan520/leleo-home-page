@@ -124,6 +124,7 @@ export default {
     },
     async doSave() {
       const body = {
+        id: this.existingEntry?.id || undefined,
         date: this.editDate,
         text: this.editText.trim(),
         image_url: this.imageUrl,
