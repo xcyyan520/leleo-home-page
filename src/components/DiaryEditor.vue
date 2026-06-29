@@ -37,9 +37,20 @@
         <span v-if="imageUrlError" class="url-error">图片加载失败，请检查链接</span>
       </div>
 
+      <!-- Auth required -->
+      <div v-if="needPassword" class="auth-section">
+        <p class="auth-hint">请先输入思绪密码</p>
+        <div class="auth-row">
+          <input v-model="password" type="password" class="auth-input" placeholder="密码……" @keyup.enter="loginThenSave" ref="passwordInput" />
+          <button class="editor-btn save" @click="loginThenSave" :disabled="!password || saving">
+            {{ saving ? '验证中...' : '验证' }}
+          </button>
+        </div>
+      </div>
+
       <div class="editor-actions">
         <button class="editor-btn cancel" @click="$emit('close')">取消</button>
-        <button class="editor-btn save" @click="save" :disabled="!editText.trim() || saving">
+        <button class="editor-btn save" @click="save" :disabled="!editText.trim() || saving || needPassword">
           {{ saving ? '保存中...' : '保存' }}
         </button>
       </div>
@@ -65,6 +76,8 @@ export default {
       imageUrlError: false,
       imageData: this.existingEntry?.image_data || '',
       saving: false,
+      needPassword: false,
+      password: '',
     }
   },
   computed: {
@@ -109,22 +122,57 @@ export default {
       this.imageUrl = ''
       this.imageUrlError = false
     },
+    async doSave() {
+      const body = {
+        date: this.editDate,
+        text: this.editText.trim(),
+        image_url: this.imageUrl,
+        image_data: this.imageData,
+        image_mime: this.imageData ? 'image/jpeg' : '',
+      }
+      const res = await fetch('/api/diary', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      })
+      return res
+    },
     async save() {
       if (!this.editText.trim()) return
       this.saving = true
       try {
-        const body = {
-          date: this.editDate,
-          text: this.editText.trim(),
-          image_url: this.imageUrl,
-          image_data: this.imageData,
-          image_mime: this.imageData ? 'image/jpeg' : '',
+        const res = await this.doSave()
+        if (res.ok) {
+          this.$emit('saved')
+          this.$emit('close')
+        } else if (res.status === 401) {
+          this.needPassword = true
+          this.$nextTick(() => this.$refs.passwordInput?.focus())
+        } else {
+          alert('保存失败，请重试')
         }
-        const res = await fetch('/api/diary', {
+      } catch (e) {
+        alert('保存失败: ' + e.message)
+      }
+      this.saving = false
+    },
+    async loginThenSave() {
+      if (!this.password) return
+      this.saving = true
+      try {
+        const authRes = await fetch('/api/auth', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(body),
+          body: JSON.stringify({ password: this.password }),
         })
+        if (!authRes.ok) {
+          this.password = ''
+          alert('密码不对')
+          this.saving = false
+          return
+        }
+        // Auth succeeded, retry save
+        const res = await this.doSave()
         if (res.ok) {
           this.$emit('saved')
           this.$emit('close')
@@ -225,4 +273,16 @@ export default {
 }
 .editor-btn.save:hover:not(:disabled) { background: rgba(139, 122, 170, 0.25); }
 .editor-btn.save:disabled { opacity: 0.3; cursor: not-allowed; }
+.auth-section { display: flex; flex-direction: column; gap: 8px; }
+.auth-hint { font-size: 12px; color: rgba(200, 180, 160, 0.6); text-align: center; margin: 0; }
+.auth-row { display: flex; gap: 8px; }
+.auth-input {
+  flex: 1; background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(200, 180, 160, 0.2);
+  border-radius: 8px; padding: 8px 12px;
+  color: rgba(220, 215, 205, 0.8);
+  font-family: 'Georgia', 'Noto Serif SC', serif; font-size: 13px; outline: none;
+}
+.auth-input:focus { border-color: rgba(200, 180, 160, 0.4); }
+.auth-input::placeholder { color: rgba(190, 185, 175, 0.2); }
 </style>
