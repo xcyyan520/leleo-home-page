@@ -243,7 +243,7 @@ export default {
         const res = await fetch(`/api/diary?date=${today}`)
         if (res.ok) {
           const data = await res.json()
-          this.todayDiary = data
+          this.todayDiary = Array.isArray(data) ? (data[0] || null) : data
         }
       } catch (e) { /* ignore */ }
       this.diaryLoading = false
