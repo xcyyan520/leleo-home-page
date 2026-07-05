@@ -7,7 +7,7 @@ async function ensureActivitySchema(db) {
     await db.prepare(`
       CREATE TABLE activity_log (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        username TEXT NOT NULL DEFAULT 'Leleo',
+        username TEXT NOT NULL DEFAULT 'xcyyan',
         action TEXT NOT NULL,
         target TEXT DEFAULT '',
         detail TEXT DEFAULT '',
@@ -75,7 +75,7 @@ export async function onRequestPost(context) {
     await ensureActivitySchema(env.DB)
     const { meta } = await env.DB.prepare(
       'INSERT INTO activity_log (username, action, target, detail) VALUES (?, ?, ?, ?)'
-    ).bind(username || 'Leleo', action, target || '', detail || '').run()
+    ).bind(username || 'xcyyan', action, target || '', detail || '').run()
     return new Response(JSON.stringify({ ok: true, id: meta.last_row_id }), {
       headers: { 'Content-Type': 'application/json' },
     })
