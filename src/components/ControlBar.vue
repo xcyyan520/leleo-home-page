@@ -13,6 +13,9 @@
     <button class="ctrl-btn" @click="$emit('photos')" title="照片墙">
       <v-icon icon="mdi-image-multiple" size="18"></v-icon>
     </button>
+    <button class="ctrl-btn" @click="$emit('activity')" title="活动记录">
+      <v-icon icon="mdi-history" size="18"></v-icon>
+    </button>
     <button class="ctrl-btn" @click="$emit('settings')" title="设置">
       <v-icon icon="mdi-cog" size="18"></v-icon>
     </button>
@@ -33,7 +36,7 @@ export default {
   props: {
     isClearScreen: { type: Boolean, default: false },
   },
-  emits: ['settings', 'thoughts', 'wallpaper', 'clearscreen', 'calendar', 'photos'],
+  emits: ['settings', 'thoughts', 'wallpaper', 'clearscreen', 'calendar', 'photos', 'activity'],
   data() {
     return { isMobile: false }
   },

@@ -168,7 +168,7 @@ export default {
 .calendar-card {
   background: rgba(15, 13, 22, 0.95);
   border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: 18px; padding: 20px; width: 420px; max-width: 92vw;
+  border-radius: 18px; padding: 20px; width: 520px; max-width: 95vw;
   max-height: 90vh; overflow-y: auto;
   box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
 }
@@ -202,7 +202,7 @@ export default {
   position: relative;
 }
 .cal-preview-text { font-size: 12px; color: rgba(210, 205, 195, 0.65); line-height: 1.7; font-family: 'Georgia', 'Noto Serif SC', serif; margin: 0; }
-.cal-preview-img { width: 100%; max-height: 120px; object-fit: cover; border-radius: 8px; margin-top: 6px; cursor: pointer; opacity: 0.8; }
+.cal-preview-img { width: 100%; max-height: 240px; object-fit: cover; border-radius: 8px; margin-top: 6px; cursor: pointer; opacity: 0.8; }
 .cal-preview-img:hover { opacity: 1; }
 .cal-entry-del {
   position: absolute; top: 8px; right: 8px;

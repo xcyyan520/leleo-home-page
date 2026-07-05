@@ -123,6 +123,10 @@ export async function onRequestPost(context) {
       await env.DB.prepare(
         `UPDATE diary_entries SET text = ?, image_url = ?, image_data = ?, image_mime = ?, updated_at = datetime('now') WHERE id = ?`
       ).bind(text.trim(), image_url || '', image_data || '', image_mime || '', id).run()
+      // Log activity
+      await env.DB.prepare(
+        `INSERT INTO activity_log (username, action, target, detail) VALUES ('Leleo', 'edit_diary', ?, ?)`
+      ).bind(`diary:${date || ''}`, text.trim().slice(0, 60)).run()
       return new Response(JSON.stringify({ ok: true, id }), {
         headers: { 'Content-Type': 'application/json' },
       })
@@ -137,6 +141,10 @@ export async function onRequestPost(context) {
       const insertResult = await env.DB.prepare(
         `INSERT INTO diary_entries (date, text, image_url, image_data, image_mime) VALUES (?, ?, ?, ?, ?)`
       ).bind(date, text.trim(), image_url || '', image_data || '', image_mime || '').run()
+      // Log activity
+      await env.DB.prepare(
+        `INSERT INTO activity_log (username, action, target, detail) VALUES ('Leleo', 'add_diary', ?, ?)`
+      ).bind(`diary:${date}`, text.trim().slice(0, 60)).run()
       return new Response(JSON.stringify({ ok: true, id: insertResult.meta.last_row_id }), {
         headers: { 'Content-Type': 'application/json' },
       })
@@ -173,8 +181,14 @@ export async function onRequestDelete(context) {
     await ensureDiarySchema(env.DB)
     if (idParam) {
       await env.DB.prepare('DELETE FROM diary_entries WHERE id = ?').bind(idParam).run()
+      await env.DB.prepare(
+        `INSERT INTO activity_log (username, action, target) VALUES ('Leleo', 'delete_diary', ?)`
+      ).bind(`diary_id:${idParam}`).run()
     } else {
       await env.DB.prepare('DELETE FROM diary_entries WHERE date = ?').bind(dateParam).run()
+      await env.DB.prepare(
+        `INSERT INTO activity_log (username, action, target) VALUES ('Leleo', 'delete_diary', ?)`
+      ).bind(`diary:${dateParam}`).run()
     }
     return new Response(JSON.stringify({ ok: true }), {
       headers: { 'Content-Type': 'application/json' },
