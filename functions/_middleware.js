@@ -114,7 +114,7 @@ export async function onRequest(context) {
   const url = new URL(request.url)
 
   // Protect thoughts + bubble API
-  const needsAuth = url.pathname.startsWith('/thoughts') || url.pathname.startsWith('/api/bubbles') || url.pathname.startsWith('/api/diary')
+  const needsAuth = url.pathname.startsWith('/thoughts') || url.pathname.startsWith('/api/bubbles') || url.pathname.startsWith('/api/diary') || url.pathname.startsWith('/api/activity')
   if (!needsAuth) return next()
 
   // Let auth API through

@@ -37,6 +37,7 @@
       @clearscreen="toggleClearScreen"
       @calendar="showCalendar = true"
       @photos="showPhotoWall = true"
+      @activity="showActivity = true"
     />
 
     <MiniMusicPlayer
@@ -59,6 +60,7 @@
     <DiaryEditor v-if="showDiaryEditor" :existingEntry="editingEntry" @close="showDiaryEditor = false" @saved="loadTodayDiary" />
     <CalendarDialog v-if="showCalendar" @close="showCalendar = false" />
     <PhotoWall v-if="showPhotoWall" @close="showPhotoWall = false" />
+    <ActivityTimeline v-if="showActivity" @close="showActivity = false" />
 
     <!-- Settings dialog (kept from original, with tabs) -->
     <v-dialog v-model="dialogSettings" width="1000">

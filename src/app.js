@@ -3,6 +3,7 @@ import DiaryCard from './components/DiaryCard.vue'
 import DiaryEditor from './components/DiaryEditor.vue'
 import CalendarDialog from './components/CalendarDialog.vue'
 import PhotoWall from './components/PhotoWall.vue'
+import ActivityTimeline from './components/ActivityTimeline.vue'
 import TagsCard from './components/TagsCard.vue'
 import ProjectsCard from './components/ProjectsCard.vue'
 import ControlBar from './components/ControlBar.vue'
@@ -22,7 +23,7 @@ import { useDisplay } from 'vuetify'
 
 export default {
   components: {
-    ProfileCard, DiaryCard, DiaryEditor, CalendarDialog, PhotoWall,
+    ProfileCard, DiaryCard, DiaryEditor, CalendarDialog, PhotoWall, ActivityTimeline,
     TagsCard, ProjectsCard, ControlBar, MiniMusicPlayer,
     StarfieldBackground, typewriter, loader, tab1, tab2, tab3,
   },
@@ -60,6 +61,7 @@ export default {
       showDiaryEditor: false,
       showCalendar: false,
       showPhotoWall: false,
+      showActivity: false,
       todayDiary: null,
       editingEntry: null,
       diaryLoading: false,
