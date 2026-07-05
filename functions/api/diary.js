@@ -125,7 +125,7 @@ export async function onRequestPost(context) {
       ).bind(text.trim(), image_url || '', image_data || '', image_mime || '', id).run()
       // Log activity
       await env.DB.prepare(
-        `INSERT INTO activity_log (username, action, target, detail) VALUES ('Leleo', 'edit_diary', ?, ?)`
+        `INSERT INTO activity_log (username, action, target, detail) VALUES ('xcyyan', 'edit_diary', ?, ?)`
       ).bind(`diary:${date || ''}`, text.trim().slice(0, 60)).run()
       return new Response(JSON.stringify({ ok: true, id }), {
         headers: { 'Content-Type': 'application/json' },
@@ -143,7 +143,7 @@ export async function onRequestPost(context) {
       ).bind(date, text.trim(), image_url || '', image_data || '', image_mime || '').run()
       // Log activity
       await env.DB.prepare(
-        `INSERT INTO activity_log (username, action, target, detail) VALUES ('Leleo', 'add_diary', ?, ?)`
+        `INSERT INTO activity_log (username, action, target, detail) VALUES ('xcyyan', 'add_diary', ?, ?)`
       ).bind(`diary:${date}`, text.trim().slice(0, 60)).run()
       return new Response(JSON.stringify({ ok: true, id: insertResult.meta.last_row_id }), {
         headers: { 'Content-Type': 'application/json' },
@@ -182,12 +182,12 @@ export async function onRequestDelete(context) {
     if (idParam) {
       await env.DB.prepare('DELETE FROM diary_entries WHERE id = ?').bind(idParam).run()
       await env.DB.prepare(
-        `INSERT INTO activity_log (username, action, target) VALUES ('Leleo', 'delete_diary', ?)`
+        `INSERT INTO activity_log (username, action, target) VALUES ('xcyyan', 'delete_diary', ?)`
       ).bind(`diary_id:${idParam}`).run()
     } else {
       await env.DB.prepare('DELETE FROM diary_entries WHERE date = ?').bind(dateParam).run()
       await env.DB.prepare(
-        `INSERT INTO activity_log (username, action, target) VALUES ('Leleo', 'delete_diary', ?)`
+        `INSERT INTO activity_log (username, action, target) VALUES ('xcyyan', 'delete_diary', ?)`
       ).bind(`diary:${dateParam}`).run()
     }
     return new Response(JSON.stringify({ ok: true }), {
