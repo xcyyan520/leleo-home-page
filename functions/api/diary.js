@@ -1,3 +1,21 @@
+async function ensureActivityLog(db) {
+  const exists = await db
+    .prepare("SELECT 1 AS ok FROM sqlite_master WHERE type='table' AND name='activity_log' LIMIT 1")
+    .first()
+  if (!exists) {
+    await db.prepare(`
+      CREATE TABLE activity_log (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        username TEXT NOT NULL DEFAULT 'xcyyan',
+        action TEXT NOT NULL,
+        target TEXT DEFAULT '',
+        detail TEXT DEFAULT '',
+        created_at TEXT NOT NULL DEFAULT (datetime('now'))
+      )
+    `).run()
+  }
+}
+
 async function ensureDiarySchema(db) {
   const exists = await db
     .prepare("SELECT 1 AS ok FROM sqlite_master WHERE type='table' AND name='diary_entries' LIMIT 1")
@@ -117,6 +135,7 @@ export async function onRequestPost(context) {
 
   try {
     await ensureDiarySchema(env.DB)
+    await ensureActivityLog(env.DB)
 
     if (id) {
       // Update existing entry by id
@@ -179,6 +198,7 @@ export async function onRequestDelete(context) {
 
   try {
     await ensureDiarySchema(env.DB)
+    await ensureActivityLog(env.DB)
     if (idParam) {
       await env.DB.prepare('DELETE FROM diary_entries WHERE id = ?').bind(idParam).run()
       await env.DB.prepare(
