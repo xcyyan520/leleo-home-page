@@ -410,6 +410,201 @@ p,li{line-height:1.85;}
   *{transition-duration:.01ms !important;}
 }
 </style>
+<script>/*__perfLayer__*/
+/* ============================================================
+   帧率自适应 + 后台暂停（性能层）
+   ------------------------------------------------------------
+   为什么需要：这些页面每帧都重绘整张 1440x900 设计稿（底色 + 滚动网格 +
+   径向光晕 + 每个面板的全部文字和图形）。实测在降速 4 倍的手机上，单帧脚本
+   就要 570~740 ms/s，主线程几乎 100% 占满 —— 表现就是整页发卡、滚动和点击
+   都不跟手。降到 30 FPS 后主线程占用直接减半；画面本来就是缓慢的数据流动
+   画和数字滚动，30 帧和 60 帧看不出差别，但手感完全不同。
+
+   怎么判断该不该降：
+     不靠“首屏跑多少帧”这种一次性测量 —— 那会把页面加载期的卡顿误判成设备
+     性能差，把明明很快的电脑也锁到 30 帧。做法是：
+        · 先跑满 2.5 秒不干预（加载期的布局、字体、图片解码都在这段时间）；
+        · 之后始终记录原生帧间隔，取最近 120 帧（约 2 秒）；
+        · 中位数 或 平均值 任一超过 20ms（跑不到 50 FPS）才降帧。
+     用平均值是因为有些页面大部分帧都「刚好卡在一个 vsync 上」，中位数看着像
+     满帧，实际长尾很长、主线程已经画满，只看中位数会漏掉它。窗口只有 2 秒且
+     一直在滚动，所以偶发卡顿会很快被冲掉，快的机器完全不受影响。
+
+   怎么恢复：
+     降帧后每 20 秒放回原生帧率跑 0.8 秒实测一次，跑得动就恢复。
+     注意复检必须真的回到原生帧率才有意义 —— 在限帧状态下量到的帧间隔永远
+     是 33ms，量不出设备到底跑不跑得动。
+
+   另外：切到后台就停止绘制（原来后台也在满速空转，白耗电），并且系统开了
+   「减少动态效果」时直接按低帧率跑。
+   ============================================================ */
+(function () {
+  var realRaf = window.requestAnimationFrame.bind(window);
+  var realCaf = window.cancelAnimationFrame.bind(window);
+
+  var SLOW_MS = 1000 / 30;          /* 限帧后的目标帧间隔 */
+  var BAD_MS = 20;                  /* 平均/中位帧间隔超过它 = 跑不到 50 FPS */
+  var GOOD_MS = 17;                 /* 恢复阈值：实测低于它才算跑得动 */
+  var WIN = 120;                    /* 统计窗口（帧） */
+  var MIN_SAMPLES = 60;             /* 至少这么多帧才做判断 */
+  var GRACE_MS = 2500;              /* 启动后先不干预的时长 */
+  var RECHECK_EVERY = 20000;        /* 限帧状态下每隔多久复检 */
+  var RECHECK_FOR = 800;            /* 复检时以原生帧率跑多久 */
+
+  var hist = new Float64Array(WIN);
+  var histN = 0, histI = 0, lastNative = 0;
+
+  var capped = false;               /* 是否正在限帧 */
+  var probing = false;              /* 是否处于「回原生帧率实测」窗口 */
+  var queue = new Map();
+  var nextId = 1;
+  var timer = null, lastDraw = 0;
+  var probeTimer = null;
+  var startAt = performance.now();
+  var reducedMotion = false;
+  var probeEnd = 0;
+
+  function push(dt) {
+    hist[histI] = dt; histI = (histI + 1) % WIN;
+    if (histN < WIN) histN++;
+  }
+  function resetHist() { histN = 0; histI = 0; lastNative = 0; }
+  function median() {
+    if (!histN) return 0;
+    var a = Array.prototype.slice.call(hist, 0, histN).sort(function (x, y) { return x - y; });
+    return a[a.length >> 1];
+  }
+  function mean() {
+    if (!histN) return 0;
+    var s = 0;
+    for (var i = 0; i < histN; i++) s += hist[i];
+    return s / histN;
+  }
+  function isSlow() {
+    if (histN < MIN_SAMPLES) return false;
+    return median() > BAD_MS || mean() > BAD_MS;
+  }
+
+  /* ---------- 限帧状态的进入/退出 ---------- */
+  function flush() {
+    timer = null;
+    lastDraw = performance.now();
+    var batch = [];
+    queue.forEach(function (cb) { batch.push(cb); });
+    queue.clear();
+    for (var i = 0; i < batch.length; i++) {
+      try { batch[i](lastDraw); } catch (e) { if (window.console) console.error(e); }
+    }
+  }
+  function schedule() {
+    if (timer !== null || !queue.size) return;
+    var w = SLOW_MS - (performance.now() - lastDraw);
+    timer = setTimeout(flush, w < 0 ? 0 : w);
+  }
+  /* 从限帧状态回到原生帧率：把队列里等待的回调交还给原生 rAF，
+     否则它们会被永远晾在队列里（页面就停在最后一帧了）。 */
+  function drainToNative() {
+    if (timer !== null) { clearTimeout(timer); timer = null; }
+    if (!queue.size) return;
+    var batch = [];
+    queue.forEach(function (cb) { batch.push(cb); });
+    queue.clear();
+    for (var i = 0; i < batch.length; i++) {
+      (function (cb) {
+        realRaf(function (now) { sample(now); try { cb(now); } catch (e) { if (window.console) console.error(e); } });
+      })(batch[i]);
+    }
+  }
+  function stopProbeTimer() {
+    if (probeTimer !== null) { clearTimeout(probeTimer); probeTimer = null; }
+  }
+  function startProbe() {
+    stopProbeTimer();
+    probeEnd = performance.now() + RECHECK_FOR;
+    probing = true;
+    resetHist();
+    drainToNative();
+    probeTimer = setTimeout(endProbe, RECHECK_FOR);
+  }
+  function endProbe() {
+    probeTimer = null;
+    probing = false;
+    var fast = histN >= MIN_SAMPLES / 2
+      && median() < GOOD_MS && mean() < GOOD_MS;
+    /* 「减少动态效果」是用户的明确意愿，实测再快也保持低帧率 */
+    capped = reducedMotion ? true : !fast;
+    resetHist();
+    if (capped) {
+      probeTimer = setTimeout(startProbe, RECHECK_EVERY);
+    }
+    /* 恢复原生帧率后不排下一次复检：观察逻辑本身会在再次变慢时接管 */
+  }
+
+  /* ---------- 每帧采样与决策 ---------- */
+  function sample(now) {
+    if (lastNative) push(now - lastNative);
+    lastNative = now;
+
+    if (probing) {
+      if (now >= probeEnd) endProbe();
+      return;
+    }
+    if (capped) return;
+    if (now - startAt < GRACE_MS) return;   /* 启动期不做判断 */
+
+    if (isSlow()) {
+      capped = true;
+      resetHist();
+      probeTimer = setTimeout(startProbe, RECHECK_EVERY);
+      if (queue.size) schedule();
+    }
+  }
+
+  window.requestAnimationFrame = function (cb) {
+    if (typeof cb !== 'function') return realRaf(cb);
+    if (!capped || probing) {
+      return realRaf(function (now) { sample(now); return cb(now); });
+    }
+    var id = nextId++;
+    queue.set(id, cb);
+    schedule();
+    return id;
+  };
+  window.cancelAnimationFrame = function (id) {
+    if (!(queue.delete(id))) realCaf(id);
+  };
+
+  /* 切到后台就不再绘制 */
+  document.addEventListener('visibilitychange', function () {
+    if (document.hidden) {
+      if (timer !== null) { clearTimeout(timer); timer = null; }
+      stopProbeTimer();
+      resetHist();
+    } else if (capped) {
+      lastDraw = 0;
+      if (probing) { probing = false; }
+      startProbe();
+    }
+  });
+
+  /* 系统开了「减少动态效果」：直接按低帧率跑，并且不再回原生帧率实测 */
+  try {
+    reducedMotion = !!(window.matchMedia
+      && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  } catch (e) {}
+  if (reducedMotion) { capped = true; }
+
+  window.__perfLayer = function () {
+    return {
+      mode: reducedMotion ? 'reduced-motion' : (probing ? 'probing' : (capped ? 'capped' : 'native')),
+      capped: capped,
+      medianMs: +median().toFixed(2),
+      meanMs: +mean().toFixed(2),
+      samples: histN
+    };
+  };
+})();
+</script>
 </head>
 <body>
 
