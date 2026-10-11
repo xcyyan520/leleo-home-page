@@ -40,25 +40,22 @@ export default {
 </script>
 
 <style scoped>
-.tags-card { padding: 16px 18px; animation: card-float 5.5s ease-in-out infinite; animation-delay: 0.5s; }
-@keyframes card-float {
-  0%, 100% { transform: translateY(0); }
-  50%      { transform: translateY(-3px); }
-}
+.tags-card { padding: 16px 18px; transition: transform 0.3s ease, border-color 0.3s ease; }
+.tags-card:hover { transform: translateY(-2px); }
 .section-label {
   display: block;
-  font-size: 10px;
-  color: rgba(200, 195, 185, 0.35);
+  font-size: 11px;
+  color: rgba(200, 195, 185, 0.45);
   letter-spacing: 0.12em;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
   font-family: 'Georgia', 'Noto Serif SC', serif;
 }
-.tags-wrap { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 12px; }
+.tags-wrap { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
 .tag-chip {
-  font-size: 11px; padding: 3px 10px;
-  background: rgba(139, 122, 170, 0.12);
+  font-size: 12px; padding: 4px 11px;
+  background: rgba(139, 122, 170, 0.14);
   border-radius: 10px;
-  color: rgba(200, 190, 220, 0.65);
+  color: rgba(205, 195, 225, 0.72);
   font-family: 'Georgia', 'Noto Serif SC', serif;
 }
 .social-icons { display: flex; gap: 2px; flex-wrap: wrap; }

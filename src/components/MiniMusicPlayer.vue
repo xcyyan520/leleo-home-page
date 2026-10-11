@@ -51,18 +51,16 @@ export default {
 <style scoped>
 .mini-player {
   position: fixed; bottom: 20px; right: 20px; z-index: 50;
-  display: flex; align-items: center; gap: 10px;
-  padding: 8px 14px; border-radius: 24px;
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 16px; border-radius: 26px;
   backdrop-filter: blur(16px);
-  animation: card-float 4.5s ease-in-out infinite;
+  min-width: 230px;
+  transition: transform 0.3s ease, border-color 0.3s ease;
 }
-@keyframes card-float {
-  0%, 100% { transform: translateY(0); }
-  50%      { transform: translateY(-3px); }
-}
-.is-mobile { bottom: 12px; right: 12px; left: 12px; width: auto; border-radius: 20px; }
+.mini-player:hover { transform: translateY(-2px); }
+.is-mobile { bottom: 12px; right: 12px; left: 12px; width: auto; border-radius: 20px; min-width: 0; }
 .player-art {
-  width: 32px; height: 32px; border-radius: 50%;
+  width: 36px; height: 36px; border-radius: 50%;
   flex-shrink: 0;
   display: flex; align-items: center; justify-content: center;
 }
@@ -71,23 +69,24 @@ export default {
   overflow: hidden;
 }
 .player-song {
-  font-size: 11px; color: rgba(215, 210, 200, 0.75);
+  font-size: 13px; color: rgba(218, 213, 203, 0.82);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   font-family: 'Georgia', 'Noto Serif SC', serif;
 }
 .player-artist {
-  font-size: 9px; color: rgba(170, 165, 155, 0.35);
+  font-size: 11px; color: rgba(175, 170, 160, 0.45);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  margin-top: 1px;
 }
 .player-controls { display: flex; gap: 4px; align-items: center; }
 .player-btn {
-  width: 28px; height: 28px; border-radius: 50%;
+  width: 30px; height: 30px; border-radius: 50%;
   border: none; background: rgba(255, 255, 255, 0.04);
-  color: rgba(200, 195, 185, 0.45);
+  color: rgba(205, 200, 190, 0.5);
   cursor: pointer; display: flex; align-items: center; justify-content: center;
-  transition: all 0.2s;
+  transition: background 0.2s, color 0.2s;
 }
-.player-btn:hover { background: rgba(255, 255, 255, 0.08); color: rgba(220, 210, 200, 0.7); }
-.player-btn--play { width: 32px; height: 32px; background: rgba(200, 180, 160, 0.1); color: rgba(200, 180, 160, 0.6); }
-.player-btn--play:hover { background: rgba(200, 180, 160, 0.18); }
+.player-btn:hover { background: rgba(255, 255, 255, 0.08); color: rgba(225, 215, 205, 0.8); }
+.player-btn--play { width: 34px; height: 34px; background: rgba(200, 180, 160, 0.12); color: rgba(210, 190, 170, 0.7); }
+.player-btn--play:hover { background: rgba(200, 180, 160, 0.2); }
 </style>

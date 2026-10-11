@@ -82,10 +82,13 @@ export default {
         : { height: '96.6%', width: '99%', top: '1.7%', left: '0.5%' }
     },
     deskLeftStyle() {
-      return this.xs ? {} : { width: '36%' }
+      // Fixed rail: the left cards are designed for a ~300px column, so a
+      // percentage here would stretch them across a wide window.
+      return this.xs ? {} : { width: '318px', flex: '0 0 318px' }
     },
     deskRightStyle() {
-      return this.xs ? {} : { width: '52%', marginTop: '0' }
+      // Fills whatever the left rail and the gap leave over.
+      return this.xs ? {} : { flex: '1 1 auto', minWidth: '0' }
     },
   },
   async mounted() {

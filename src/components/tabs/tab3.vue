@@ -61,13 +61,13 @@
           :class="{ 'active-song': index === currentIndex }"
           ref="songItems"
         >
-          <v-list-item-content class="d-flex justify-space-between">
-            <v-list-item-title style="color: var(--leleo-vcard-color);">
+          <div class="song-row d-flex justify-space-between align-center">
+            <span class="song-title" style="color: var(--leleo-vcard-color);">
               <span style="margin-right: 12px;">{{ index+1 }}</span>
               <span>{{ song.title }}</span>
-            </v-list-item-title>
+            </span>
             <span style="font-size: 12px; color: var(--leleo-vcard-color);">{{ song.author }}</span>
-          </v-list-item-content>
+          </div>
         </v-list-item>
       </v-list>
     </v-container>
@@ -308,7 +308,7 @@ export default {
   padding-bottom: 8px !important;
 }
 
-.v-list-item-title {
+.song-title {
   font-size: 12px;
 }
 

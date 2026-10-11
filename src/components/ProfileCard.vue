@@ -38,31 +38,28 @@ export default {
   align-items: center;
   padding: 28px 20px 18px;
   text-align: center;
-  animation: card-float 5s ease-in-out infinite;
   width: 100%;
   box-sizing: border-box;
+  transition: transform 0.3s ease, border-color 0.3s ease;
 }
-@keyframes card-float {
-  0%, 100% { transform: translateY(0); }
-  50%      { transform: translateY(-4px); }
-}
+.profile-card:hover { transform: translateY(-2px); }
 .profile-avatar {
   border: 2px solid rgba(255, 255, 255, 0.08);
   box-shadow: 0 0 30px rgba(139, 122, 170, 0.15);
 }
 .profile-name {
-  margin-top: 14px;
-  font-size: 1.3rem;
+  margin-top: 16px;
+  font-size: 1.45rem;
   font-weight: 600;
-  color: rgba(225, 220, 215, 0.85);
+  color: rgba(228, 223, 218, 0.9);
   font-family: 'Georgia', 'Noto Serif SC', serif;
   letter-spacing: 0.04em;
 }
 .profile-typewriter-wrap {
   position: relative;
   width: 100px;
-  height: 56px;
-  margin-top: 8px;
+  height: 62px;
+  margin-top: 10px;
 }
 .profile-typewriter {
   position: absolute;

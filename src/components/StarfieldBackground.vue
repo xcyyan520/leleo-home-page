@@ -39,14 +39,17 @@ export default {
     this.$nextTick(() => this.initCanvas())
   },
   beforeUnmount() {
-    if (this.rafId) cancelAnimationFrame(this.rafId)
+    this.stopCanvas()
     window.removeEventListener('resize', this.resizeCanvas)
+    document.removeEventListener('visibilitychange', this.onVisibilityChange)
   },
   methods: {
     generateStars() {
       const ss = []
-      for (let i = 0; i < 50; i++) {
-        const size = 0.5 + Math.random() * 2
+      // Fewer, larger stars read the same but cost far less to composite.
+      const count = this.isMobile ? 24 : 38
+      for (let i = 0; i < count; i++) {
+        const size = 0.6 + Math.random() * 1.8
         ss.push({
           id: `s${i}`,
           style: {
@@ -91,25 +94,44 @@ export default {
       if (!c) return
       this.canvasCtx = c.getContext('2d')
       this.resizeCanvas()
-      if (!this.isMobile) this.spawnParticles()
+      this.spawnParticles()
       window.addEventListener('resize', this.resizeCanvas)
-      this.animateCanvas()
+      document.addEventListener('visibilitychange', this.onVisibilityChange)
+      // Nothing to animate when there are no particles — don't spin a rAF loop.
+      if (this.canvasParticles.length === 0) return
+      this.startCanvas()
+    },
+    onVisibilityChange() {
+      if (document.hidden) this.stopCanvas()
+      else if (this.canvasParticles.length) this.startCanvas()
+    },
+    startCanvas() {
+      if (this.rafId) return
+      this.rafId = requestAnimationFrame(() => this.animateCanvas())
+    },
+    stopCanvas() {
+      if (this.rafId) { cancelAnimationFrame(this.rafId); this.rafId = null }
     },
     resizeCanvas() {
       const c = this.$refs.particleCanvas
       if (!c) return
-      const dpr = window.devicePixelRatio || 1
+      // Cap the backing store: past 2x the extra pixels are invisible but the
+      // per-frame fill cost keeps scaling with area.
+      const dpr = Math.min(window.devicePixelRatio || 1, 2)
       this.canvasWidth = window.innerWidth
       this.canvasHeight = window.innerHeight
-      c.width = this.canvasWidth * dpr
-      c.height = this.canvasHeight * dpr
+      c.width = Math.round(this.canvasWidth * dpr)
+      c.height = Math.round(this.canvasHeight * dpr)
       c.style.width = this.canvasWidth + 'px'
       c.style.height = this.canvasHeight + 'px'
       this.canvasCtx.setTransform(dpr, 0, 0, dpr, 0, 0)
     },
     spawnParticles() {
       this.canvasParticles = []
-      const count = this.isMobile ? 0 : 40
+      // Mobile skips the particle canvas entirely — the CSS starfield already
+      // carries the look and the fill cost is not worth it on a phone.
+      if (this.isMobile) return
+      const count = 32
       const hues = [260, 210, 320, 200, 290, 230, 170, 250]
       for (let i = 0; i < count; i++) {
         this.canvasParticles.push({
@@ -129,8 +151,8 @@ export default {
       const ctx = this.canvasCtx
       const w = this.canvasWidth
       const h = this.canvasHeight
-      if (!ctx || w === 0 || this.isMobile) {
-        this.rafId = requestAnimationFrame(() => this.animateCanvas())
+      if (!ctx || w === 0 || this.canvasParticles.length === 0) {
+        this.rafId = null
         return
       }
       ctx.clearRect(0, 0, w, h)

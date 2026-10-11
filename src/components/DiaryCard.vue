@@ -68,43 +68,40 @@ export default {
 </script>
 
 <style scoped>
-.diary-card { padding: 16px 18px; animation: card-float 5s ease-in-out infinite; animation-delay: 0.8s; }
-@keyframes card-float {
-  0%, 100% { transform: translateY(0); }
-  50%      { transform: translateY(-3px); }
-}
+.diary-card { padding: 16px 18px; transition: transform 0.3s ease, border-color 0.3s ease; }
+.diary-card:hover { transform: translateY(-2px); }
 .section-label {
   display: block;
-  font-size: 10px; color: rgba(200, 195, 185, 0.35);
-  letter-spacing: 0.12em; margin-bottom: 8px;
+  font-size: 11px; color: rgba(200, 195, 185, 0.45);
+  letter-spacing: 0.12em; margin-bottom: 10px;
   font-family: 'Georgia', 'Noto Serif SC', serif;
 }
 .diary-loading { text-align: center; padding: 16px 0; }
 .diary-empty { text-align: center; padding: 12px 0; }
-.diary-empty-text { font-size: 12px; color: rgba(180, 175, 170, 0.4); margin-bottom: 10px; }
+.diary-empty-text { font-size: 13px; color: rgba(185, 180, 175, 0.5); margin-bottom: 12px; }
 .diary-content { }
-.diary-date { font-size: 9px; color: rgba(200, 195, 185, 0.3); margin-bottom: 6px; }
+.diary-date { font-size: 11px; color: rgba(200, 195, 185, 0.4); margin-bottom: 8px; }
 .diary-text {
-  font-size: 12px; line-height: 1.7; color: rgba(215, 210, 200, 0.7);
+  font-size: 13px; line-height: 1.75; color: rgba(218, 213, 203, 0.76);
   font-family: 'Georgia', 'Noto Serif SC', serif;
   display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical;
   overflow: hidden;
 }
-.diary-image-preview { margin-top: 8px; }
+.diary-image-preview { margin-top: 10px; }
 .diary-thumb {
   width: 100%; max-height: 120px; object-fit: cover;
   border-radius: 8px; cursor: pointer; opacity: 0.8;
   transition: opacity 0.2s;
 }
 .diary-thumb:hover { opacity: 1; }
-.diary-actions { display: flex; gap: 6px; margin-top: 10px; }
+.diary-actions { display: flex; gap: 8px; margin-top: 12px; }
 .diary-action-btn {
-  display: flex; align-items: center; gap: 4px;
-  padding: 5px 12px; border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  display: flex; align-items: center; gap: 5px;
+  padding: 6px 14px; border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.07);
   background: rgba(255, 255, 255, 0.03);
-  color: rgba(200, 195, 185, 0.4);
-  font-size: 11px; cursor: pointer; transition: all 0.2s;
+  color: rgba(205, 200, 190, 0.5);
+  font-size: 12px; cursor: pointer; transition: all 0.2s;
   font-family: 'Georgia', 'Noto Serif SC', serif;
 }
 .diary-action-btn:hover { background: rgba(255, 255, 255, 0.06); color: rgba(220, 215, 205, 0.65); }

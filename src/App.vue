@@ -135,8 +135,12 @@
 .desk-canvas {
   position: relative; z-index: 1;
   display: flex; gap: 24px;
+  /* width:100% is required: `margin:0 auto` cancels the flex parent's
+     align-items:stretch, so without it the desk shrink-wraps its content
+     (measured 625px inside a 1440px viewport) and every % child collapses. */
+  width: 100%;
   padding: 80px 24px 100px;
-  max-width: 1300px; margin: 0 auto;
+  max-width: 1240px; margin: 0 auto;
   height: 100vh; box-sizing: border-box;
 }
 .desk-left {
