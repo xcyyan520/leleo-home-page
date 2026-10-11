@@ -36,7 +36,10 @@
 }
 
 body {
-	background-color: #282c34;
+	/* Star Desk base. The app frame is inset (see appFrameStyle in src/app.js),
+	   so this colour is what shows in the ring around it. It used to be the
+	   upstream #282c34 grey-blue, which read as a mismatched border. */
+	background-color: #08081a;
 }
 
 .v-selection-control-group{
