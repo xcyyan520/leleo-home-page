@@ -227,19 +227,31 @@ export default {
       this.canvasParticles = []
       const count = this.isMobile ? 30 : 70
       const hues = [260,210,320,200,290,230,170,340,250,180]
+      const starCount = this.isMobile ? 2 : 5
       for (let i = 0; i < count; i++) {
-        const isShootingStar = i < (this.isMobile ? 2 : 5)
+        const isShootingStar = i < starCount
+        // Shooting star: diagonal paths, fast, with trail data
+        const angle = 0.25 + Math.random()*0.55 // down-right: ~14° to ~46° below horizontal
+        const speed = 3 + Math.random()*5
         this.canvasParticles.push({
-          x: Math.random()*this.canvasWidth, y: Math.random()*this.canvasHeight,
-          vx: isShootingStar ? 1.5+Math.random()*3 : (Math.random()-0.5)*0.25,
-          vy: isShootingStar ? 0.2+Math.random()*0.5 : (Math.random()-0.5)*0.25,
-          size: isShootingStar ? 1.5+Math.random()*2 : 0.5+Math.random()*2.5,
-          opacity: isShootingStar ? 0.6+Math.random()*0.4 : 0.08+Math.random()*0.22,
-          hue: hues[Math.floor(Math.random()*hues.length)],
-          life: Math.random()*400, maxLife: isShootingStar ? 200+Math.random()*100 : 400+Math.random()*200,
+          x: Math.random()*this.canvasWidth*0.6,
+          y: Math.random()*this.canvasHeight*0.4,
+          vx: Math.cos(angle)*speed,
+          vy: Math.sin(angle)*speed,
+          size: isShootingStar ? 1.5+Math.random()*2.5 : 0.5+Math.random()*2.5,
+          opacity: isShootingStar ? 0.7+Math.random()*0.3 : 0.08+Math.random()*0.22,
+          hue: isShootingStar ? [40,180,220,300,30][Math.floor(Math.random()*5)] : hues[Math.floor(Math.random()*hues.length)],
+          life: 0,
+          maxLife: isShootingStar ? 80+Math.random()*70 : 400+Math.random()*200,
+          trailLen: isShootingStar ? 18+Math.random()*28 : 0,
+          trailWobble: isShootingStar ? (Math.random()-0.5)*0.04 : 0,
           isShootingStar,
         })
       }
+      // Stagger shooting star starts so they don't all appear at once
+      this.canvasParticles.filter(p=>p.isShootingStar).forEach((p,i)=>{
+        p.life = -i*60
+      })
     },
 
     onMouseMove(e) { this.mouseX = e.clientX; this.mouseY = e.clientY; this.mouseActive = true },
@@ -295,20 +307,51 @@ export default {
           if (p.x<-30) p.x=w+30; if (p.x>w+30) p.x=-30
           if (p.y<-30) p.y=h+30; if (p.y>h+30) p.y=-30
         }
-        p.life++; if (p.life > p.maxLife) { p.life=0; p.opacity = p.isShootingStar ? 0.6+Math.random()*0.4 : 0.08+Math.random()*0.2 }
+        p.life++; if (p.life > p.maxLife) {
+          if (p.isShootingStar) {
+            const angle = 0.25 + Math.random()*0.55
+            const speed = 3+Math.random()*5
+            p.x = Math.random()*this.canvasWidth*0.6
+            p.y = Math.random()*this.canvasHeight*0.35
+            p.vx = Math.cos(angle)*speed
+            p.vy = Math.sin(angle)*speed
+            p.hue = [40,180,220,300,30][Math.floor(Math.random()*5)]
+            p.trailLen = 18+Math.random()*28
+            p.trailWobble = (Math.random()-0.5)*0.04
+            p.size = 1.5+Math.random()*2.5
+            p.opacity = 0.7+Math.random()*0.3
+            p.maxLife = 80+Math.random()*70
+            p.life = 0
+          } else {
+            p.life = 0; p.opacity = 0.08+Math.random()*0.2
+          }
+        }
         const lifeFade = p.life < 30 ? p.life/30 : p.life > p.maxLife-30 ? (p.maxLife-p.life)/30 : 1
         if (p.isShootingStar) {
-          // Shooting star with trail
+          // Realistic shooting star with gradient trail + core glow + micro-wobble
+          const trailSteps = p.trailLen
+          const wobX = Math.sin(p.life*0.15)*p.trailWobble*30
+          const wobY = Math.cos(p.life*0.17)*p.trailWobble*30
+          for (let s = 0; s < trailSteps; s++) {
+            const t = s / trailSteps
+            const sx = p.x - p.vx*s + wobX*t
+            const sy = p.y - p.vy*s + wobY*t
+            const trailAlpha = p.opacity*lifeFade*(1-t)*(1-t)
+            const trailWidth = p.size*1.2*(1-t)
+            if (trailAlpha < 0.01) continue
+            ctx.beginPath()
+            ctx.arc(sx, sy, trailWidth, 0, Math.PI*2)
+            ctx.fillStyle = `hsla(${p.hue},40%,${85-t*30}%,${trailAlpha})`
+            ctx.fill()
+          }
+          // Bright head core
+          const coreGrad = ctx.createRadialGradient(p.x,p.y,0, p.x,p.y, p.size*4)
+          coreGrad.addColorStop(0, `hsla(${p.hue},10%,100%,${p.opacity*lifeFade})`)
+          coreGrad.addColorStop(0.2, `hsla(${p.hue},30%,90%,${p.opacity*lifeFade*0.7})`)
+          coreGrad.addColorStop(1, 'hsla(0,0%,100%,0)')
           ctx.beginPath()
-          ctx.moveTo(p.x, p.y)
-          ctx.lineTo(p.x-p.vx*8, p.y-p.vy*8)
-          ctx.strokeStyle = `hsla(${p.hue},50%,80%,${p.opacity*lifeFade*0.8})`
-          ctx.lineWidth = p.size*0.8
-          ctx.stroke()
-          // Glow dot
-          ctx.beginPath()
-          ctx.arc(p.x, p.y, p.size, 0, Math.PI*2)
-          ctx.fillStyle = `hsla(${p.hue},20%,90%,${p.opacity*lifeFade})`
+          ctx.arc(p.x, p.y, p.size*4, 0, Math.PI*2)
+          ctx.fillStyle = coreGrad
           ctx.fill()
         } else {
           ctx.beginPath()

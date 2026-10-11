@@ -1,0 +1,1552 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>微服务演示动画 · Canvas 版</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --bg:#07060f; --bg2:#0a0a1a; --line:#262338;
+  --cyan:#8b7aaa; --blue:#7f8fb5; --red:#b56a6a; --amber:#c4a970; --green:#7fa07a;
+  --txt:#d8d2c8; --dim:#8d8779;
+}
+html,body{max-width:100%;height:100%;overflow-x:hidden;overscroll-behavior:none;
+  -webkit-text-size-adjust:100%}
+body{
+  background:var(--bg);color:var(--txt);overflow:hidden;
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
+#app{display:flex;flex-direction:column;height:100vh;height:100dvh}
+
+/* ── 顶栏 ── */
+header{
+  flex:0 0 auto;border-bottom:1px solid var(--line);
+  background:linear-gradient(180deg,#0a0a1a,#07060f);
+  padding:calc(10px + env(safe-area-inset-top)) calc(16px + env(safe-area-inset-right)) 0 calc(16px + env(safe-area-inset-left));
+  position:relative;z-index:10;
+}
+.tbar{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.brand{font-weight:800;font-size:15px;letter-spacing:.5px;color:#ece7f3;white-space:nowrap}
+.brand i{color:var(--cyan);font-style:normal}
+.sub{font-size:12px;color:var(--dim);white-space:nowrap}
+
+.tabs{display:flex;gap:8px;margin-left:auto;flex-wrap:wrap}
+.tab{
+  padding:8px 16px;border:1px solid var(--line);border-bottom:none;
+  border-radius:9px 9px 0 0;background:#0a0a1a;color:var(--dim);
+  font-size:13.5px;font-weight:700;cursor:pointer;transition:.16s;
+  position:relative;top:1px;white-space:nowrap;
+}
+.tab:hover{color:#d4cee2;border-color:#38334f;background:#171430}
+.tab.on{
+  color:#0e0c1f;background:linear-gradient(180deg,var(--cyan),#756894);
+  border-color:var(--cyan);box-shadow:0 -2px 18px rgba(139,122,170,0.18);
+}
+.tab .n{opacity:.65;margin-right:5px;font-family:ui-monospace,monospace}
+
+/* ── 舞台 ── */
+#stageWrap{flex:1 1 auto;position:relative;min-height:0;display:flex;flex-direction:column;overflow:hidden}
+/* 竖屏“完整尺寸”模式：舞台 = 横向滚动容器 */
+#stage{flex:1 1 auto;position:relative;background:var(--bg);min-height:0;
+  overflow-x:hidden;overflow-y:hidden;overscroll-behavior:contain}
+#cvbox{position:relative;height:100%}
+body.m-wide #stage{overflow-x:auto;-webkit-overflow-scrolling:touch}
+body.m-wide #stage::-webkit-scrollbar{height:5px}
+body.m-wide #stage::-webkit-scrollbar-track{background:rgba(255,255,255,.04)}
+body.m-wide #stage::-webkit-scrollbar-thumb{background:rgba(139,122,170,.4);border-radius:3px}
+canvas{display:block;width:100%;height:100%;-webkit-user-select:none;user-select:none}
+body.m-wide canvas{touch-action:pan-x}
+
+/* 顶部 HUD：标题 + 一句话结论 */
+.hud{
+  position:absolute;left:0;right:0;top:0;padding:16px 22px;
+  pointer-events:none;display:flex;justify-content:space-between;align-items:flex-start;gap:20px;
+}
+.hud h2{font-size:19px;font-weight:800;color:#ece7f3;letter-spacing:.5px;text-shadow:0 2px 14px #000}
+.hud h2 em{font-style:normal;color:var(--cyan)}
+.hud p{font-size:13.5px;color:#ada79d;margin-top:5px;max-width:720px;line-height:1.6}
+.hud p b{color:#d0bd93}
+
+/* 右上角实时指标 */
+.metrics{
+  pointer-events:none;text-align:right;font-family:ui-monospace,SFMono-Regular,Consolas,monospace;
+  font-size:12.5px;color:var(--dim);line-height:1.85;white-space:nowrap;
+  background:rgba(10,10,26,.72);border:1px solid var(--line);border-radius:10px;padding:10px 14px;
+  backdrop-filter:blur(4px);
+}
+.metrics span{color:var(--cyan);font-weight:700}
+.metrics .warn{color:var(--amber)}
+.metrics .bad{color:var(--red)}
+
+/* ── 底部控制条 ── */
+footer{
+  flex:0 0 auto;border-top:1px solid var(--line);background:#07060f;
+  padding:11px calc(18px + env(safe-area-inset-right)) calc(11px + env(safe-area-inset-bottom)) calc(18px + env(safe-area-inset-left));
+  display:flex;align-items:center;gap:12px;flex-wrap:wrap;z-index:10;
+}
+.btn{
+  padding:8px 16px;border-radius:9px;border:1px solid #38334f;background:#141230;
+  color:#dbd5e8;font-size:13px;font-weight:700;cursor:pointer;transition:.15s;white-space:nowrap;
+}
+.btn:hover{background:#1a1734;border-color:var(--cyan);color:#fff;transform:translateY(-1px)}
+.btn.pri{background:linear-gradient(180deg,#7a6b99,#6a5c88);border-color:var(--cyan);color:#0e0c1f}
+.btn.pri:hover{filter:brightness(1.12)}
+.btn.warn{border-color:#48381f;color:var(--amber)}
+.btn.warn:hover{border-color:var(--amber)}
+.btn[disabled]{opacity:.38;cursor:not-allowed;transform:none}
+.btn[disabled]:hover{background:#141230;border-color:#38334f;color:#dbd5e8}
+.narr{
+  flex:1 1 320px;min-width:240px;font-size:13px;color:#ada79d;
+  border-left:2px solid var(--cyan);padding-left:12px;line-height:1.5;
+}
+.narr b{color:#fff}
+.narr .t{color:var(--cyan);font-weight:800}
+.auto{display:flex;align-items:center;gap:7px;font-size:12.5px;color:var(--dim);cursor:pointer;user-select:none}
+.auto input{accent-color:var(--cyan);width:15px;height:15px;cursor:pointer}
+
+/* 步骤条（场景三专用） */
+.steps{display:flex;gap:6px;align-items:center}
+.exps{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.chip{
+  padding:6px 12px;border-radius:8px;border:1px solid #38334f;background:#0d0d24;
+  color:#ada79d;font-size:12.5px;font-weight:700;cursor:pointer;transition:.15s;white-space:nowrap;
+}
+.chip:hover{border-color:var(--cyan);color:#d4cee2;background:#1a1734}
+.chip.on{background:linear-gradient(180deg,#7a6b99,#6a5c88);border-color:var(--cyan);color:#0e0c1f;box-shadow:0 0 14px rgba(139,122,170,0.22)}
+.dot{
+  width:26px;height:26px;border-radius:50%;border:1px solid #38334f;background:#0d0d24;
+  color:var(--dim);font-size:12px;font-weight:800;display:grid;place-items:center;cursor:pointer;transition:.15s;
+  font-family:ui-monospace,monospace;
+}
+.dot:hover{border-color:var(--cyan);color:#d4cee2}
+.dot.on{background:var(--cyan);border-color:var(--cyan);color:#0e0c1f;box-shadow:0 0 14px rgba(139,122,170,0.28)}
+.dot.done{border-color:#5f5680;color:#998bb8}
+
+/* ── 竖屏“完整尺寸”提示条 ── */
+.swipehint{
+  display:none;align-items:center;font-size:12px;color:#a294bb;white-space:nowrap;
+  padding:7px 10px;border:1px dashed rgba(139,122,170,.45);border-radius:8px;
+  background:rgba(16,14,40,.62);transition:opacity .6s;opacity:1;
+}
+body.m-wide .swipehint{display:flex}
+.swipehint.dim{opacity:.4}
+
+/* ══════════ 手机（窄屏 ≤860px）适配 ══════════ */
+@media (max-width:860px){
+  /* 顶栏：品牌一行，标签一行且可横向滚动，触控高 ≥ 44px */
+  header{padding-top:calc(8px + env(safe-area-inset-top))}
+  .tbar{flex-direction:row;flex-wrap:wrap;align-items:center;gap:6px 10px}
+  .brand{font-size:14px;white-space:normal}
+  .sub{font-size:12px;white-space:normal}
+  .tabs{flex:1 1 100%;margin-left:0;flex-wrap:nowrap;overflow-x:auto;overflow-y:hidden;white-space:nowrap;
+    -webkit-overflow-scrolling:touch;gap:8px;scrollbar-width:none}
+  .tabs::-webkit-scrollbar{display:none}
+  .tab{flex:0 0 auto;min-height:44px;display:flex;align-items:center;
+    font-size:12.5px;padding:0 12px;border-radius:9px;border-bottom:1px solid var(--line)}
+  .tab.on{border-bottom-color:var(--cyan)}
+
+  /* 舞台上的 HUD 文案 */
+  .hud{padding:calc(10px + env(safe-area-inset-top)) 12px 0 12px}
+  .hud h2{font-size:16px}
+  .hud p{font-size:12px;max-width:100%;line-height:1.55}
+  .metrics{display:none}
+
+  /* 底部控制条：换行 + 触控区 ≥40px，动态控件换行、间距 ≥8px */
+  footer{padding:10px calc(12px + env(safe-area-inset-right)) calc(10px + env(safe-area-inset-bottom)) calc(12px + env(safe-area-inset-left));
+    gap:8px;row-gap:8px;align-items:stretch}
+  .btn{min-height:40px;font-size:13px;padding:8px 14px;display:flex;align-items:center;justify-content:center}
+  #btnPlay,#btnReset,#btnView{flex:1 1 30%}
+  #btnStep{flex:1 1 100%;min-height:44px;font-size:14.5px;border-color:var(--cyan);
+    box-shadow:0 0 12px rgba(139,122,170,0.11)}
+  .steps,.exps{flex:1 1 100%;flex-wrap:wrap;gap:8px;row-gap:8px}
+  .dot{width:40px;height:40px;font-size:13px}
+  .chip{min-height:40px;display:flex;align-items:center;font-size:12.5px;padding:8px 12px}
+  .narr{flex:1 1 100%;min-width:0;font-size:12.5px;line-height:1.5;padding-left:10px}
+  .auto{font-size:12.5px;min-height:40px;padding:4px 2px}
+  .auto input{width:18px;height:18px}
+}
+
+/* ══════════ 横屏手机（矮视口）：把顶栏/控制条压到最少行数，留足画布 ══════════ */
+@media (max-width:900px) and (max-height:540px){
+  header{padding-top:calc(6px + env(safe-area-inset-top))}
+  .tbar{flex-direction:row;align-items:center;flex-wrap:wrap;gap:8px}
+  .brand{font-size:13px}
+  .sub{font-size:12px}
+  .tabs{margin-left:auto;flex:1 1 auto;justify-content:flex-end}
+  .tab{min-height:40px;font-size:12px;padding:0 10px}
+  .hud{padding:calc(6px + env(safe-area-inset-top)) 12px 0 12px}
+  .hud h2{font-size:15px}
+  .hud p{font-size:12px}
+  footer{padding-top:6px;padding-bottom:calc(6px + env(safe-area-inset-bottom));gap:8px}
+  .btn{min-height:40px;padding:6px 12px;font-size:12.5px}
+  #btnStep{flex:0 1 auto;min-height:40px;font-size:13px}
+  .narr{flex:1 1 58%;font-size:12px;line-height:1.45;padding-left:8px}
+  .auto{font-size:12px;min-height:0;flex:0 1 auto}
+}
+</style>
+<style id="sd-skin">
+/* ==================================================================
+   Star Desk skin — 星空桌面 (generated)
+   bg #07060f/#0a0a1a · 柔紫 #8b7aaa · 淡金 #c4a970
+   glass rgba(20,18,40,.55) + blur(12px) + 1px rgba(255,255,255,.06)
+   ================================================================== */
+
+/* ---- deep night sky on the root element ---- */
+html{
+  background-color:#07060f;
+  background-image:
+    radial-gradient(1100px 620px at 8% -8%,rgba(139,122,170,.13),transparent 62%),
+    radial-gradient(900px 560px at 96% 4%,rgba(127,143,181,.10),transparent 64%),
+    radial-gradient(1200px 800px at 50% 118%,rgba(196,169,112,.05),transparent 66%);
+  background-attachment:fixed;
+  background-repeat:no-repeat;
+  background-size:cover;
+}
+/* body must not paint over the stars */
+body{
+  background-color:transparent !important;
+  background-image:none !important;
+}
+
+/* ---- twinkling starfield (two parallax-ish layers) ---- */
+body::before,body::after{
+  content:'';position:fixed;inset:0;z-index:-1;pointer-events:none;
+  background-repeat:repeat;
+}
+body::before{
+  background-image:radial-gradient(1.1px 1.1px at 166px 391px,rgba(255,252,244,0.48),rgba(255,252,244,0)),radial-gradient(1.0px 1.0px at 23px 428px,rgba(255,252,244,0.72),rgba(255,252,244,0)),radial-gradient(0.7px 0.7px at 352px 209px,rgba(255,252,244,0.73),rgba(255,252,244,0)),radial-gradient(0.9px 0.9px at 28px 469px,rgba(255,252,244,0.72),rgba(255,252,244,0)),radial-gradient(1.0px 1.0px at 337px 166px,rgba(255,252,244,0.80),rgba(255,252,244,0)),radial-gradient(1.3px 1.3px at 363px 287px,rgba(255,252,244,0.80),rgba(255,252,244,0)),radial-gradient(1.3px 1.3px at 50px 13px,rgba(255,252,244,0.76),rgba(255,252,244,0)),radial-gradient(1.1px 1.1px at 249px 165px,rgba(255,252,244,0.64),rgba(255,252,244,0)),radial-gradient(0.8px 0.8px at 24px 110px,rgba(255,252,244,0.65),rgba(255,252,244,0)),radial-gradient(0.7px 0.7px at 390px 181px,rgba(255,252,244,0.88),rgba(255,252,244,0)),radial-gradient(0.9px 0.9px at 36px 135px,rgba(255,252,244,0.82),rgba(255,252,244,0)),radial-gradient(1.1px 1.1px at 460px 286px,rgba(255,252,244,0.33),rgba(255,252,244,0)),radial-gradient(1.1px 1.1px at 217px 29px,rgba(255,252,244,0.36),rgba(255,252,244,0)),radial-gradient(0.6px 0.6px at 385px 236px,rgba(255,252,244,0.38),rgba(255,252,244,0)),radial-gradient(1.3px 1.3px at 97px 283px,rgba(255,252,244,0.38),rgba(255,252,244,0)),radial-gradient(1.3px 1.3px at 150px 108px,rgba(255,252,244,0.51),rgba(255,252,244,0)),radial-gradient(0.8px 0.8px at 14px 13px,rgba(255,252,244,0.49),rgba(255,252,244,0)),radial-gradient(1.4px 1.4px at 54px 407px,rgba(255,252,244,0.55),rgba(255,252,244,0)),radial-gradient(1.0px 1.0px at 217px 283px,rgba(255,252,244,0.44),rgba(255,252,244,0)),radial-gradient(1.0px 1.0px at 182px 421px,rgba(255,252,244,0.64),rgba(255,252,244,0)),radial-gradient(1.0px 1.0px at 146px 365px,rgba(255,252,244,0.60),rgba(255,252,244,0)),radial-gradient(1.2px 1.2px at 3px 464px,rgba(255,252,244,0.58),rgba(255,252,244,0)),radial-gradient(1.3px 1.3px at 41px 64px,rgba(255,252,244,0.62),rgba(255,252,244,0)),radial-gradient(1.3px 1.3px at 49px 122px,rgba(255,252,244,0.83),rgba(255,252,244,0)),radial-gradient(1.2px 1.2px at 364px 245px,rgba(255,252,244,0.41),rgba(255,252,244,0)),radial-gradient(1.3px 1.3px at 451px 396px,rgba(255,252,244,0.36),rgba(255,252,244,0)),radial-gradient(0.8px 0.8px at 141px 370px,rgba(255,252,244,0.80),rgba(255,252,244,0)),radial-gradient(0.7px 0.7px at 234px 52px,rgba(255,252,244,0.88),rgba(255,252,244,0)),radial-gradient(0.7px 0.7px at 243px 135px,rgba(255,252,244,0.52),rgba(255,252,244,0)),radial-gradient(1.0px 1.0px at 201px 325px,rgba(255,252,244,0.66),rgba(255,252,244,0)),radial-gradient(1.2px 1.2px at 206px 382px,rgba(255,252,244,0.55),rgba(255,252,244,0)),radial-gradient(1.2px 1.2px at 9px 170px,rgba(255,252,244,0.46),rgba(255,252,244,0)),radial-gradient(0.6px 0.6px at 105px 250px,rgba(255,252,244,0.35),rgba(255,252,244,0)),radial-gradient(1.0px 1.0px at 242px 16px,rgba(255,252,244,0.51),rgba(255,252,244,0));
+  background-size:480px 480px;
+  animation:sd-twinkle 7s ease-in-out infinite alternate;
+}
+body::after{
+  background-image:radial-gradient(1.8px 1.8px at 491px 761px,rgba(255,252,244,0.35),rgba(255,252,244,0)),radial-gradient(0.9px 0.9px at 346px 725px,rgba(255,252,244,0.29),rgba(255,252,244,0)),radial-gradient(1.7px 1.7px at 805px 163px,rgba(255,252,244,0.18),rgba(255,252,244,0)),radial-gradient(0.9px 0.9px at 109px 249px,rgba(255,252,244,0.38),rgba(255,252,244,0)),radial-gradient(1.8px 1.8px at 451px 568px,rgba(255,252,244,0.46),rgba(255,252,244,0)),radial-gradient(1.4px 1.4px at 468px 155px,rgba(255,252,244,0.44),rgba(255,252,244,0)),radial-gradient(1.3px 1.3px at 331px 649px,rgba(255,252,244,0.31),rgba(255,252,244,0)),radial-gradient(1.6px 1.6px at 489px 563px,rgba(255,252,244,0.27),rgba(255,252,244,0)),radial-gradient(0.6px 0.6px at 85px 177px,rgba(255,252,244,0.48),rgba(255,252,244,0)),radial-gradient(1.7px 1.7px at 504px 678px,rgba(255,252,244,0.33),rgba(255,252,244,0)),radial-gradient(0.8px 0.8px at 741px 281px,rgba(255,252,244,0.20),rgba(255,252,244,0)),radial-gradient(1.0px 1.0px at 30px 499px,rgba(255,252,244,0.49),rgba(255,252,244,0)),radial-gradient(0.6px 0.6px at 426px 580px,rgba(255,252,244,0.37),rgba(255,252,244,0)),radial-gradient(1.4px 1.4px at 652px 677px,rgba(255,252,244,0.19),rgba(255,252,244,0)),radial-gradient(1.6px 1.6px at 542px 481px,rgba(255,252,244,0.20),rgba(255,252,244,0)),radial-gradient(1.1px 1.1px at 186px 242px,rgba(255,252,244,0.42),rgba(255,252,244,0)),radial-gradient(1.1px 1.1px at 14px 830px,rgba(255,252,244,0.32),rgba(255,252,244,0)),radial-gradient(1.1px 1.1px at 173px 250px,rgba(255,252,244,0.43),rgba(255,252,244,0)),radial-gradient(0.9px 0.9px at 523px 311px,rgba(255,252,244,0.39),rgba(255,252,244,0)),radial-gradient(1.6px 1.6px at 75px 284px,rgba(255,252,244,0.28),rgba(255,252,244,0)),radial-gradient(0.8px 0.8px at 804px 65px,rgba(255,252,244,0.26),rgba(255,252,244,0)),radial-gradient(1.7px 1.7px at 128px 669px,rgba(255,252,244,0.40),rgba(255,252,244,0));
+  background-size:880px 880px;
+  animation:sd-twinkle 11s ease-in-out infinite alternate-reverse;
+}
+@keyframes sd-twinkle{ 0%{opacity:.45} 100%{opacity:.92} }
+
+/* ---- glass cards (large surfaces get the real blur) ---- */
+.card,.term,.svc,.kpi,.chain-box,.group,.fig,.hero,.check,.intro,.tblwrap,.tbl-wrap,.tl-item > .card{
+  background:rgba(20,18,40,.55) !important;
+  -webkit-backdrop-filter:blur(12px);
+  backdrop-filter:blur(12px);
+  border:1px solid rgba(255,255,255,.06) !important;
+  border-radius:16px;
+  transition:border-color .3s ease,background .3s ease,transform .3s ease;
+}
+.card:hover,.term:hover,.svc:hover,.kpi:hover,.chain-box:hover,.group:hover,.fig:hover,.hero:hover,.check:hover,.intro:hover,.tblwrap:hover,.tbl-wrap:hover,.tl-item > .card:hover{
+  border-color:rgba(255,255,255,.10) !important;
+}
+/* small repeated elements: translucent, no blur (perf) */
+.node,.box,.chip,.note{
+  background:rgba(20,18,40,.62) !important;
+  border:1px solid rgba(255,255,255,.06) !important;
+  border-radius:12px;
+  transition:border-color .3s ease,transform .25s ease;
+}
+.node:hover,.box:hover,.chip:hover{
+  transform:translateY(-2px);
+  border-color:rgba(255,255,255,.14) !important;
+}
+/* keep callout colour coding on the left edge */
+.note.ok,.note.red{border-left-width:3px !important;border-radius:14px;}
+.intro{border-left:3px solid rgba(139,122,170,.5) !important;}
+
+/* ---- glass chrome bars ---- */
+.topbar,#topbar,.topbar-inner{ background:transparent !important; }
+.topbar,#topbar{
+  -webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);
+  background:rgba(13,13,36,.72) !important;
+  border-bottom:1px solid rgba(255,255,255,.06) !important;
+}
+#bar{
+  -webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);
+  background:rgba(13,13,36,.72) !important;
+  border-top:1px solid rgba(255,255,255,.06) !important;
+}
+button,a.backlink,.backlink{
+  background:rgba(20,18,40,.62) !important;
+  border-color:rgba(255,255,255,.08) !important;
+  border-radius:10px;
+}
+
+/* ---- serif accents, echoing the Star Desk section labels ---- */
+.brand,#brand,.sec-no,.sec-head .no,.hero h1,h2.part,h1#barT,.t h1{
+  font-family:'Georgia','Noto Serif SC','Songti SC',serif;
+  letter-spacing:.03em;
+}
+
+/* ---- slow breathing on hero/kpi surfaces ---- */
+@keyframes sd-float{ 0%,100%{transform:translateY(0)} 50%{transform:translateY(-3px)} }
+.hero,.intro,.kpi{ animation:sd-float 6s ease-in-out infinite; }
+.kpi:nth-child(2n){ animation-duration:7.2s;animation-delay:-1.6s; }
+.kpi:nth-child(3n){ animation-duration:6.6s;animation-delay:-3.1s; }
+
+/* ---- scrollbar ---- */
+::-webkit-scrollbar{width:9px;height:9px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:rgba(139,122,170,.28);border-radius:999px}
+::-webkit-scrollbar-thumb:hover{background:rgba(139,122,170,.45)}
+
+/* ---- mobile: same trade-off Star Desk makes — no blur ---- */
+@media (max-width:767px){
+  .card,.term,.svc,.kpi,.chain-box,.group,.fig,.hero,.check,.intro,.tblwrap,.tbl-wrap,.tl-item > .card{
+    -webkit-backdrop-filter:none;backdrop-filter:none;
+    background:rgba(20,18,40,.72) !important;
+  }
+  .topbar,#topbar,#bar{-webkit-backdrop-filter:none;backdrop-filter:none}
+  body::before,body::after{animation:none;opacity:.6}
+}
+@media (prefers-reduced-motion:reduce){
+  body::before,body::after,.hero,.intro,.kpi{animation:none !important}
+  body::before{opacity:.55}body::after{opacity:.4}
+}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <header>
+    <div class="tbar">
+      <div class="brand">微服务 <i>Canvas</i> 演示</div>
+      <div class="sub">每个场景独立播放 · 点标签才动</div>
+      <div class="tabs" id="tabs"></div>
+    </div>
+  </header>
+
+  <div id="stageWrap">
+    <div id="stage"><div id="cvbox"><canvas id="cv"></canvas></div></div>
+    <div class="hud">
+      <div>
+        <h2 id="hTitle"></h2>
+        <p id="hSub"></p>
+      </div>
+      <div class="metrics" id="hMetrics"></div>
+    </div>
+  </div>
+
+  <footer>
+    <button class="btn pri" id="btnPlay">▶ 播放</button>
+    <button class="btn" id="btnStep" style="display:none">下一步 ▶</button>
+    <button class="btn" id="btnReset">⟲ 重来</button>
+    <button class="btn" id="btnView">⤢ 完整尺寸</button><a class="backlink" href="../路线.html" style="display:inline-flex;align-items:center;min-height:32px;padding:0 10px;border:1px solid #2a2740;border-radius:6px;background:#141230;color:#7f8fb5;text-decoration:none;font-size:13px;white-space:nowrap;touch-action:manipulation;-webkit-tap-highlight-color:transparent">← 回学习路线</a>
+    <div class="steps" id="steps" style="display:none"></div>
+    <div class="exps"  id="exps"  style="display:none"></div>
+    <div class="narr" id="narr"></div>
+    <span class="swipehint" id="swipeHint">← 左右滑动查看完整画面 →</span>
+    <label class="auto"><input type="checkbox" id="cbAuto"> 切换标签自动播放</label>
+  </footer>
+
+</div>
+
+<script>
+"use strict";
+/* ══════════════════════════════════════════════════════════════════
+   基础工具
+   ══════════════════════════════════════════════════════════════════ */
+const cv  = document.getElementById('cv');
+const ctx = cv.getContext('2d');
+const stage = document.getElementById('stage');
+const cvbox = document.getElementById('cvbox');
+const swipeHintEl = document.getElementById('swipeHint');
+const btnViewEl = document.getElementById('btnView');
+
+/* ── 运行期异常收集（供 __probe() / __errors() 自检） ── */
+const ERRORS = [];
+window.addEventListener('error', e => ERRORS.push(String((e && (e.message || (e.error && e.error.message))) || 'unknown error')));
+window.addEventListener('unhandledrejection', e => ERRORS.push('unhandledrejection: ' + String(e && e.reason)));
+
+let W = 0, H = 0, DPR = 1;
+let NARROW = false;          // 视口宽 ≤ 860px（手机窄屏）
+let WIDE = false;            // “完整尺寸”：画布逻辑宽 = 手机宽 × 2.4，外层横向滑动查看
+let viewMode = 'auto';       // auto：竖屏自动“完整尺寸”；也可手动 wide / fit
+const LOGICAL_MULT = 2.4;
+const CANVAS_TEXT_MIN = 10;  // 手机上画布文字最小字号（保证实际显示尺寸 ≥ 10px）
+let Scene = null;            // 当前场景（提前声明，避免 TDZ）
+const SCENES = [];           // 场景注册表
+
+function viewInfo(){
+  const narrow = window.innerWidth <= 860;
+  const portrait = window.innerHeight >= window.innerWidth;
+  return { narrow, portrait, wide: narrow && (viewMode === 'auto' ? portrait : viewMode === 'wide') };
+}
+
+function doResize(){
+  DPR = Math.min(window.devicePixelRatio || 1, 2);
+  const r = stage.getBoundingClientRect();
+  const info = viewInfo();
+  NARROW = info.narrow; WIDE = info.wide;
+  const sw = Math.max(280, Math.round(r.width));
+  const sh = Math.max(240, Math.round(r.height));
+  W = WIDE ? Math.min(1400, Math.max(880, Math.round(sw * LOGICAL_MULT))) : Math.max(320, sw);
+  H = sh;
+  cv.width  = Math.floor(W * DPR);
+  cv.height = Math.floor(H * DPR);
+  cv.style.width  = W + 'px';
+  cv.style.height = H + 'px';
+  cvbox.style.width  = W + 'px';
+  cvbox.style.height = H + 'px';
+  document.body.classList.toggle('m-wide', WIDE);
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+}
+/* 尺寸变化：画布 → 背景星点 → 当前场景重新布局 */
+function layoutAll(){
+  doResize();
+  Grid.init();
+  if (Scene && Scene.onResize) Scene.onResize();
+  syncHint();
+}
+/* 横向滑动提示 + 显示模式按钮文案 */
+function syncHint(){
+  const need = stage.scrollWidth > stage.clientWidth + 4;
+  if (WIDE && need) swipeHintEl.style.removeProperty('display');
+  else swipeHintEl.style.display = 'none';
+  btnViewEl.textContent = WIDE ? '⤢ 适配屏幕' : '⤢ 完整尺寸';
+}
+window.addEventListener('resize', layoutAll);
+window.addEventListener('orientationchange', () => setTimeout(layoutAll, 220));
+stage.addEventListener('scroll', () => {
+  if (stage.scrollLeft > 24) swipeHintEl.classList.add('dim');
+}, { passive: true });
+setTimeout(() => swipeHintEl.classList.add('dim'), 3000);
+document.getElementById('btnView').onclick = () => {
+  viewMode = WIDE ? 'fit' : 'wide';
+  layoutAll();
+  if (Scene && Scene.onResize) Scene.onResize();
+};
+
+const clamp = (v,a,b)=>v<a?a:v>b?b:v;
+const lerp  = (a,b,t)=>a+(b-a)*t;
+const rand  = (a,b)=>a+Math.random()*(b-a);
+function easeOut(t){ return 1-Math.pow(1-t,3); }
+
+/* 圆角矩形 */
+function rr(x,y,w,h,r){
+  r = Math.min(r, w/2, h/2);
+  ctx.beginPath();
+  ctx.moveTo(x+r,y);
+  ctx.lineTo(x+w-r,y); ctx.quadraticCurveTo(x+w,y,x+w,y+r);
+  ctx.lineTo(x+w,y+h-r); ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+  ctx.lineTo(x+r,y+h); ctx.quadraticCurveTo(x,y+h,x,y+h-r);
+  ctx.lineTo(x,y+r); ctx.quadraticCurveTo(x,y,x+r,y);
+  ctx.closePath();
+}
+/* 带发光的圆角盒子 */
+function box(x,y,w,h,o){
+  o = o || {};
+  const r = o.r==null?12:o.r;
+  if (o.glow){
+    ctx.save();
+    ctx.shadowColor = o.glow; ctx.shadowBlur = o.glowBlur==null?26:o.glowBlur;
+    rr(x,y,w,h,r); ctx.fillStyle = o.fill || 'rgba(27,24,52,.9)'; ctx.fill();
+    ctx.restore();
+  }
+  rr(x,y,w,h,r);
+  if (o.fill){ ctx.fillStyle = o.fill; ctx.fill(); }
+  if (o.stroke){ ctx.strokeStyle = o.stroke; ctx.lineWidth = o.lw||1.4; ctx.stroke(); }
+}
+/* 发光文字（手机窄屏时给过小字号托底，保证实际显示 ≥ 10px） */
+function text(str,x,y,o){
+  o = o || {};
+  let size = o.size || 14;
+  if (NARROW && size < CANVAS_TEXT_MIN) size = CANVAS_TEXT_MIN;
+  ctx.save();
+  ctx.font = (o.weight||700)+' '+size+'px '+
+    (o.mono ? 'ui-monospace,SFMono-Regular,Consolas,monospace'
+            : '-apple-system,"PingFang SC","Microsoft YaHei",sans-serif');
+  ctx.fillStyle = o.color || '#d8d2c8';
+  ctx.textAlign = o.align || 'left';
+  ctx.textBaseline = o.base || 'middle';
+  if (o.glow){ ctx.shadowColor = o.glow; ctx.shadowBlur = o.glowBlur==null?14:o.glowBlur; }
+  ctx.fillText(str, x, y);
+  ctx.restore();
+}
+function line(x1,y1,x2,y2,o){
+  o = o||{};
+  ctx.save();
+  if (o.dash) ctx.setLineDash(o.dash);
+  if (o.glow){ ctx.shadowColor=o.glow; ctx.shadowBlur=o.glowBlur==null?12:o.glowBlur; }
+  ctx.strokeStyle = o.color||'#353050';
+  ctx.lineWidth = o.lw||1.5;
+  ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
+  ctx.restore();
+}
+/* 折线路径 */
+function poly(pts,o){
+  o=o||{};
+  ctx.save();
+  if (o.glow){ ctx.shadowColor=o.glow; ctx.shadowBlur=o.glowBlur==null?10:o.glowBlur; }
+  ctx.strokeStyle=o.color||'#3a3554'; ctx.lineWidth=o.lw||1.6;
+  if (o.dash) ctx.setLineDash(o.dash);
+  ctx.beginPath();
+  ctx.moveTo(pts[0][0],pts[0][1]);
+  for (let i=1;i<pts.length;i++) ctx.lineTo(pts[i][0],pts[i][1]);
+  ctx.stroke();
+  ctx.restore();
+}
+/* 折线总长 & 按进度取点 */
+function polyLen(pts){
+  let L=0;
+  for (let i=1;i<pts.length;i++) L += Math.hypot(pts[i][0]-pts[i-1][0], pts[i][1]-pts[i-1][1]);
+  return L;
+}
+function polyAt(pts,t){
+  const total = polyLen(pts);
+  let d = clamp(t,0,1)*total;
+  for (let i=1;i<pts.length;i++){
+    const seg = Math.hypot(pts[i][0]-pts[i-1][0], pts[i][1]-pts[i-1][1]);
+    if (d<=seg || i===pts.length-1){
+      const k = seg===0?0:d/seg;
+      return [ lerp(pts[i-1][0],pts[i][0],k), lerp(pts[i-1][1],pts[i][1],k) ];
+    }
+    d-=seg;
+  }
+  return pts[pts.length-1].slice();
+}
+/* 光点 */
+function orb(x,y,r,color,alpha){
+  ctx.save();
+  ctx.globalAlpha = alpha==null?1:alpha;
+  ctx.shadowColor = color; ctx.shadowBlur = r*3.6;
+  ctx.fillStyle = color;
+  ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.fill();
+  ctx.globalAlpha = (alpha==null?1:alpha)*0.28;
+  ctx.beginPath(); ctx.arc(x,y,r*2.6,0,Math.PI*2); ctx.fill();
+  ctx.restore();
+}
+/* 对勾 */
+function check(x,y,s,color){  ctx.save();
+  ctx.strokeStyle=color; ctx.lineWidth=s*0.24; ctx.lineCap='round'; ctx.lineJoin='round';
+  ctx.shadowColor=color; ctx.shadowBlur=10;
+  ctx.beginPath();
+  ctx.moveTo(x-s*0.45,y); ctx.lineTo(x-s*0.1,y+s*0.35); ctx.lineTo(x+s*0.5,y-s*0.38);
+  ctx.stroke();
+  ctx.restore();
+}
+
+/* 红叉（失败标记） */
+function cross(x,y,s,color){
+  ctx.save();
+  ctx.strokeStyle=color; ctx.lineWidth=s*0.24; ctx.lineCap='round';
+  ctx.shadowColor=color; ctx.shadowBlur=10;
+  ctx.beginPath();
+  ctx.moveTo(x-s*0.42,y-s*0.42); ctx.lineTo(x+s*0.42,y+s*0.42);
+  ctx.moveTo(x+s*0.42,y-s*0.42); ctx.lineTo(x-s*0.42,y+s*0.42);
+  ctx.stroke();
+  ctx.restore();
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   背景：滚动网格 + 星点  （所有场景共用 —— "画布会动"的底子）
+   ══════════════════════════════════════════════════════════════════ */
+const Grid = {
+  t:0, stars:[],
+  init(){
+    this.stars = [];
+    const n = Math.round((W*H)/16000);
+    for (let i=0;i<n;i++) this.stars.push({
+      x:Math.random()*W, y:Math.random()*H,
+      z:Math.random(), s:rand(0.5,1.7), vy:rand(4,20)
+    });
+  },
+  update(dt){
+    this.t += dt;
+    for (const s of this.stars){
+      s.y += s.vy*dt*(0.4+s.z);
+      if (s.y > H+4){ s.y = -4; s.x = Math.random()*W; }
+    }
+  },
+  draw(){
+    // 底色渐变
+    const g = ctx.createLinearGradient(0,0,W,H);
+    g.addColorStop(0,'#07060f'); g.addColorStop(0.5,'#0a0a1a'); g.addColorStop(1,'#07060f');
+    ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
+
+    // 滚动网格
+    const GS = 52, off = (this.t*16)%GS;
+    ctx.save();
+    ctx.strokeStyle='rgba(124,116,155,.085)'; ctx.lineWidth=1;
+    ctx.beginPath();
+    for (let x=-GS+off%GS; x<W+GS; x+=GS){ ctx.moveTo(x,0); ctx.lineTo(x,H); }
+    for (let y=-GS+off; y<H+GS; y+=GS){ ctx.moveTo(0,y); ctx.lineTo(W,y); }
+    ctx.stroke();
+    ctx.restore();
+
+    // 星点
+    ctx.save();
+    for (const s of this.stars){
+      ctx.globalAlpha = 0.10 + s.z*0.30;
+      ctx.fillStyle = s.z>0.72 ? '#8b7aaa' : '#7f8fb5';
+      ctx.fillRect(s.x, s.y, s.s, s.s*1.7);
+    }
+    ctx.restore();
+
+    // 顶部氛围光
+    const rg = ctx.createRadialGradient(W*0.5,-H*0.25,10, W*0.5,-H*0.25, Math.max(W,H)*0.85);
+    rg.addColorStop(0,'rgba(139,122,170,.10)'); rg.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.fillStyle=rg; ctx.fillRect(0,0,W,H);
+  }
+};
+
+/* ══════════════════════════════════════════════════════════════════
+   场景管理器
+   ══════════════════════════════════════════════════════════════════ */
+const SCENES_READY = true;
+let autoSwitchPlay = false;
+
+/* 每个场景由工厂函数生成对象：
+   { id, tab, title, sub, build(), update(dt), draw(), kill(),
+     onEnter(), onResize(), metrics(), narr(), controls:{step,reset} } */
+
+function register(factory){ SCENES.push(factory); }
+
+function selectScene(i){
+  if (Scene && Scene.kill) Scene.kill();
+  Scene = SCENES[i]();
+  Scene.build && Scene.build();
+  Scene.onResize && Scene.onResize();
+  Scene.onEnter && Scene.onEnter();
+
+  // tabs 高亮
+  [...document.querySelectorAll('.tab')].forEach((el,k)=>el.classList.toggle('on', k===i));
+
+  // HUD
+  document.getElementById('hTitle').innerHTML = Scene.title;
+  document.getElementById('hSub').innerHTML   = Scene.sub;
+
+  // 底部控件
+  const btnStep  = document.getElementById('btnStep');
+  const stepsEl  = document.getElementById('steps');
+  const expsEl   = document.getElementById('exps');
+  const hasStep  = !!(Scene.controls && Scene.controls.step);
+  const hasSteps = !!(Scene.controls && Scene.controls.steps);
+  const hasExp   = !!(Scene.controls && Scene.controls.exp);
+
+  btnStep.style.display = hasStep ? '' : 'none';
+  stepsEl.style.display = hasSteps ? 'flex' : 'none';
+  expsEl.style.display  = hasExp  ? 'flex' : 'none';
+
+  if (hasSteps) buildStepDots(Scene.controls.steps);
+  if (hasExp)   buildExpChips(Scene.controls.exp);
+
+  /* 手机上“步骤点 / 实验按钮”会换行、控制条高度会变，重新量一次舞台 */
+  doResize();
+  Scene.onResize && Scene.onResize();
+  syncHint();
+
+  setPlaying(autoSwitchPlay);
+  syncButtons();
+  updateNarr();
+  updateMetrics();
+}
+
+/* ── 播放状态（单一开关，绝不出现"点一下全场乱动"） ── */
+let playing = false;
+function setPlaying(v){
+  playing = v;
+  if (Scene && Scene.setPlaying) Scene.setPlaying(v);
+  syncButtons();
+}
+function syncButtons(){
+  const b = document.getElementById('btnPlay');
+  b.textContent = playing ? '⏸ 暂停' : '▶ 播放';
+  b.classList.toggle('pri', !playing);
+}
+
+/* ── 主循环 ── */
+let last = performance.now(), acc = 0;
+function frame(now){
+  let dt = (now-last)/1000; last = now;
+  if (dt > 0.06) dt = 0.06;              // 防止切标签回来大跳
+
+  Grid.update(dt);
+
+  if (playing && Scene && Scene.update) Scene.update(dt);
+
+  Grid.draw();
+  if (Scene && Scene.draw) Scene.draw();
+
+  acc += dt;
+  if (acc > 0.1){ acc = 0; updateNarr(); updateMetrics(); }   // HUD 降频刷新
+
+  requestAnimationFrame(frame);
+}
+
+/* ── HUD 刷新 ── */
+function updateNarr(){
+  if (!Scene) return;
+  const el = document.getElementById('narr');
+  el.innerHTML = Scene.narr ? Scene.narr() : '';
+}
+function updateMetrics(){
+  if (!Scene) return;
+  const el = document.getElementById('hMetrics');
+  el.innerHTML = Scene.metrics ? Scene.metrics() : '';
+}
+function buildStepDots(list){
+  const el = document.getElementById('steps');
+  el.innerHTML = '';
+  list.forEach((s,i)=>{
+    const d = document.createElement('div');
+    d.className='dot'; d.textContent = i+1; d.title = s;
+    d.onclick = ()=>{ if (Scene.goStep) Scene.goStep(i); syncDots(); };
+    el.appendChild(d);
+  });
+  syncDots();
+}
+function syncDots(){
+  const el = document.getElementById('steps');
+  const dots = [...el.children];
+  const cur = Scene && Scene.currentStep!=null ? Scene.currentStep : -1;
+  dots.forEach((d,i)=>{
+    d.classList.toggle('on', i===cur);
+    d.classList.toggle('done', i<cur);
+  });
+}
+/* 实验芯片（场景④） */
+function buildExpChips(list){
+  const el = document.getElementById('exps');
+  el.innerHTML = '';
+  list.forEach((label,i)=>{
+    const c = document.createElement('div');
+    c.className = 'chip'; c.textContent = label;
+    c.onclick = ()=>{
+      if (Scene && Scene.setExp) Scene.setExp(i);
+      syncChips(); updateNarr(); updateMetrics();
+    };
+    el.appendChild(c);
+  });
+  syncChips();
+}
+function syncChips(){
+  const el = document.getElementById('exps');
+  const cur = Scene && Scene.currentExp!=null ? Scene.currentExp : 0;
+  [...el.children].forEach((c,i)=>c.classList.toggle('on', i===cur));
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   ① 单体应用 —— 一个卡全卡
+   ══════════════════════════════════════════════════════════════════ */
+register(function(){
+  const MODS = ['认证','客户坐席','会话消息','工单','知识库','AI 编排','报表统计'];
+  const AI_I = 5;
+  let t=0, queue=[], aiBusy=0, reqId=0, done=0, spawned=0, sparkles=[];
+
+  const S = {
+    id:'mono',
+    tab:'① 单体：一个卡全卡',
+    title:'① 单体应用 —— <em>一个模块卡住，全店排队</em>',
+    sub:'AI 调大模型一次要 2~4 秒，这 2~4 秒里它<b>占着同一份资源</b>：顾客发消息、坐席查报表，全得等它。',
+    controls:{},
+    boxes:[],
+
+    build(){ this.layout(); },
+    layout(){
+      const bw = Math.min(W*0.76, 1080), bh = Math.min(H*0.60, 560);
+      this.app = { x:(W-bw)/2, y:H*0.18, w:bw, h:bh };
+      const cols=4, rows=2, gap=14;
+      const iw = (bw-24*2-gap*(cols-1))/cols, ih=(bh-24*2-gap*(rows-1)-34)/rows;
+      this.boxes = MODS.map((m,i)=>{
+        const c=i%cols, r=Math.floor(i/cols);
+        return {
+          name:m, ai:i===AI_I,
+          x:this.app.x+24+c*(iw+gap),
+          y:this.app.y+24+34+r*(ih+gap),
+          w:iw, h:ih
+        };
+      });
+    },
+    onResize(){ this.layout(); },
+
+    onEnter(){ this.reset(); },
+    kill(){},
+    setPlaying(v){ if (v && t===0) this.reset(); },
+
+    reset(){
+      t=0; queue=[]; aiBusy=0; done=0; spawned=0; sparkles=[];
+    },
+
+    goStep(){},
+    resetPub(){ this.reset(); },
+
+    update(dt){
+      t += dt;
+
+      // 每 0.62 秒来一个请求；若 AI 正忙则排到队列里
+      if (t - spawned > 0.62){
+        spawned = t;
+        reqId++;
+        const isAI = (reqId % 3 === 0);          // 每 3 个里有 1 个打到 AI
+        if (isAI && aiBusy <= 0){
+          aiBusy = 3.0;                          // 卡 3 秒
+          sparkles.push({x:0,y:0,life:1,target:'ai'});
+        } else {
+          queue.push({ id:reqId, born:t, ai:isAI });
+        }
+      }
+
+      if (aiBusy > 0){
+        aiBusy -= dt;
+        if (aiBusy <= 0){
+          aiBusy = 0; done++;
+          if (queue.length) { aiBusy = 3.0; queue.shift(); done++; }
+        }
+      } else if (queue.length){
+        aiBusy = 3.0; queue.shift(); done++;
+      }
+
+      // 火花寿命
+      for (const s of sparkles) s.life -= dt*1.4;
+      sparkles = sparkles.filter(s=>s.life>0);
+    },
+
+    draw(){
+      const ap = this.app;
+      const busy = aiBusy>0;
+      const pulse = 0.5+0.5*Math.sin(t*7);
+
+      // 大盒子外框
+      box(ap.x-2, ap.y-2, ap.w+4, ap.h+4, {
+        fill:'rgba(11,10,31,.94)',
+        stroke: busy ? 'rgba(181,106,106,'+(0.5+0.4*pulse)+')' : 'rgba(139,122,170,.42)',
+        lw:2, r:18,
+        glow: busy?'rgba(181,106,106,.55)':'rgba(139,122,170,.22)', glowBlur:30
+      });
+      text('单体应用（一个 jar 全包）', ap.x+24, ap.y+26, {size:14.5,color:'#a89abf',weight:800});
+      text('同一线程池 / 同一连接池', ap.x+ap.w-24, ap.y+26, {size:12,color:'#767093',align:'right',mono:true});
+
+      // 7 个模块
+      for (let i=0;i<this.boxes.length;i++){
+        const b = this.boxes[i];
+        const isAI = b.ai;
+        const hot = isAI && busy;
+        const c = hot ? '#b56a6a' : (isAI ? '#c4a970' : '#8b7aaa');
+
+        box(b.x,b.y,b.w,b.h,{
+          fill: hot ? 'rgba(40,22,30,.94)' : 'rgba(17,16,44,.9)',
+          stroke: hot ? 'rgba(181,106,106,'+(0.65+0.35*pulse)+')' : 'rgba(139,122,170,.30)',
+          lw: hot?2.2:1.3, r:11,
+          glow: hot ? 'rgba(181,106,106,'+(0.45+0.35*pulse)+')' : null, glowBlur: hot?34:0
+        });
+        text(b.name, b.x+b.w/2, b.y+b.h/2 + (hot?-6:0), {
+          size: isAI?14.5:14, weight:800, align:'center',
+          color: hot ? '#d3c2c2' : (isAI?'#d9c69c':'#c0b4d2'),
+          glow: hot?'#b56a6a':null
+        });
+        if (isAI){
+          text(hot ? ('处理中 '+ (3-aiBusy).toFixed(1) +'s') : '空闲',
+            b.x+b.w/2, b.y+b.h/2+16, {size:11.5,weight:700,align:'center',
+            color: hot?'#c08a8a':'#98928a', mono:true});
+        }
+        if (hot){
+          // 火花
+          for (let k=0;k<3;k++){
+            const a = t*9 + k*2.1;
+            const r = 16+10*Math.sin(a*2.3);
+            orb(b.x+b.w/2+Math.cos(a)*r, b.y+b.h/2+Math.sin(a*1.7)*r*0.6, 1.6, '#c4a970', 0.5+0.5*pulse);
+          }
+        }
+      }
+
+      // 队列区
+      const qy = ap.y+ap.h-30;
+      line(ap.x+24, qy, ap.x+ap.w-24, qy, {color:'rgba(181,106,106,.30)', lw:1, dash:[6,6]});
+      text('排队中的请求', ap.x+24, qy-15, {size:12,color:'#98928a',weight:700});
+
+      const startX = ap.x+150;
+      for (let i=0;i<queue.length;i++){
+        const x = startX + i*30;
+        if (x > ap.x+ap.w-40) break;
+        const jitter = Math.sin(t*11 + i)*1.5;
+        orb(x, qy-15+jitter, 5.2, '#b56a6a', 0.9);
+        text(String(queue[i].id), x, qy-15+jitter, {size:9.5,align:'center',color:'#160f1c',weight:800,mono:true});
+      }
+      if (queue.length===0){
+        text('— 无积压 —', startX, qy-15, {size:12,color:'#4a4560'});
+      } else if (queue.length>=5){
+        const a = 0.55+0.45*Math.sin(t*8);
+        text('⚠ 积压 '+queue.length+' 个请求', ap.x+ap.w-24, qy-15, {
+          size:13, align:'right', color:'#b56a6a', weight:800, glow:'#b56a6a', glowBlur:14
+        });
+        ctx.save(); ctx.globalAlpha = a*0.18; ctx.fillStyle='#b56a6a';
+        ctx.fillRect(ap.x, ap.y, ap.w, ap.h); ctx.restore();
+      }
+
+      // 时间轴
+      const ty = ap.y+ap.h+26;
+      line(ap.x, ty, ap.x+ap.w, ty, {color:'#262338', lw:2});
+      const prog = (t%24)/24;
+      line(ap.x, ty, ap.x+ap.w*prog, ty, {color:'#b56a6a', lw:2, glow:'#b56a6a', glowBlur:10});
+      orb(ap.x+ap.w*prog, ty, 3.4, '#b56a6a');
+      text('时间 →', ap.x+ap.w, ty+18, {size:11,color:'#4a4560',align:'right',mono:true});
+    },
+
+    metrics(){
+      const busy = aiBusy>0;
+      return '队列深度 <span class="'+(queue.length>3?'bad':'')+'">'+queue.length+'</span><br>'+
+             'AI 状态 <span class="'+(busy?'bad':'')+'">'+(busy?'阻塞中':'空闲')+'</span><br>'+
+             '已完成 <span>'+done+'</span>';
+    },
+    narr(){
+      return '<span class="t">看这里：</span>AI 一收球就<b>变红卡住</b>，其他 6 个模块明明没事干，'+
+             '请求却只能在外面排队 —— 因为它们<b>抢的是同一份线程池和连接池</b>。';
+    }
+  };
+  return S;
+});
+
+/* ══════════════════════════════════════════════════════════════════
+   ② 微服务 —— 互不影响 + 独立扩容
+   ══════════════════════════════════════════════════════════════════ */
+register(function(){
+  const SVCS = [
+    {k:'auth',        n:'认证授权'},
+    {k:'customer',    n:'客户坐席'},
+    {k:'conversation',n:'会话消息'},
+    {k:'ticket',      n:'工单'},
+    {k:'knowledge',   n:'知识库'},
+    {k:'ai',          n:'AI 编排'},
+    {k:'report',      n:'报表'}
+  ];
+  const AI_I = 5, CONV_I = 2;
+
+  let t=0, gw, nodes=[], packets=[], clones=[], aiBusy=0, spawned=0, done=0, dropped=0;
+
+  const S = {
+    id:'micro',
+    tab:'② 微服务：互不影响',
+    title:'② 微服务 —— <em>一个卡了，别人照跑；谁忙给谁加机器</em>',
+    sub:'同样一个 AI 卡住 3 秒：其他 6 个服务<b>照样进、照样出</b>。7 秒后会话服务自动扩到 3 个实例，请求按 1/3 分流。',
+
+    build(){ this.layout(); },
+    layout(){
+      gw = { x:W/2, y:H*0.155, w:210, h:44 };
+
+      const topY = H*0.30, rowH = 52, colX = W/2;
+      // 左边 4 个、右边 3 个，围着网关
+      const left  = [0,1,2,3], right=[4,5,6];
+      const slotH = Math.min(72, (H*0.56)/4);
+      nodes = SVCS.map((s,i)=>{
+        const isLeft = left.includes(i);
+        const idx = isLeft ? left.indexOf(i) : right.indexOf(i);
+        const x = isLeft ? W*0.13 : W*0.87;
+        const y = topY + idx*slotH + slotH/2;
+        return { ...s, i, x, y, w:190, h:44, side:isLeft?'L':'R',
+                 busy:0, ok:0, instances:[{x, y, w:190, h:44, load:0}] };
+      });
+      // 会话服务克隆位的基准位置
+      this.convBase = { x:nodes[CONV_I].x, y:nodes[CONV_I].y };
+      packets = [];
+    },
+    onResize(){ this.layout(); },
+
+    onEnter(){ this.reset(); },
+    kill(){},
+    setPlaying(v){ if (v && t===0) this.reset(); },
+    reset(){ t=0; packets=[]; clones=[]; aiBusy=0; spawned=0; done=0; dropped=0;
+             nodes.forEach(n=>{ n.busy=0; n.ok=0; }); },
+
+    spawnPacket(){
+      const svcIdx = Math.floor(Math.random()*7);
+      const n = nodes[svcIdx];
+      const path = [
+        [W*0.5, H*0.055],
+        [gw.x, gw.y + gw.h/2],
+        [n.x, n.y]
+      ];
+      packets.push({ svc:svcIdx, path, t:0, speed:0.85+Math.random()*0.5, state:'in' });
+    },
+
+    update(dt){
+      t += dt;
+
+      // 扩缩容
+      if (t>7 && clones.length===0){
+        const b = this.convBase;
+        clones.push({ x:b.x, y:b.y, w:190, h:44, idx:1 });
+        clones.push({ x:b.x, y:b.y, w:190, h:44, idx:2 });
+      }
+      if (t>13 && clones.length===2) clones.length = 1;
+
+      if (t - spawned > 0.34){ spawned = t; this.spawnPacket(); }
+
+      if (aiBusy>0) aiBusy -= dt;
+      else if (Math.random()<dt*0.55){ aiBusy = 3.0; nodes[AI_I].busy = 1; }
+
+      // 包飞行
+      for (const p of packets){
+        const n = nodes[p.svc];
+        const slow = (p.svc===AI_I && aiBusy>0);
+        const sp = p.speed * (slow ? 0.12 : 1);
+        p.t += dt*sp*1.35;
+        if (p.t >= 1){
+          if (slow){ p.hold = (p.hold||0)+dt; if (p.hold<3){ p.t=1; continue; } }
+          p.state='out'; p.t=0; p.ok=true;
+          n.ok++;
+        }
+      }
+      packets = packets.filter(p=>{
+        if (p.state==='out' && p.t>=1){ done++; return false; }
+        return true;
+      });
+    },
+
+    draw(){
+      const pulse = 0.5+0.5*Math.sin(t*7);
+
+      // 网关
+      box(gw.x-gw.w/2, gw.y-gw.h/2, gw.w, gw.h, {
+        fill:'rgba(25,22,48,.95)', stroke:'rgba(127,143,181,.75)', lw:1.8, r:10,
+        glow:'rgba(127,143,181,.5)', glowBlur:22
+      });
+      text('Spring Cloud Gateway', gw.x, gw.y-3, {size:13,weight:800,align:'center',color:'#d4cee2'});
+      text('统一入口', gw.x, gw.y+12, {size:10.5,align:'center',color:'#817ba3'});
+
+      // Nacos（小标）
+      const nx = W*0.5, ny = H*0.055;
+      box(nx-72, ny-15, 144, 30, {fill:'rgba(15,14,39,.92)', stroke:'rgba(139,122,170,.42)', lw:1.2, r:8});
+      text('NACOS  注册/发现', nx, ny, {size:11,weight:800,align:'center',color:'#ab9dc2',mono:true});
+      line(nx, ny+15, gw.x, gw.y-gw.h/2, {color:'rgba(139,122,170,.28)', dash:[5,5]});
+
+      // 7 个服务 + 克隆
+      const drawNode = (n, alpha, isClone, loadPct)=>{
+        const busy = (n.i===AI_I && aiBusy>0) || (n.i===AI_I && nodes[AI_I].busy && false);
+        const isAI = n.i===AI_I;
+        const hot = isAI && aiBusy>0;
+        const c = hot ? '#b56a6a' : (isAI?'#c4a970':'#8b7aaa');
+        const w = n.w, h = n.h;
+        box(n.x-w/2, n.y-h/2, w, h, {
+          fill: hot ? 'rgba(38,20,28,.95)' : 'rgba(16,15,41,.94)',
+          stroke: hot ? 'rgba(181,106,106,'+(0.6+0.4*pulse)+')' : 'rgba(139,122,170,.45)',
+          lw: hot?2.2:1.5, r:10,
+          glow: hot ? 'rgba(181,106,106,'+(0.4+0.4*pulse)+')' : 'rgba(139,122,170,.20)',
+          glowBlur: hot?34:12
+        });
+        text(n.n, n.x-w/2+14, n.y-2, {size:13.5,weight:800,color: hot?'#d3c2c2':'#cdc2dd'});
+        text(isClone?('实例'+(n.idx+1)):'独立部署',
+             n.x-w/2+14, n.y+13, {size:10,color:'#7b7598',mono:true});
+        if (hot){
+          text('阻塞 '+(3-aiBusy).toFixed(1)+'s', n.x+w/2-14, n.y-2,
+               {size:11.5,weight:800,align:'right',color:'#c08a8a',mono:true});
+          for (let k=0;k<3;k++){
+            const a=t*9+k*2.1, r=18+11*Math.sin(a*2.2);
+            orb(n.x+Math.cos(a)*r, n.y+Math.sin(a*1.8)*r*0.6, 1.7, '#c4a970', 0.55+0.45*pulse);
+          }
+        } else {
+          check(n.x+w/2-18, n.y-2, 9, 'rgba(127,160,122,.85)');
+        }
+        // 负载条
+        if (loadPct!=null){
+          const bw2 = w-28;
+          ctx.save();
+          ctx.fillStyle='rgba(255,255,255,.07)';
+          ctx.fillRect(n.x-w/2+14, n.y+h/2-8, bw2, 3.5);
+          ctx.fillStyle = loadPct>0.8 ? '#b56a6a' : (loadPct>0.55?'#c4a970':'#8b7aaa');
+          ctx.fillRect(n.x-w/2+14, n.y+h/2-8, bw2*loadPct, 3.5);
+          ctx.restore();
+        }
+      };
+
+      nodes.forEach((n,i)=>{
+        // 网关 → 服务连线
+        line(gw.x, (i<4? gw.y+gw.h/2 : gw.y-gw.h/2), n.x, (i<4? n.y-n.h/2 : n.y+n.h/2),
+             {color:'rgba(127,118,158,.30)', lw:1.2});
+      });
+
+      if (clones.length){
+        // 主会话节点左移，克隆排右侧
+        const b = this.convBase;
+        nodes[CONV_I].x = b.x;
+      }
+
+      // 负载计算
+      const total = packets.length || 1;
+      nodes.forEach((n,i)=>{
+        const cnt = packets.filter(p=>p.svc===i && p.state==='in').length;
+        const inst = (i===CONV_I ? 1+clones.length : 1);
+        drawNode(n, 1, false, clamp(cnt/(4*inst),0,1));
+      });
+      // 克隆节点
+      clones.forEach((c,i)=>{
+        const node = { ...nodes[CONV_I], x:c.x, y:c.y, idx:i+1 };
+        const cnt = packets.filter(p=>p.svc===CONV_I).length;
+        drawNode(node, 1, true, clamp(cnt/(4*(1+clones.length)),0,1));
+      });
+
+      // 光点
+      for (const p of packets){
+        const n = nodes[p.svc];
+        const inX = (p.svc<4)? n.x : n.x;
+        const pts = p.state==='in'
+          ? p.path
+          : [[n.x,n.y],[gw.x,gw.y],[W*0.5,H*0.055]];
+        const pt = polyAt(pts, p.state==='in'? clamp(p.t,0,1) : clamp(p.t,0,1));
+        const col = p.state==='out' ? '#7fa07a'
+                  : ((p.svc===AI_I && aiBusy>0) ? '#b56a6a' : '#8b7aaa');
+        orb(pt[0], pt[1], 4.4, col, 0.95);
+        if (p.state==='out' && p.t>0.92) check(pt[0],pt[1],11,'#7fa07a');
+      }
+
+      // 扩容提示
+      if (clones.length){
+        const a = 0.6+0.4*Math.sin(t*4);
+        const c = this.convBase;
+        text('⟳ 会话服务压力升高 → 自动扩容到 3 个实例，请求按 1/3 分流',
+             W/2, H*0.955, {size:13.5,weight:800,align:'center',
+             color:'rgba(139,122,170,'+a+')', glow:'rgba(139,122,170,.6)', glowBlur:16});
+      }
+    },
+
+    metrics(){
+      const inst = 1+clones.length;
+      return 'AI 状态 <span class="'+(aiBusy>0?'bad':'')+'">'+(aiBusy>0?'阻塞中':'正常')+'</span><br>'+
+             '会话实例 <span>'+inst+'</span> 个<br>'+
+             '单实例压力 <span class="'+(inst>1?'':'warn')+'">'+Math.round(100/inst)+'%</span><br>'+
+             '已完成 <span>'+done+'</span>';
+    },
+    narr(){
+      return '<span class="t">对比场景①：</span>同样是 AI 卡住 3 秒，这里其他 6 个服务<b>照常收发</b>。'+
+             '7 秒后会话服务克隆出实例 2、3 —— 这就是<b>独立扩容</b>：谁忙给谁加机器。';
+    }
+  };
+  return S;
+});
+
+/* ══════════════════════════════════════════════════════════════════
+   ③ 请求的旅程 —— 7 步逐帧
+   ══════════════════════════════════════════════════════════════════ */
+register(function(){
+  const STEPS = [
+    { t:'① 顾客发消息',        d:'顾客在网页/小程序发一条咨询，先到 Nginx。', m:'单体里也经过 Nginx，没区别。' },
+    { t:'② 进网关',            d:'Spring Cloud Gateway 是唯一入口，负责路由 + JWT 校验。', m:'单体里这个活通常由拦截器干。' },
+    { t:'③ 问 Nacos',          d:'网关问 Nacos："conversation 服务在哪？" Nacos 是通讯录。', m:'单体里不需要找人——都在一个进程里。' },
+    { t:'④ 到会话服务',        d:'conversation 服务收到消息，落库 MySQL，写 Redis 会话上下文。', m:'单体里这一步和 AI 抢同一份资源。' },
+    { t:'⑤ Feign 调 AI',       d:'conversation 用 OpenFeign 调 ai 服务 —— 本质就是一个 HTTP 请求。', m:'单体里就是一次方法调用；拆开后要处理超时和失败。' },
+    { t:'⑥ AI 再调知识库',     d:'ai 服务要检索资料，再 httpx 调 knowledge 服务，做 RAG 检索。', m:'两个都是 Python 服务，直接 HTTP 调用；单体里同样是一次方法调用。' },
+    { t:'⑦ 原路返回',          d:'答案沿原路返回，顾客收到回复。整条链路可以靠 traceId 串起来。', m:'单体里看一个日志文件就行，拆开后要追 traceId。' }
+  ];
+
+  let step=0, tt=0, autoT=0, running=false;
+
+  const S = {
+    id:'journey',
+    tab:'③ 请求的 7 步旅程',
+    title:'③ 一次请求的 <em>完整旅程</em>',
+    sub:'点底部 <b>下一步</b> 逐步走，或点 <b>播放</b> 自动走完 7 步。每一步都会告诉你：<b>如果是单体，这一步会怎样</b>。',
+    controls:{ step:true, steps:STEPS.map(s=>s.t) },
+    currentStep:0,
+
+    build(){ this.layout(); },
+    layout(){
+      const cx = W/2;
+      this.N = { x:cx,        y:H*0.13, w:150, h:38 };   // nginx
+      this.G = { x:cx,        y:H*0.245,w:250, h:44 };   // gateway
+      this.C = { x:cx,        y:H*0.40, w:210, h:44 };   // nacos
+      this.A = { x:W*0.31,    y:H*0.665,w:210, h:48 };   // conversation
+      this.I = { x:W*0.5,     y:H*0.665,w:180, h:48 };   // ai
+      this.K = { x:W*0.70,    y:H*0.665,w:180, h:48 };   // knowledge
+      this.E = { x:cx,        y:H*0.885,w:230, h:44 };   // 返回
+    },
+    onResize(){ this.layout(); },
+
+    onEnter(){ this.reset(); },
+    kill(){},
+    setPlaying(v){ running = v; if (v && tt>=1) tt=0; },
+    reset(){ step=0; tt=0; autoT=0; running=false; S.currentStep=0; syncDots(); },
+
+    goStep(i){ step = clamp(i,0,6); tt=0; S.currentStep=step; syncDots(); this.afterStep && 0; },
+    next(){ if (step<6){ step++; tt=0; S.currentStep=step; syncDots(); } else { this.reset(); } },
+    resetPub(){ this.reset(); },
+
+    update(dt){
+      tt = Math.min(1, tt + dt*1.15);
+      if (running){
+        autoT += dt;
+        if (autoT > 1.9){ autoT = 0; if (step<6){ step++; tt=0; S.currentStep=step; syncDots(); } else { this.reset(); running=false; setPlaying(false); } }
+      }
+    },
+
+    draw(){
+      const cur = step;                    // 0..6
+      const hot = i => cur===i;
+
+      /* 6 段路，每段对应"到达第 i+1 步的那个节点" */
+      const segs = [
+        [ [this.N.x,this.N.y+this.N.h/2], [this.G.x,this.G.y-this.G.h/2] ],              // → Gateway
+        [ [this.G.x-40,this.G.y+this.G.h/2], [this.C.x-40,this.C.y-this.C.h/2] ],        // → Nacos
+        [ [this.C.x,this.C.y+this.C.h/2], [this.A.x,this.A.y-this.A.h/2] ],              // → conversation
+        [ [this.A.x+this.A.w/2,this.A.y], [this.I.x-this.I.w/2,this.I.y] ],              // → ai
+        [ [this.I.x+this.I.w/2,this.I.y], [this.K.x-this.K.w/2,this.K.y] ],              // → knowledge
+        [ [this.K.x,this.K.y+this.K.h/2], [this.E.x,this.E.y-this.E.h/2] ]               // → 顾客收到回复
+      ];
+
+      // 连线：当前步所在的那一段高亮
+      segs.forEach((s,i)=>{
+        const on = (cur>=1 && cur-1===i);
+        line(s[0][0],s[0][1],s[1][0],s[1][1],{
+          color: on ? '#8b7aaa' : 'rgba(127,118,158,.22)',
+          lw: on?2.6:1.3,
+          glow: on?'rgba(139,122,170,.85)':null, glowBlur: on?18:0
+        });
+      });
+      // 已走过的段留一条绿色轨迹
+      for (let i=0;i<cur-1;i++){
+        const s = segs[i];
+        line(s[0][0],s[0][1],s[1][0],s[1][1],{color:'rgba(127,160,122,.22)', lw:2.2});
+      }
+
+      const drawNode = (n,label,sub,on,color)=>{
+        box(n.x-n.w/2, n.y-n.h/2, n.w, n.h, {
+          fill: on?'rgba(22,19,46,.96)':'rgba(14,13,37,.93)',
+          stroke: on?color:'rgba(127,118,158,.32)',
+          lw: on?2.2:1.3, r:10,
+          glow: on?color:null, glowBlur: on?28:0
+        });
+        text(label, n.x, n.y-(sub?-3:0), {size:13,weight:800,align:'center',
+             color: on?'#efe9f5':'#b6b0c9'});
+        if (sub) text(sub, n.x, n.y+12, {size:10.5,align:'center',color:'#7d7799',mono:true});
+      };
+
+      drawNode(this.N,'Nginx','HTTPS 卸载 / 限流', hot(0), '#8b7aaa');
+      drawNode(this.G,'Spring Cloud Gateway','路由 · JWT · 限流', hot(1), '#7f8fb5');
+      drawNode(this.C,'NACOS','注册与发现（通讯录）', hot(2), '#8b7aaa');
+      drawNode(this.A,'conversation','会话与消息 · WebSocket', hot(3), '#8b7aaa');
+      drawNode(this.I,'ai','意图 · RAG · Tool Calling', hot(4), '#c4a970');
+      drawNode(this.K,'knowledge','知识库 · 向量检索', hot(5), '#7f8fb5');
+      drawNode(this.E,'顾客收到回复','', hot(6), '#7fa07a');
+
+      // 服务间调用标注
+      const mid45 = [ (this.A.x+this.A.w/2 + this.I.x-this.I.w/2)/2, (this.A.y+this.I.y)/2 ];
+      text('OpenFeign', mid45[0], mid45[1]-13, {size:11.5,weight:800,align:'center',color:'#d9c69c',mono:true});
+      text('= 一个 HTTP 请求', mid45[0], mid45[1]+3, {size:10.5,align:'center',color:'#7d7799'});
+      const mid56 = [ (this.I.x+this.I.w/2 + this.K.x-this.K.w/2)/2, (this.I.y+this.K.y)/2 ];
+      text('httpx', mid56[0], mid56[1]-13, {size:11.5,weight:800,align:'center',color:'#d9c69c',mono:true});
+
+      /* 光球：第 0 步停在入口，之后沿对应段飞 */
+      const ORB_COL = ['#8b7aaa','#7f8fb5','#8b7aaa','#8b7aaa','#c4a970','#7f8fb5','#7fa07a'];
+      if (cur===0){
+        // 起点静止呼吸
+        const bob = Math.sin(tt*Math.PI*2)*2;
+        orb(this.N.x, this.N.y+this.N.h/2+30+bob, 6, '#8b7aaa', 1);
+        text('顾客的消息从这里进来', this.N.x, this.N.y+this.N.h/2+48, 
+             {size:11.5,align:'center',color:'#98928a'});
+      } else {
+        const p = polyAt(segs[cur-1], easeOut(tt));
+        orb(p[0], p[1], 6.4, ORB_COL[cur], 1);
+        if (cur===6 && tt>0.9) check(p[0], p[1]+34, 16, '#7fa07a');
+      }
+
+      // 当前步骤大字说明
+      const boxW = Math.min(W*0.74, 900), boxH = 76;
+      const bx = (W-boxW)/2, by = H*0.945-boxH;
+      box(bx,by,boxW,boxH,{fill:'rgba(11,10,31,.9)', stroke:'rgba(139,122,170,.35)', lw:1.3, r:12});
+      text(STEPS[cur].t, bx+18, by+22, {size:14.5,weight:800,color:'#b9a98f'});
+      text(STEPS[cur].d, bx+18, by+44, {size:13,color:'#bfb9cf'});
+      text('如果是单体：'+STEPS[cur].m, bx+18, by+63, {size:11.5,color:'#c4a970'});
+    },
+
+    metrics(){
+      return '当前步骤 <span>'+(step+1)+' / 7</span><br>'+
+             '进度 <span>'+Math.round(tt*100)+'%</span>';
+    },
+    narr(){
+      return '<span class="t">第 '+(step+1)+' 步：</span>'+STEPS[step].t+' —— '+STEPS[step].d;
+    }
+  };
+
+  // 绑定"下一步"
+  return S;
+});
+
+/* ══════════════════════════════════════════════════════════════════
+   ④ 四个实验
+   ══════════════════════════════════════════════════════════════════ */
+register(function(){
+  const EXPS = [
+    { k:'load',  n:'实验① 三类负载抢资源' },
+    { k:'scale', n:'实验② 独立扩容' },
+    { k:'iso',   n:'实验③ 故障隔离' },
+    { k:'break', n:'实验④ 熔断降级' }
+  ];
+  let exp=0, t=0, spawned=0, packets=[], aiBusy=0, reportDead=false, sentinelOpen=false, sentinelTimer=0;
+
+  const S = {
+    id:'exp',
+    tab:'④ 四个实验',
+    title:'④ 四个实验 —— <em>亲手看看差别</em>',
+    sub:'点底部按钮切换实验：<b>为什么要拆 / 独立扩容 / 故障隔离 / 熔断降级</b>。每个实验各自循环播放。',
+    controls:{ exp:['① 抢资源','② 独立扩容','③ 故障隔离','④ 熔断降级'] },
+    currentExp:0,
+    expName(){ return EXPS[exp].n; },
+
+    build(){ this.layout(); },
+    layout(){
+      this.gw = { x:W/2, y:H*0.16, w:210, h:44 };
+      const colX = [W*0.22, W*0.5, W*0.78];
+      const rowY = [H*0.42, H*0.66];
+      this.cells = [];
+      const names = [['会话','实时'],['AI 编排','长耗时'],['报表','重查询']];
+      for (let i=0;i<3;i++){
+        this.cells.push({ x:colX[i], y:rowY[i%2], w:200, h:56, n:names[i][0], tag:names[i][1], i });
+      }
+      this.extra = { x:W*0.5, y:H*0.85, w:340, h:52 };
+    },
+    onResize(){ this.layout(); },
+
+    onEnter(){ this.reset(); },
+    kill(){},
+    setPlaying(v){ if (v && t===0) this.reset(); },
+    reset(){ t=0; packets=[]; aiBusy=0; reportDead=false; sentinelOpen=false; sentinelTimer=0; spawned=0; },
+    setExp(i){ exp=i; S.currentExp=i; this.reset(); syncChips(); },
+
+    update(dt){
+      t += dt;
+
+      if (exp===2 && t>3.2) reportDead = true;
+      if (exp===3){
+        // ★原来写的是 aiBusy=99，导致"熔断"看起来跟"永久卡死"一样，而且每 2.4 秒来回翻转，
+        //   用户根本看不清到底是开着还是关着。改成明确的两态循环：OPEN 持续 3.5s → CLOSED 持续 2.5s。
+        sentinelTimer += dt;
+        const span = sentinelOpen ? 3.5 : 2.5;
+        if (sentinelTimer > span){ sentinelOpen = !sentinelOpen; sentinelTimer = 0; }
+        // 熔断打开时，AI 服务本身是"被保护"状态，不再累加阻塞计时
+        aiBusy = sentinelOpen ? 0 : 2.0;
+      } else sentinelOpen = false;
+
+      // 收球：宕机的格子不再接收新请求（否则会出现"服务已宕机却还有请求成功返回"的矛盾画面）
+      if (t-spawned > 0.4){ spawned = t;
+        const alive = [0,1,2].filter(i => !(exp===2 && i===2 && reportDead));
+        packets.push({ cell: alive[Math.floor(Math.random()*alive.length)], t:0, state:'in', fail:false });
+      }
+      for (const p of packets){
+        const dead  = (exp===2 && p.cell===2 && reportDead);   // 目标服务已宕机
+        const blown = (exp===3 && p.cell===1 && sentinelOpen); // AI 被熔断
+        const slow  = (p.cell===1 && aiBusy>0 && !blown);
+        p.t += dt * (slow? 0.22 : 1.0) * 1.1;
+        if (p.t>=1){
+          if (dead || blown){ p.fail = true; }   // ★失败结果：不能给他画绿色成功球
+          p.state='out'; p.t=0;
+        }
+      }
+      packets = packets.filter(p=>!(p.state==='out' && p.t>=1));
+      if (aiBusy>0 && exp!==3) aiBusy -= dt;
+    },
+
+    draw(){
+      const pulse = 0.5+0.5*Math.sin(t*7);
+      // 网关
+      box(this.gw.x-this.gw.w/2, this.gw.y-this.gw.h/2, this.gw.w, this.gw.h,
+        {fill:'rgba(25,22,48,.95)',stroke:'rgba(127,143,181,.7)',lw:1.8,r:10,glow:'rgba(127,143,181,.4)',glowBlur:20});
+      text('Gateway', this.gw.x, this.gw.y, {size:13.5,weight:800,align:'center',color:'#d4cee2'});
+
+      // 三格
+      this.cells.forEach((c,i)=>{
+        const isAI = i===1, isRep = i===2;
+        const dead = isRep && reportDead && exp===2;
+        // ★热/熔断判断要跟光球染色用同一套条件，否则会出现"卡片说已熔断、光球却是绿的"
+        const blown = isAI && sentinelOpen;
+        const hot  = isAI && !blown && aiBusy>0;
+        const col = dead ? '#76706a' : (blown ? '#b56a6a' : (hot ? '#c4a970' : (isAI?'#c4a970':(isRep?'#7f8fb5':'#8b7aaa'))));
+
+        // 扩容：实验②时会话格变 3 个小格
+        if (exp===1 && i===0){
+          for (let k=0;k<3;k++){
+            const w2 = c.w/3-8, x2 = c.x-c.w/2 + k*(c.w/3)+4;
+            box(x2, c.y-c.h/2, w2, c.h, {fill:'rgba(16,15,41,.95)',stroke:'rgba(139,122,170,.55)',lw:1.5,r:9});
+            text('会话'+(k+1), x2+w2/2, c.y-6, {size:11.5,weight:800,align:'center',color:'#c3b7d5'});
+            text(Math.round(100/3)+'%', x2+w2/2, c.y+11, {size:10,align:'center',color:'#7d7799',mono:true});
+          }
+        } else {
+          box(c.x-c.w/2, c.y-c.h/2, c.w, c.h, {
+            fill: dead?'rgba(26,24,50,.9)':(blown?'rgba(38,20,28,.95)':(hot?'rgba(48,40,22,.95)':'rgba(16,15,41,.94)')),
+            stroke: col, lw:(hot||dead||blown)?2.1:1.4, r:10,
+            glow: (hot||dead||blown)?col:null, glowBlur:(hot||dead||blown)?28:0
+          });
+          // 宕机/熔断时在卡片右侧画红叉，一眼看出"这次没成功"
+          if (dead || blown) cross(c.x+c.w/2-20, c.y-4, 9, '#b56a6a');
+          text(c.n, c.x, c.y-6, {size:14,weight:800,align:'center',color: dead?'#9a95aa':'#d6cce3'});
+          text(dead?'已宕机 · 拒绝请求':(blown?'已被熔断 · 走兜底':(hot?'阻塞中':c.tag)),
+               c.x, c.y+12, {size:10.5,align:'center',
+               color: dead?'#c08a8a':(blown?'#c08a8a':(hot?'#d9c69c':'#7d7799'))});
+        }
+
+        line(this.gw.x, (i<2?this.gw.y+this.gw.h/2:this.gw.y-this.gw.h/2), c.x, (i<2?c.y-c.h/2:c.y+c.h/2),
+             {color: (dead||blown)?'rgba(181,106,106,.34)':'rgba(127,118,158,.28)', lw:1.2});
+      });
+
+      // 光球：绿色=成功返回，红色=失败（目标宕机 / 被熔断），永不把失败画成成功
+      for (const p of packets){
+        const c = this.cells[p.cell];
+        const pts = p.state==='in' ? [[this.gw.x,this.gw.y],[c.x,c.y]] : [[c.x,c.y],[this.gw.x,this.gw.y]];
+        const pt = polyAt(pts, clamp(p.t,0,1));
+        const ai = p.cell===1;
+        let col;
+        if (p.state==='in')      col = (ai && (aiBusy>0||sentinelOpen)) ? '#c4a970' : '#8b7aaa';  // 进入：青绿/琥珀
+        else if (p.fail)         col = '#b56a6a';                                                 // 失败：红
+        else                     col = '#7fa07a';                                                 // 成功：绿
+        orb(pt[0],pt[1],4.6,col,.95);
+        // 失败的结果在返回途中画一个红叉，明确"这次没成功"
+        if (p.fail && p.state==='out' && p.t>0.18){
+          const s=7;
+          ctx.save(); ctx.strokeStyle='#b56a6a'; ctx.lineWidth=2.2; ctx.lineCap='round';
+          ctx.shadowColor='#b56a6a'; ctx.shadowBlur=10;
+          ctx.beginPath();
+          ctx.moveTo(pt[0]-s,pt[1]-s); ctx.lineTo(pt[0]+s,pt[1]+s);
+          ctx.moveTo(pt[0]+s,pt[1]-s); ctx.lineTo(pt[0]-s,pt[1]+s);
+          ctx.stroke(); ctx.restore();
+        }
+      }
+
+      // ★图例：把"光球代表什么"直接画在画布上，避免"一个进去两个出来"的误解
+      const lg = this.cells[0];
+      const lx0 = lg.x - lg.w/2, ly0 = Math.max(H*0.90, lg.y + 96);
+      orb(lx0+10, ly0, 4.2, '#8b7aaa'); text('请求进入', lx0+22, ly0, {size:11,color:'#98928a'});
+      orb(lx0+92, ly0, 4.2, '#7fa07a'); text('成功返回', lx0+104, ly0, {size:11,color:'#98928a'});
+      orb(lx0+174, ly0, 4.2, '#b56a6a'); text('失败（宕机/熔断）', lx0+186, ly0, {size:11,color:'#98928a'});
+
+      // Sentinel 开关（实验④）
+      if (exp===3){
+        const sw = this.extra;
+        box(sw.x-sw.w/2, sw.y-sw.h/2, sw.w, sw.h, {
+          fill:'rgba(14,14,38,.95)',
+          stroke: sentinelOpen?'#b56a6a':'#7fa07a', lw:1.8, r:11,
+          glow: sentinelOpen?'rgba(181,106,106,.5)':'rgba(127,160,122,.4)', glowBlur:22
+        });
+        // 杠杆
+        const lx = sw.x-100, ly = sw.y;
+        ctx.save();
+        ctx.strokeStyle = sentinelOpen?'#b56a6a':'#7fa07a'; ctx.lineWidth=3; ctx.lineCap='round';
+        ctx.shadowColor = ctx.strokeStyle; ctx.shadowBlur=12;
+        ctx.beginPath();
+        const ang = sentinelOpen ? -0.65 : 0.65;
+        ctx.moveTo(lx-16, ly+9); ctx.lineTo(lx+16*Math.cos(ang), ly+9-16*Math.sin(ang));
+        ctx.stroke(); ctx.restore();
+        orb(lx+16*Math.cos(ang), ly+9-16*Math.sin(ang), 3.4, sentinelOpen?'#b56a6a':'#7fa07a');
+
+        text('Sentinel 熔断器', lx+34, sw.y-9, {size:13,weight:800,color:'#ece7f3'});
+        text(sentinelOpen?'OPEN —— 不再放行，请求直接走兜底：我帮您转人工'
+                        :'CLOSED —— 正常放行',
+             lx+34, sw.y+10, {size:11.5,color: sentinelOpen?'#c08a8a':'#a8c3a2'});
+      }
+
+      // 实验② 宕机提示
+      if (exp===2 && reportDead){
+        const a=0.6+0.4*Math.sin(t*5);
+        text('报表服务宕机 → 其他两个服务完全不受影响（单体里就是全站挂）',
+             W/2, H*0.955, {size:13.5,weight:800,align:'center',
+             color:'rgba(127,160,122,'+a+')', glow:'rgba(127,160,122,.55)', glowBlur:16});
+      }
+      // 实验① 提示
+      if (exp===0){
+        text('三类请求抢同一份线程池：AI 一卡，会话和报表一起排'
+             , W/2, H*0.955, {size:13.5,weight:800,align:'center',color:'rgba(196,169,112,.9)'});
+      }
+    },
+
+    metrics(){
+      const m = ['三类负载：实时 / 长耗时 / 重查询',
+                 '会话服务实例：'+(exp===1?'3':'1'),
+                 '报表服务：'+(reportDead&&exp===2?'<span class="bad">宕机</span>':'<span>正常</span>'),
+                 'Sentinel：'+(sentinelOpen?'<span class="bad">OPEN</span>':'<span>CLOSED</span>')];
+      return m.join('<br>');
+    },
+    narr(){
+      const txt = [
+        '<span class="t">实验①</span>会话要实时、AI 要等 2~4 秒、报表要重查询 —— 三者特性完全不同，混在一个进程里必然互相拖累。',
+        '<span class="t">实验②</span>只给会话服务加实例（1→3），单实例压力从 100% 降到 33%。不用动 AI 和报表的机器。',
+        '<span class="t">实验③</span>报表服务宕机了，另外两个照样跑。这就是<b>故障隔离</b> —— 单体里挂一个模块就是全站挂。',
+        '<span class="t">实验④</span>AI 连续超时，Sentinel 熔断器打到 OPEN，请求不再傻等，直接走兜底话术"我帮您转人工"。'
+      ];
+      return txt[exp];
+    }
+  };
+  return S;
+});
+
+/* ══════════════════════════════════════════════════════════════════
+   引导启动
+   ══════════════════════════════════════════════════════════════════ */
+function boot(){
+  // 顶部标签
+  const tabsEl = document.getElementById('tabs');
+  tabsEl.innerHTML = '';
+  SCENES.forEach((f,i)=>{
+    const s = f();            // 只为取标题
+    const b = document.createElement('div');
+    b.className = 'tab';
+    b.innerHTML = '<span class="n">'+(i+1)+'</span>'+s.tab.replace(/^[①②③④⑤]\s*/,'');
+    b.onclick = ()=> selectScene(i);
+    tabsEl.appendChild(b);
+  });
+
+  // 控件
+  document.getElementById('btnPlay').onclick = ()=> setPlaying(!playing);
+  document.getElementById('btnReset').onclick = ()=>{
+    if (!Scene) return;
+    setPlaying(false);
+    if (Scene.reset) Scene.reset();
+    if (Scene.currentStep!=null){ Scene.currentStep=0; Scene.goStep && Scene.goStep(0); }
+    syncDots(); syncChips();
+    updateNarr(); updateMetrics();
+  };
+  document.getElementById('btnStep').onclick  = ()=>{ if (Scene && Scene.next){ Scene.next(); syncDots(); updateNarr(); } };
+  document.getElementById('cbAuto').onchange  = e => { autoSwitchPlay = e.target.checked; };
+
+  Grid.init();
+  layoutAll();
+  selectScene(0);
+  /* 先同步画一帧：即使 RAF 还没触发 / 被无头环境节流，画布也不会空白 */
+  Grid.draw();
+  if (Scene && Scene.draw) Scene.draw();
+  requestAnimationFrame(frame);
+
+  /* ── 探针：自检用，界面上不暴露任何调试按钮 ── */
+  window.__probe = function(){
+    const tabs = document.querySelectorAll('#tabs .tab').length;
+    const cur = Scene;
+    return {
+      scene: cur ? cur.id : 'none',
+      playing: !!playing,
+      canvas: { w: Math.round(W), h: Math.round(H), dpr: DPR },
+      tabs: tabs,
+      errors: ERRORS.length,
+      view: {
+        mode: WIDE ? '完整尺寸' : '适配屏幕',
+        narrow: NARROW, wide: WIDE,
+        viewport: { w: window.innerWidth, h: window.innerHeight },
+        css: { w: Math.round(cv.getBoundingClientRect().width), h: Math.round(cv.getBoundingClientRect().height) },
+        scrollLeft: Math.round(stage.scrollLeft || 0),
+        maxScroll: Math.max(0, stage.scrollWidth - stage.clientWidth),
+        needSwipe: stage.scrollWidth > stage.clientWidth + 4,
+        hintShown: getComputedStyle(swipeHintEl).display !== 'none'
+      },
+      controls: cur && cur.controls ? Object.keys(cur.controls) : [],
+      stepDots: document.querySelectorAll('#steps .dot').length,
+      expChips: document.querySelectorAll('#exps .chip').length,
+      currentStep: cur && cur.currentStep != null ? cur.currentStep : null,
+      currentExp: cur && cur.currentExp != null ? cur.currentExp : null
+    };
+  };
+  window.__errors = function(){ return ERRORS.slice(); };
+  window.__scene = function(i){ selectScene(i); return window.__probe(); };
+  window.__view = function(m){ viewMode = m; layoutAll(); if (Scene && Scene.onResize) Scene.onResize(); return window.__probe(); };
+  /* 控件矩形：用于检查 390px 下是否重叠 / 被裁切 */
+  window.__rects = function(){
+    const pick = sel => [...document.querySelectorAll(sel)].filter(el => getComputedStyle(el).display !== 'none')
+      .map(el => {
+        const r = el.getBoundingClientRect();
+        return { id: el.id || el.className, x: Math.round(r.left), y: Math.round(r.top),
+                 w: Math.round(r.width), h: Math.round(r.height), txt: (el.textContent || '').slice(0, 12) };
+      });
+    return { tabs: pick('#tabs > *'), footer: pick('footer > *') };
+  };
+  window.__ready = true;
+}
+
+boot();
+
+</script>
+</body>
+</html>

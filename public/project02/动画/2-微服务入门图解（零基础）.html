@@ -1,0 +1,1577 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>微服务图解手册 · 用开餐厅的方式搞懂它</title>
+<style>
+/* =========================================================
+   微服务图解手册（单文件 / 零外部依赖）
+   主题：深色科技风  #0a0a1a 底 + #8b7aaa 主色
+   ========================================================= */
+:root{
+  --bg:#0a0a1a;
+  --bg-soft:#12102a;
+  --card:#171430;
+  --card-2:#1a1734;
+  --line:#2a2740;
+  --line-soft:#262338;
+  --cyan:#8b7aaa;
+  --cyan-dim:rgba(139,122,170,.12);
+  --blue:#7f8fb5;
+  --green:#7fa07a;
+  --amber:#c4a970;
+  --red:#b56a6a;
+  --purple:#8b7aaa;
+  --txt:#d8d2c8;
+  --dim:#8d8779;
+  --bright:#e8e2d8;
+  --mono: ui-monospace, "Cascadia Mono", "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  --radius:14px;
+  /* 顶部 sticky 导航的实高。窄屏时 .navlinks 会折行、导航会变高，
+     所以这个值由页面末尾的 <script> 实测后写回；脚本不可用时退回 52px。 */
+  --stick:52px;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0;
+  background:
+    radial-gradient(1100px 620px at 10% -8%, rgba(139,122,170,.10), transparent 60%),
+    radial-gradient(900px 520px at 94% 2%, rgba(127,143,181,.09), transparent 62%),
+    var(--bg);
+  color:var(--txt);
+  font-family:var(--mono);
+  font-size:14.5px;
+  line-height:1.78;
+  letter-spacing:.1px;
+  -webkit-font-smoothing:antialiased;
+}
+a{color:var(--cyan);text-decoration:none}
+a:hover{text-decoration:underline}
+p{margin:.5em 0}
+
+/* ---------- 顶部导航 ---------- */
+.topbar{
+  position:sticky; top:0; z-index:900;
+  background:rgba(13,13,36,.90);
+  backdrop-filter:blur(12px);
+  border-bottom:1px solid var(--line);
+  box-shadow:0 8px 30px -18px #000;
+}
+.topbar-inner{
+  max-width:1220px; margin:0 auto; padding:9px 18px;
+  display:flex; align-items:center; gap:14px; flex-wrap:wrap;
+}
+.brand{display:flex; align-items:center; gap:9px; font-weight:700; color:var(--bright); white-space:nowrap}
+.brand .dot{width:10px;height:10px;border-radius:50%;background:var(--cyan);box-shadow:0 0 12px rgba(139,122,170,.16)}
+.navlinks{display:flex; gap:4px; flex-wrap:wrap; flex:1 1 auto}
+.navlinks a{
+  padding:4px 9px; border:1px solid var(--line); border-radius:999px;
+  font-size:12.5px; color:var(--dim); background:rgba(255,255,255,.015);
+}
+.navlinks a:hover{color:var(--cyan); border-color:var(--cyan); text-decoration:none; background:var(--cyan-dim)}
+.topbar .hint{font-size:12px;color:var(--dim);white-space:nowrap}
+
+/* ---------- 布局 ---------- */
+.wrap{max-width:1040px;margin:0 auto;padding:26px 18px 90px}
+.hero{
+  border:1px solid var(--line); border-radius:18px; padding:22px 22px 18px;
+  background:linear-gradient(160deg, rgba(139,122,170,.07), rgba(127,143,181,.04) 55%, transparent);
+  margin-bottom:22px;
+}
+.hero h1{margin:0 0 6px; font-size:26px; color:var(--bright); letter-spacing:.5px}
+.hero .sub{color:var(--dim); font-size:13.5px}
+.hero .meta{margin-top:14px; display:flex; gap:8px; flex-wrap:wrap}
+.chip{
+  font-size:12px; padding:3px 10px; border-radius:999px;
+  border:1px solid var(--line); color:var(--dim); background:rgba(255,255,255,.02);
+}
+.chip.c{border-color:rgba(139,122,170,.45); color:var(--cyan); background:var(--cyan-dim)}
+.chip.g{border-color:rgba(127,160,122,.45); color:var(--green); background:rgba(127,160,122,.10)}
+.chip.a{border-color:rgba(196,169,112,.45); color:var(--amber); background:rgba(196,169,112,.10)}
+.chip.r{border-color:rgba(181,106,106,.45); color:var(--red); background:rgba(181,106,106,.10)}
+.chip.p{border-color:rgba(139,122,170,.45); color:var(--purple); background:rgba(139,122,170,.10)}
+
+/* ---------- 目录 ---------- */
+.toc{
+  border:1px solid var(--line); border-radius:var(--radius); background:var(--card);
+  padding:16px 18px; margin-bottom:30px;
+}
+.toc h2{margin:0 0 12px; font-size:15px; color:var(--cyan); letter-spacing:1px}
+.toc-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(228px,1fr)); gap:8px}
+.toc-grid a{
+  display:flex; align-items:center; gap:9px; padding:8px 10px;
+  border:1px solid var(--line-soft); border-radius:10px; color:var(--txt);
+  background:rgba(255,255,255,.012); font-size:13px;
+}
+.toc-grid a:hover{border-color:var(--cyan); color:var(--cyan); background:var(--cyan-dim); text-decoration:none}
+.toc-grid .num{
+  flex:0 0 22px; height:22px; border-radius:6px; display:grid; place-items:center;
+  background:var(--cyan-dim); color:var(--cyan); font-size:12px; border:1px solid rgba(139,122,170,.35);
+}
+
+/* ---------- 章节 ---------- */
+section{margin:0 0 44px; scroll-margin-top:calc(var(--stick) + 12px)}
+.sec-head{display:flex; align-items:center; gap:12px; margin:0 0 6px}
+.sec-head .no{
+  flex:0 0 34px; height:34px; border-radius:10px; display:grid; place-items:center;
+  background:linear-gradient(150deg, rgba(139,122,170,.20), rgba(127,143,181,.14));
+  border:1px solid rgba(139,122,170,.42); color:var(--cyan); font-weight:700; font-size:15px;
+}
+.sec-head h2{margin:0; font-size:20px; color:var(--bright); letter-spacing:.4px}
+.sec-lead{color:var(--dim); font-size:13.5px; margin:0 0 16px 46px}
+@media (max-width:640px){ .sec-lead{margin-left:0} }
+
+.card{
+  border:1px solid var(--line); border-radius:var(--radius);
+  background:linear-gradient(180deg, var(--card-2), var(--card));
+  padding:16px 18px; margin-bottom:14px;
+}
+.card h3{margin:0 0 8px; font-size:15.5px; color:var(--bright)}
+.card h4{margin:14px 0 6px; font-size:14px; color:var(--cyan)}
+.dim{color:var(--dim)}
+.small{font-size:12.5px}
+.hl{color:var(--cyan); font-weight:700}
+.hl-g{color:var(--green); font-weight:700}
+.hl-a{color:var(--amber); font-weight:700}
+.hl-r{color:var(--red); font-weight:700}
+.hl-p{color:var(--purple); font-weight:700}
+.lead-quote{
+  border-left:3px solid var(--cyan); padding:8px 0 8px 14px; margin:10px 0 16px;
+  color:var(--bright); font-size:15px; background:linear-gradient(90deg, rgba(139,122,170,.07), transparent);
+}
+
+/* ---------- 记住这一句 ---------- */
+.remember{
+  display:flex; gap:12px; align-items:flex-start;
+  border:1px solid rgba(196,169,112,.42);
+  background:linear-gradient(100deg, rgba(196,169,112,.13), rgba(196,169,112,.04) 60%, transparent);
+  border-radius:12px; padding:12px 16px; margin:16px 0 0;
+}
+.remember .tag{
+  flex:0 0 auto; font-size:12px; letter-spacing:1px; color:#0a0a1a; font-weight:700;
+  background:var(--amber); border-radius:6px; padding:2px 8px; margin-top:2px;
+}
+.remember .txt{color:#ded4bb; font-size:14px}
+.note{
+  border:1px dashed var(--line); border-radius:12px; padding:11px 14px;
+  background:rgba(255,255,255,.015); color:var(--dim); font-size:12.8px; margin:12px 0;
+}
+.note b{color:var(--txt)}
+
+/* ---------- 表格 ---------- */
+.tbl-wrap{overflow-x:auto; border:1px solid var(--line); border-radius:12px; margin:12px 0}
+table.tbl{border-collapse:collapse; width:100%; min-width:720px; font-size:13px}
+table.tbl th, table.tbl td{border-bottom:1px solid var(--line-soft); padding:9px 12px; text-align:left; vertical-align:top}
+table.tbl thead th{
+  background:rgba(139,122,170,.08); color:var(--cyan); font-weight:700;
+  border-bottom:1px solid rgba(139,122,170,.30); white-space:nowrap;
+}
+table.tbl tbody tr:nth-child(odd){background:rgba(255,255,255,.014)}
+table.tbl tbody tr:hover{background:rgba(139,122,170,.05)}
+table.tbl td:first-child{color:var(--bright); font-weight:700; white-space:nowrap}
+table.tbl .good{color:var(--green)}
+table.tbl .bad{color:var(--red)}
+table.tbl .mid{color:var(--amber)}
+
+/* ---------- 通用图元 ---------- */
+.fig{
+  border:1px solid var(--line); border-radius:var(--radius);
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.016), transparent 70%),
+    repeating-linear-gradient(0deg, rgba(255,255,255,.022) 0 1px, transparent 1px 26px),
+    var(--bg-soft);
+  padding:16px; margin:14px 0;
+}
+.fig .fig-title{
+  font-size:12px; letter-spacing:1.4px; color:var(--dim); text-transform:uppercase;
+  margin:0 0 14px; padding-bottom:8px; border-bottom:1px dashed var(--line);
+}
+.fig .fig-note{font-size:12.5px; color:var(--dim); margin-top:12px; text-align:center}
+.row{display:flex; align-items:center; gap:10px; flex-wrap:wrap}
+.row.center{justify-content:center}
+.col{display:flex; flex-direction:column; gap:8px}
+.grid2{display:grid; grid-template-columns:1fr 1fr; gap:16px}
+.grid3{display:grid; grid-template-columns:repeat(3,1fr); gap:12px}
+@media (max-width:760px){ .grid2,.grid3{grid-template-columns:1fr} }
+
+.box{
+  border:1px solid var(--line); border-radius:10px; padding:9px 12px;
+  background:rgba(255,255,255,.022); font-size:12.8px; color:var(--txt); text-align:center;
+}
+.box .t{display:block; color:var(--bright); font-weight:700; font-size:13px}
+.box .s{display:block; color:var(--dim); font-size:11.5px; margin-top:2px}
+.box.cy{border-color:rgba(139,122,170,.55); background:rgba(139,122,170,.10)}
+.box.cy .t{color:var(--cyan)}
+.box.bl{border-color:rgba(127,143,181,.55); background:rgba(127,143,181,.10)}
+.box.bl .t{color:var(--blue)}
+.box.gr{border-color:rgba(127,160,122,.55); background:rgba(127,160,122,.10)}
+.box.gr .t{color:var(--green)}
+.box.am{border-color:rgba(196,169,112,.55); background:rgba(196,169,112,.10)}
+.box.am .t{color:var(--amber)}
+.box.rd{border-color:rgba(181,106,106,.6); background:rgba(181,106,106,.10)}
+.box.rd .t{color:var(--red)}
+.box.pu{border-color:rgba(139,122,170,.55); background:rgba(139,122,170,.10)}
+.box.pu .t{color:var(--purple)}
+.box.dash{border-style:dashed}
+.box.bad{opacity:.55; border-color:rgba(181,106,106,.5)}
+
+/* 箭头 */
+.ar{position:relative; flex:0 0 34px; height:2px; background:var(--cyan); opacity:.85; border-radius:2px}
+.ar::after{content:""; position:absolute; right:-1px; top:-4px; border-left:8px solid var(--cyan); border-top:5px solid transparent; border-bottom:5px solid transparent}
+.ar.g{background:var(--green)} .ar.g::after{border-left-color:var(--green)}
+.ar.r{background:var(--red)} .ar.r::after{border-left-color:var(--red)}
+.ar.dim{background:var(--line); opacity:1} .ar.dim::after{border-left-color:var(--line)}
+.ar-l{position:relative; flex:0 0 34px; height:2px; background:var(--blue)}
+.ar-l::after{content:""; position:absolute; left:-1px; top:-4px; border-right:8px solid var(--blue); border-top:5px solid transparent; border-bottom:5px solid transparent}
+.ar-down{width:2px; height:22px; background:var(--cyan); position:relative; margin:0 auto; opacity:.85}
+.ar-down::after{content:""; position:absolute; bottom:-1px; left:-4px; border-top:8px solid var(--cyan); border-left:5px solid transparent; border-right:5px solid transparent}
+.ar-down.g{background:var(--green)} .ar-down.g::after{border-top-color:var(--green)}
+.ar-down.r{background:var(--red)} .ar-down.r::after{border-top-color:var(--red)}
+.ar-label{font-size:11.5px; color:var(--dim); text-align:center; margin:2px 0}
+.arrowline{display:flex; flex-direction:column; align-items:center; justify-content:center; min-width:90px}
+.arrowline .cap{font-size:11px; color:var(--dim); white-space:nowrap}
+
+/* 分组虚线框 */
+.group{
+  border:1px dashed var(--line); border-radius:12px; padding:10px 12px 12px;
+  background:rgba(255,255,255,.012); flex:1 1 240px; min-width:220px;
+}
+.group .g-title{font-size:12px; color:var(--dim); letter-spacing:.6px; margin-bottom:8px; display:flex; justify-content:space-between; gap:8px}
+.group.bad-g{border-color:rgba(181,106,106,.42); background:rgba(181,106,106,.05)}
+.group.good-g{border-color:rgba(127,160,122,.42); background:rgba(127,160,122,.05)}
+
+/* 小徽标 */
+.badge{font-size:11px; padding:1px 7px; border-radius:999px; border:1px solid var(--line); color:var(--dim)}
+.badge.r{color:var(--red); border-color:rgba(181,106,106,.5); background:rgba(181,106,106,.10)}
+.badge.g{color:var(--green); border-color:rgba(127,160,122,.5); background:rgba(127,160,122,.10)}
+.badge.a{color:var(--amber); border-color:rgba(196,169,112,.5); background:rgba(196,169,112,.10)}
+.badge.c{color:var(--cyan); border-color:rgba(139,122,170,.5); background:rgba(139,122,170,.10)}
+
+/* 排队/阻塞示意 */
+.queue{display:flex; flex-direction:column; gap:5px; margin-top:8px}
+.queue .q{display:flex; align-items:center; gap:6px; font-size:11.5px; color:var(--dim)}
+.bar{flex:1 1 auto; height:9px; border-radius:5px; background:rgba(255,255,255,.06); overflow:hidden}
+.bar > i{display:block; height:100%; border-radius:5px}
+.bar > i.cy{background:linear-gradient(90deg, rgba(139,122,170,.5), var(--cyan))}
+.bar > i.rd{background:linear-gradient(90deg, rgba(181,106,106,.45), var(--red))}
+.bar > i.am{background:linear-gradient(90deg, rgba(196,169,112,.45), var(--amber))}
+.bar > i.gr{background:linear-gradient(90deg, rgba(127,160,122,.45), var(--green))}
+
+/* 线程池格子 */
+.slots{display:grid; grid-template-columns:repeat(10,1fr); gap:5px; margin:8px 0 2px}
+.slot{height:26px; border-radius:5px; border:1px solid var(--line); background:rgba(255,255,255,.03);
+      display:grid; place-items:center; font-size:10px; color:var(--dim)}
+.slot.ai{border-color:rgba(139,122,170,.6); background:rgba(139,122,170,.18); color:#c3b6d8}
+.slot.rp{border-color:rgba(196,169,112,.6); background:rgba(196,169,112,.16); color:#d8cba8}
+.slot.ch{border-color:rgba(139,122,170,.6); background:rgba(139,122,170,.16); color:#c1b5d3}
+.legend{display:flex; gap:14px; flex-wrap:wrap; font-size:11.5px; color:var(--dim); margin-top:10px}
+.legend i{display:inline-block; width:10px; height:10px; border-radius:3px; margin-right:5px; vertical-align:-1px}
+
+/* 名词卡 */
+.term{border:1px solid var(--line); border-radius:var(--radius); background:var(--card); padding:0; margin-bottom:16px; overflow:hidden; scroll-margin-top:calc(var(--stick) + 12px)}
+.term .term-head{
+  display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+  padding:11px 16px; border-bottom:1px solid var(--line);
+  background:linear-gradient(90deg, rgba(139,122,170,.10), transparent 65%);
+}
+.term .term-head .idx{
+  flex:0 0 24px; height:24px; border-radius:7px; display:grid; place-items:center;
+  background:rgba(139,122,170,.16); border:1px solid rgba(139,122,170,.4); color:var(--cyan); font-size:12px; font-weight:700;
+}
+.term .term-head h3{margin:0; font-size:15.5px; color:var(--bright)}
+.term .term-head .tech{font-size:12px; color:var(--dim)}
+.term-body{display:grid; grid-template-columns:minmax(0,300px) minmax(0,1fr); gap:16px; padding:14px 16px 16px}
+@media (max-width:780px){ .term-body{grid-template-columns:1fr} }
+.term-body .mini{
+  border:1px solid var(--line-soft); border-radius:10px; padding:12px;
+  background:rgba(0,0,0,.22); align-self:start;
+}
+.mini .mt{font-size:11px; letter-spacing:1px; color:var(--dim); margin-bottom:10px; text-align:center}
+.qa-line{margin:8px 0}
+.qa-line .k{
+  display:inline-block; min-width:58px; font-size:11.5px; color:#0a0a1a; font-weight:700;
+  background:var(--cyan); border-radius:5px; padding:1px 7px; margin-right:8px; text-align:center;
+}
+.qa-line .k.g{background:var(--green)} .qa-line .k.a{background:var(--amber)} .qa-line .k.p{background:var(--purple); color:#150f24}
+.qa-line .v{color:var(--txt)}
+
+/* 服务卡 */
+.svc{border:1px solid var(--line); border-radius:var(--radius); background:var(--card); margin-bottom:14px; overflow:hidden}
+.svc .svc-head{display:flex; align-items:center; gap:10px; flex-wrap:wrap; padding:11px 16px;
+  border-bottom:1px solid var(--line); background:linear-gradient(90deg, rgba(127,143,181,.12), transparent 60%)}
+.svc .svc-head .name{font-size:15px; color:var(--bright); font-weight:700}
+.svc .svc-head .role{font-size:12.5px; color:var(--dim)}
+.svc .svc-body{padding:12px 16px 14px}
+.svc .kv{display:grid; grid-template-columns:96px minmax(0,1fr); gap:6px 12px; font-size:13px; margin-bottom:8px}
+@media (max-width:560px){ .svc .kv{grid-template-columns:1fr} .svc .kv .key{margin-bottom:-4px} }
+.svc .kv .key{color:var(--dim); white-space:nowrap}
+.why{
+  margin-top:10px; border:1px solid rgba(139,122,170,.35); border-radius:10px;
+  background:rgba(139,122,170,.07); padding:10px 13px; font-size:13px;
+}
+.why .wt{color:var(--cyan); font-weight:700; display:block; margin-bottom:3px; font-size:12.5px; letter-spacing:.5px}
+code, .mono{font-family:var(--mono); font-size:12.5px}
+code{color:#b8abc9; background:rgba(139,122,170,.09); border:1px solid rgba(139,122,170,.18); border-radius:5px; padding:0 4px}
+pre.code{
+  margin:10px 0; padding:12px 14px; border:1px solid var(--line); border-radius:10px;
+  background:#0a0a1a; color:#c3c0cc; font-size:12.3px; line-height:1.7; overflow-x:auto;
+}
+pre.code .c{color:#8d8779}
+pre.code .k{color:var(--purple)}
+pre.code .s{color:#a2b89d}
+pre.code .n{color:var(--cyan)}
+
+/* 问答折叠 */
+details.qa{
+  border:1px solid var(--line); border-radius:12px; background:var(--card);
+  margin-bottom:10px; overflow:hidden;
+}
+details.qa[open]{border-color:rgba(139,122,170,.42); background:linear-gradient(180deg, rgba(139,122,170,.05), var(--card) 40%)}
+details.qa > summary{
+  cursor:pointer; list-style:none; padding:12px 46px 12px 16px; position:relative;
+  color:var(--bright); font-size:14px; font-weight:700;
+}
+details.qa > summary::-webkit-details-marker{display:none}
+details.qa > summary::after{
+  content:"+"; position:absolute; right:16px; top:50%; transform:translateY(-50%);
+  color:var(--cyan); font-size:18px; font-weight:700;
+}
+details.qa[open] > summary::after{content:"–"}
+details.qa > summary .qno{color:var(--cyan); margin-right:8px}
+details.qa .ans{padding:0 16px 14px; border-top:1px dashed var(--line-soft); margin-top:2px}
+details.qa .ans p{margin:10px 0}
+details.qa .ans .say{
+  border-left:3px solid var(--green); background:rgba(127,160,122,.07);
+  padding:8px 12px; border-radius:0 8px 8px 0; margin:8px 0;
+}
+details.qa .ans .say .lab{color:var(--green); font-size:11.5px; letter-spacing:1px; display:block; margin-bottom:3px}
+details.qa .ans ul{margin:8px 0 8px 4px; padding-left:18px}
+details.qa .ans li{margin:4px 0}
+
+/* 速记卡 */
+.flash{border:1px solid rgba(139,122,170,.42); border-radius:16px; padding:18px 20px;
+  background:linear-gradient(170deg, rgba(139,122,170,.10), rgba(127,143,181,.05) 45%, var(--card));
+  box-shadow:0 20px 50px -34px var(--cyan)}
+.flash h3{margin:0 0 12px; font-size:15px; color:var(--cyan); letter-spacing:1px}
+.flash .block{margin-bottom:14px}
+.flash .block > .bt{font-size:12.5px; color:var(--dim); letter-spacing:1px; margin-bottom:7px}
+.flash .items{display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:7px}
+.flash .it{
+  border:1px solid var(--line); border-radius:9px; padding:6px 10px; font-size:12.5px;
+  background:rgba(255,255,255,.02); color:var(--txt);
+}
+.flash .it b{color:var(--bright)}
+.flash .it em{font-style:normal; color:var(--dim); display:block; font-size:11.5px}
+.flash .costs{display:grid; gap:7px}
+.flash .costs .it{border-color:rgba(181,106,106,.35); background:rgba(181,106,106,.07)}
+.flash .one{margin-top:12px; padding-top:12px; border-top:1px dashed var(--line); color:#ded4bb; font-size:13.5px}
+.flash .one .tag{background:var(--amber); color:#0a0a1a; font-weight:700; border-radius:6px; padding:1px 8px; margin-right:8px; font-size:12px}
+
+/* 页脚 */
+footer{margin-top:36px; padding-top:16px; border-top:1px solid var(--line); color:var(--dim); font-size:12.5px; text-align:center}
+.totop{
+  position:fixed; right:18px; bottom:18px; z-index:800;
+  border:1px solid rgba(139,122,170,.45); background:rgba(13,13,36,.9); color:var(--cyan);
+  border-radius:999px; padding:8px 13px; font-size:12.5px;
+}
+.totop:hover{text-decoration:none; background:var(--cyan-dim)}
+u{text-decoration-color:var(--cyan); text-underline-offset:3px}
+</style>
+<style id="sd-skin">
+/* ==================================================================
+   Star Desk skin — 星空桌面 (generated)
+   bg #07060f/#0a0a1a · 柔紫 #8b7aaa · 淡金 #c4a970
+   glass rgba(20,18,40,.55) + blur(12px) + 1px rgba(255,255,255,.06)
+   ================================================================== */
+
+/* ---- deep night sky on the root element ---- */
+html{
+  background-color:#07060f;
+  background-image:
+    radial-gradient(1100px 620px at 8% -8%,rgba(139,122,170,.13),transparent 62%),
+    radial-gradient(900px 560px at 96% 4%,rgba(127,143,181,.10),transparent 64%),
+    radial-gradient(1200px 800px at 50% 118%,rgba(196,169,112,.05),transparent 66%);
+  background-attachment:fixed;
+  background-repeat:no-repeat;
+  background-size:cover;
+}
+/* body must not paint over the stars */
+body{
+  background-color:transparent !important;
+  background-image:none !important;
+}
+
+/* ---- twinkling starfield (two parallax-ish layers) ---- */
+body::before,body::after{
+  content:'';position:fixed;inset:0;z-index:-1;pointer-events:none;
+  background-repeat:repeat;
+}
+body::before{
+  background-image:radial-gradient(1.1px 1.1px at 166px 391px,rgba(255,252,244,0.48),rgba(255,252,244,0)),radial-gradient(1.0px 1.0px at 23px 428px,rgba(255,252,244,0.72),rgba(255,252,244,0)),radial-gradient(0.7px 0.7px at 352px 209px,rgba(255,252,244,0.73),rgba(255,252,244,0)),radial-gradient(0.9px 0.9px at 28px 469px,rgba(255,252,244,0.72),rgba(255,252,244,0)),radial-gradient(1.0px 1.0px at 337px 166px,rgba(255,252,244,0.80),rgba(255,252,244,0)),radial-gradient(1.3px 1.3px at 363px 287px,rgba(255,252,244,0.80),rgba(255,252,244,0)),radial-gradient(1.3px 1.3px at 50px 13px,rgba(255,252,244,0.76),rgba(255,252,244,0)),radial-gradient(1.1px 1.1px at 249px 165px,rgba(255,252,244,0.64),rgba(255,252,244,0)),radial-gradient(0.8px 0.8px at 24px 110px,rgba(255,252,244,0.65),rgba(255,252,244,0)),radial-gradient(0.7px 0.7px at 390px 181px,rgba(255,252,244,0.88),rgba(255,252,244,0)),radial-gradient(0.9px 0.9px at 36px 135px,rgba(255,252,244,0.82),rgba(255,252,244,0)),radial-gradient(1.1px 1.1px at 460px 286px,rgba(255,252,244,0.33),rgba(255,252,244,0)),radial-gradient(1.1px 1.1px at 217px 29px,rgba(255,252,244,0.36),rgba(255,252,244,0)),radial-gradient(0.6px 0.6px at 385px 236px,rgba(255,252,244,0.38),rgba(255,252,244,0)),radial-gradient(1.3px 1.3px at 97px 283px,rgba(255,252,244,0.38),rgba(255,252,244,0)),radial-gradient(1.3px 1.3px at 150px 108px,rgba(255,252,244,0.51),rgba(255,252,244,0)),radial-gradient(0.8px 0.8px at 14px 13px,rgba(255,252,244,0.49),rgba(255,252,244,0)),radial-gradient(1.4px 1.4px at 54px 407px,rgba(255,252,244,0.55),rgba(255,252,244,0)),radial-gradient(1.0px 1.0px at 217px 283px,rgba(255,252,244,0.44),rgba(255,252,244,0)),radial-gradient(1.0px 1.0px at 182px 421px,rgba(255,252,244,0.64),rgba(255,252,244,0)),radial-gradient(1.0px 1.0px at 146px 365px,rgba(255,252,244,0.60),rgba(255,252,244,0)),radial-gradient(1.2px 1.2px at 3px 464px,rgba(255,252,244,0.58),rgba(255,252,244,0)),radial-gradient(1.3px 1.3px at 41px 64px,rgba(255,252,244,0.62),rgba(255,252,244,0)),radial-gradient(1.3px 1.3px at 49px 122px,rgba(255,252,244,0.83),rgba(255,252,244,0)),radial-gradient(1.2px 1.2px at 364px 245px,rgba(255,252,244,0.41),rgba(255,252,244,0)),radial-gradient(1.3px 1.3px at 451px 396px,rgba(255,252,244,0.36),rgba(255,252,244,0)),radial-gradient(0.8px 0.8px at 141px 370px,rgba(255,252,244,0.80),rgba(255,252,244,0)),radial-gradient(0.7px 0.7px at 234px 52px,rgba(255,252,244,0.88),rgba(255,252,244,0)),radial-gradient(0.7px 0.7px at 243px 135px,rgba(255,252,244,0.52),rgba(255,252,244,0)),radial-gradient(1.0px 1.0px at 201px 325px,rgba(255,252,244,0.66),rgba(255,252,244,0)),radial-gradient(1.2px 1.2px at 206px 382px,rgba(255,252,244,0.55),rgba(255,252,244,0)),radial-gradient(1.2px 1.2px at 9px 170px,rgba(255,252,244,0.46),rgba(255,252,244,0)),radial-gradient(0.6px 0.6px at 105px 250px,rgba(255,252,244,0.35),rgba(255,252,244,0)),radial-gradient(1.0px 1.0px at 242px 16px,rgba(255,252,244,0.51),rgba(255,252,244,0));
+  background-size:480px 480px;
+  animation:sd-twinkle 7s ease-in-out infinite alternate;
+}
+body::after{
+  background-image:radial-gradient(1.8px 1.8px at 491px 761px,rgba(255,252,244,0.35),rgba(255,252,244,0)),radial-gradient(0.9px 0.9px at 346px 725px,rgba(255,252,244,0.29),rgba(255,252,244,0)),radial-gradient(1.7px 1.7px at 805px 163px,rgba(255,252,244,0.18),rgba(255,252,244,0)),radial-gradient(0.9px 0.9px at 109px 249px,rgba(255,252,244,0.38),rgba(255,252,244,0)),radial-gradient(1.8px 1.8px at 451px 568px,rgba(255,252,244,0.46),rgba(255,252,244,0)),radial-gradient(1.4px 1.4px at 468px 155px,rgba(255,252,244,0.44),rgba(255,252,244,0)),radial-gradient(1.3px 1.3px at 331px 649px,rgba(255,252,244,0.31),rgba(255,252,244,0)),radial-gradient(1.6px 1.6px at 489px 563px,rgba(255,252,244,0.27),rgba(255,252,244,0)),radial-gradient(0.6px 0.6px at 85px 177px,rgba(255,252,244,0.48),rgba(255,252,244,0)),radial-gradient(1.7px 1.7px at 504px 678px,rgba(255,252,244,0.33),rgba(255,252,244,0)),radial-gradient(0.8px 0.8px at 741px 281px,rgba(255,252,244,0.20),rgba(255,252,244,0)),radial-gradient(1.0px 1.0px at 30px 499px,rgba(255,252,244,0.49),rgba(255,252,244,0)),radial-gradient(0.6px 0.6px at 426px 580px,rgba(255,252,244,0.37),rgba(255,252,244,0)),radial-gradient(1.4px 1.4px at 652px 677px,rgba(255,252,244,0.19),rgba(255,252,244,0)),radial-gradient(1.6px 1.6px at 542px 481px,rgba(255,252,244,0.20),rgba(255,252,244,0)),radial-gradient(1.1px 1.1px at 186px 242px,rgba(255,252,244,0.42),rgba(255,252,244,0)),radial-gradient(1.1px 1.1px at 14px 830px,rgba(255,252,244,0.32),rgba(255,252,244,0)),radial-gradient(1.1px 1.1px at 173px 250px,rgba(255,252,244,0.43),rgba(255,252,244,0)),radial-gradient(0.9px 0.9px at 523px 311px,rgba(255,252,244,0.39),rgba(255,252,244,0)),radial-gradient(1.6px 1.6px at 75px 284px,rgba(255,252,244,0.28),rgba(255,252,244,0)),radial-gradient(0.8px 0.8px at 804px 65px,rgba(255,252,244,0.26),rgba(255,252,244,0)),radial-gradient(1.7px 1.7px at 128px 669px,rgba(255,252,244,0.40),rgba(255,252,244,0));
+  background-size:880px 880px;
+  animation:sd-twinkle 11s ease-in-out infinite alternate-reverse;
+}
+@keyframes sd-twinkle{ 0%{opacity:.45} 100%{opacity:.92} }
+
+/* ---- glass cards (large surfaces get the real blur) ---- */
+.card,.term,.svc,.kpi,.chain-box,.group,.fig,.hero,.check,.intro,.tblwrap,.tbl-wrap,.tl-item > .card{
+  background:rgba(20,18,40,.55) !important;
+  -webkit-backdrop-filter:blur(12px);
+  backdrop-filter:blur(12px);
+  border:1px solid rgba(255,255,255,.06) !important;
+  border-radius:16px;
+  transition:border-color .3s ease,background .3s ease,transform .3s ease;
+}
+.card:hover,.term:hover,.svc:hover,.kpi:hover,.chain-box:hover,.group:hover,.fig:hover,.hero:hover,.check:hover,.intro:hover,.tblwrap:hover,.tbl-wrap:hover,.tl-item > .card:hover{
+  border-color:rgba(255,255,255,.10) !important;
+}
+/* small repeated elements: translucent, no blur (perf) */
+.node,.box,.chip,.note{
+  background:rgba(20,18,40,.62) !important;
+  border:1px solid rgba(255,255,255,.06) !important;
+  border-radius:12px;
+  transition:border-color .3s ease,transform .25s ease;
+}
+.node:hover,.box:hover,.chip:hover{
+  transform:translateY(-2px);
+  border-color:rgba(255,255,255,.14) !important;
+}
+/* keep callout colour coding on the left edge */
+.note.ok,.note.red{border-left-width:3px !important;border-radius:14px;}
+.intro{border-left:3px solid rgba(139,122,170,.5) !important;}
+
+/* ---- glass chrome bars ---- */
+.topbar,#topbar,.topbar-inner{ background:transparent !important; }
+.topbar,#topbar{
+  -webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);
+  background:rgba(13,13,36,.72) !important;
+  border-bottom:1px solid rgba(255,255,255,.06) !important;
+}
+#bar{
+  -webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);
+  background:rgba(13,13,36,.72) !important;
+  border-top:1px solid rgba(255,255,255,.06) !important;
+}
+button,a.backlink,.backlink{
+  background:rgba(20,18,40,.62) !important;
+  border-color:rgba(255,255,255,.08) !important;
+  border-radius:10px;
+}
+
+/* ---- serif accents, echoing the Star Desk section labels ---- */
+.brand,#brand,.sec-no,.sec-head .no,.hero h1,h2.part,h1#barT,.t h1{
+  font-family:'Georgia','Noto Serif SC','Songti SC',serif;
+  letter-spacing:.03em;
+}
+
+/* ---- slow breathing on hero/kpi surfaces ---- */
+@keyframes sd-float{ 0%,100%{transform:translateY(0)} 50%{transform:translateY(-3px)} }
+.hero,.intro,.kpi{ animation:sd-float 6s ease-in-out infinite; }
+.kpi:nth-child(2n){ animation-duration:7.2s;animation-delay:-1.6s; }
+.kpi:nth-child(3n){ animation-duration:6.6s;animation-delay:-3.1s; }
+
+/* ---- scrollbar ---- */
+::-webkit-scrollbar{width:9px;height:9px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:rgba(139,122,170,.28);border-radius:999px}
+::-webkit-scrollbar-thumb:hover{background:rgba(139,122,170,.45)}
+
+/* ---- mobile: same trade-off Star Desk makes — no blur ---- */
+@media (max-width:767px){
+  .card,.term,.svc,.kpi,.chain-box,.group,.fig,.hero,.check,.intro,.tblwrap,.tbl-wrap,.tl-item > .card{
+    -webkit-backdrop-filter:none;backdrop-filter:none;
+    background:rgba(20,18,40,.72) !important;
+  }
+  .topbar,#topbar,#bar{-webkit-backdrop-filter:none;backdrop-filter:none}
+  body::before,body::after{animation:none;opacity:.6}
+}
+@media (prefers-reduced-motion:reduce){
+  body::before,body::after,.hero,.intro,.kpi{animation:none !important}
+  body::before{opacity:.55}body::after{opacity:.4}
+}
+</style>
+</head>
+<body id="top">
+
+<!-- ================= 顶栏导航 ================= -->
+<header class="topbar">
+  <div class="topbar-inner">
+    <div class="brand"><span class="dot"></span>微服务图解手册</div>
+    <nav class="navlinks">
+      <a href="#s1">① 一句话</a>
+      <a href="#s2">② 对比表</a>
+      <a href="#s3">③ 七个名词</a>
+      <a href="#s4">④ 七个服务</a>
+      <a href="#s5">⑤ 为什么拆</a>
+      <a href="#s6">⑥ 拆的代价</a>
+      <a href="#s7">⑦ 面试问答</a>
+      <a href="#s8">⑧ 速记卡</a>
+    </nav>
+    <span class="hint">零基础 · 全大白话</span><a class="backlink" href="../路线.html" style="display:inline-flex;align-items:center;min-height:32px;padding:0 10px;border:1px solid #2a2740;border-radius:6px;background:#141230;color:#7f8fb5;text-decoration:none;font-size:13px;white-space:nowrap;touch-action:manipulation;-webkit-tap-highlight-color:transparent">← 回学习路线</a>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <!-- ================= 封面 ================= -->
+  <div class="hero">
+    <h1>用「开餐厅」的方式，搞懂微服务</h1>
+    <div class="sub">给完全不懂微服务的 Java 初中级同学 · 一个比喻讲到底 · 一份能直接拿去面试讲的材料</div>
+    <div class="meta">
+      <span class="chip c">项目：云联客服工单平台</span>
+      <span class="chip">7 个业务服务</span>
+      <span class="chip">Nacos / Gateway / Feign / Sentinel</span>
+      <span class="chip a">读法：先读 ① ②，再读 ③，最后背 ⑦ ⑧</span>
+    </div>
+  </div>
+
+  <!-- ================= 目录 ================= -->
+  <div class="toc">
+    <h2>目录（点一下直接跳）</h2>
+    <div class="toc-grid">
+      <a href="#s1"><span class="num">1</span>一句话讲清微服务</a>
+      <a href="#s2"><span class="num">2</span>单体 vs 微服务 对比表</a>
+      <a href="#s3"><span class="num">3</span>七个核心名词</a>
+      <a href="#s4"><span class="num">4</span>这个项目的 7 个服务</a>
+      <a href="#s5"><span class="num">5</span>为什么要拆（真实理由）</a>
+      <a href="#s6"><span class="num">6</span>拆完的代价（必须主动说）</a>
+      <a href="#s7"><span class="num">7</span>面试问答 10 问 10 答</a>
+      <a href="#s8"><span class="num">8</span>一页速记（面试前 5 分钟）</a>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       1. 一句话讲清微服务
+       ============================================================ -->
+  <section id="s1">
+    <div class="sec-head"><span class="no">1</span><h2>一句话讲清微服务：从「一个厨师全包」到「分工的厨房」</h2></div>
+    <p class="sec-lead">先用一个你一定见过的场景，把微服务这个词变具体。</p>
+
+    <div class="lead-quote">
+      单体应用 = 一个厨师又切菜、又炒菜、又洗碗。微服务 = 一个分工的厨房：配菜师傅只管配菜，炒锅师傅只管炒，洗碗工只管洗碗。
+    </div>
+
+    <div class="card">
+      <h3>先看「单体」：一个人干所有活</h3>
+      <p>小饭馆刚开业，只有一个厨师。点一份番茄炒蛋，他要先洗番茄、切番茄、打蛋、炒、装盘、最后自己洗碗。</p>
+      <p><b class="hl-r">问题出在哪？</b>这三件事其实互不相干，但被捆在<b>同一个人（同一个程序）</b>身上：</p>
+      <ul>
+        <li>洗菜洗到一半，来了 5 桌客人点单 —— 全部排队，因为这个人腾不出手（<b>功能之间互相拖慢</b>）。</li>
+        <li>切菜的速度是天花板，想快一点只能整体换一个更强的厨师（<b>要扩容只能整体复制，不能只扩切菜这一块</b>）。</li>
+        <li>厨师切到手了，整个店今天都开不了张（<b>一个地方出错，全店挂掉</b>）。</li>
+        <li>想请个擅长做甜点的师傅？没地方放，因为整个厨房就一个灶台（<b>不能只给某个功能换技术</b>）。</li>
+      </ul>
+      <p class="small dim">在 Java 里，这个"一个厨师"就是<b>一个 war / 一个 jar，里面塞了登录、客户、会话、工单、AI、报表所有代码</b>，所有功能共用一个进程、一个数据库连接池。</p>
+    </div>
+
+    <div class="fig">
+      <div class="fig-title">图 1-1 ｜ 单体：所有活挤在一个人身上</div>
+      <div class="group bad-g" style="max-width:520px;margin:0 auto">
+        <div class="g-title"><span>单体应用（一个人 = 一个进程）</span><span class="badge r">全店一个灶台</span></div>
+        <div class="box pu" style="text-align:left">
+          <span class="t">👨‍🍳 1 号厨师（单体程序）</span>
+          <span class="s">注册登录 · 客户坐席 · 会话消息 · 工单 SLA · 知识库 · AI 问答 · 报表统计</span>
+        </div>
+        <div class="row" style="margin-top:9px">
+          <div class="box dash" style="flex:1 1 90px">切菜<span class="s">登录/客户</span></div>
+          <div class="box dash" style="flex:1 1 90px">炒菜<span class="s">会话/工单</span></div>
+          <div class="box dash" style="flex:1 1 90px">洗碗<span class="s">报表/清理</span></div>
+        </div>
+        <div class="queue">
+          <div class="q"><span style="flex:0 0 88px">3 桌客人在等</span><span class="bar"><i class="rd" style="width:88%"></i></span><span>卡</span></div>
+          <div class="q"><span style="flex:0 0 88px">AI 问一句等 4 秒</span><span class="bar"><i class="rd" style="width:96%"></i></span><span>卡</span></div>
+          <div class="q"><span style="flex:0 0 88px">会话消息延迟</span><span class="bar"><i class="am" style="width:70%"></i></span><span>慢</span></div>
+        </div>
+        <div class="small dim" style="margin-top:9px">说人话：<b class="hl-r">报表明明是"洗碗"这种闲活，也能把正在炒的菜一起拖慢</b>，因为它们共用同一个人（同一批线程、同一个数据库连接池）。</div>
+      </div>
+    </div>
+
+    <div class="fig">
+      <div class="fig-title">图 1-2 ｜ 微服务：分工的厨房，谁忙给谁加人</div>
+      <div class="row" style="align-items:stretch">
+        <div class="group good-g">
+          <div class="g-title"><span>配菜台</span><span class="badge g">2 人</span></div>
+          <div class="box gr"><span class="t">🥬 配菜师傅</span><span class="s">只管洗菜切菜</span></div>
+          <div class="small dim" style="margin-top:8px">客人多了 → <b class="hl-g">只给配菜台加人</b>，炒锅不受影响。</div>
+        </div>
+        <div class="group good-g">
+          <div class="g-title"><span>炒锅台</span><span class="badge g">3 人</span></div>
+          <div class="box gr"><span class="t">🍳 炒锅师傅</span><span class="s">只管炒菜出餐</span></div>
+          <div class="small dim" style="margin-top:8px">生意好 → <b class="hl-g">只给炒锅台加灶</b>，配菜台不用动。</div>
+        </div>
+        <div class="group good-g">
+          <div class="g-title"><span>洗碗间</span><span class="badge g">1 人（慢慢洗）</span></div>
+          <div class="box gr"><span class="t">🧽 洗碗工</span><span class="s">只管洗碗，慢也没关系</span></div>
+          <div class="small dim" style="margin-top:8px">洗碗慢 → <b class="hl-g">客人根本感觉不到</b>，因为不影响出餐。</div>
+        </div>
+      </div>
+      <div class="fig-note">
+        每个师傅只跟旁边的师傅"递盘子"（= 服务之间发 HTTP 请求），任何人请假只影响自己那一环，其他环节照常营业。
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>把比喻翻回技术，一句话定义</h3>
+      <p>
+        <b class="hl">微服务 = 把一个大的程序，拆成若干个能独立运行、独立部署、独立扩容的小程序（服务），
+        每个小程序只负责一件明确的事，之间通过网络请求互相调用。</b>
+      </p>
+      <div class="tbl-wrap">
+        <table class="tbl">
+          <thead><tr><th>餐厅里的说法</th><th>技术里的说法</th></tr></thead>
+          <tbody>
+            <tr><td>一个厨师全包</td><td>单体应用（一个 jar 跑所有功能）</td></tr>
+            <tr><td>配菜师傅 / 炒锅师傅 / 洗碗工</td><td>一个个独立的服务（auth、ticket、report…）</td></tr>
+            <tr><td>师傅只干自己那份活</td><td>服务职责单一，自己的数据自己管（<b>数据库也分开</b>）</td></tr>
+            <tr><td>递盘子、喊一声"菜好了"</td><td>服务间调用（HTTP / OpenFeign）</td></tr>
+            <tr><td>谁忙给谁加人手</td><td>独立扩容（某个服务单独多起几个实例）</td></tr>
+            <tr><td>师傅请假只影响他那一环</td><td>故障隔离（一个服务挂了不等于全站挂）</td></tr>
+            <tr><td>前台接待客人、叫单、拦闲杂人</td><td>API 网关（统一入口）</td></tr>
+            <tr><td>厨房里的通讯录 / 公告板</td><td>服务注册发现 / 配置中心（Nacos）</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="remember"><span class="tag">记住这一句</span><span class="txt">
+      微服务就是把"一个人干所有活"改成"分工协作 + 谁忙给谁加人"；好处是各干各的、互不拖累，代价是原来喊一嗓子的事，现在得打电话（发 HTTP 请求）。
+    </span></div>
+  </section>
+
+  <!-- ============================================================
+       2. 单体 vs 微服务 对比表
+       ============================================================ -->
+  <section id="s2">
+    <div class="sec-head"><span class="no">2</span><h2>单体 vs 微服务 对比表</h2></div>
+    <p class="sec-lead">这张表面试至少会被问到其中一半，建议整张读熟，不用背字面，记住每行的"关键差别"就行。</p>
+
+    <div class="tbl-wrap">
+      <table class="tbl">
+        <thead>
+          <tr><th>对比维度</th><th>单体应用（一个厨师全包）</th><th>微服务（分工的厨房）</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>代码组织</td>
+            <td>一个工程里所有模块同进同出，改一行登录代码也要整体编译打包；代码越写越大，新人不知道从哪看起</td>
+            <td class="good">按业务拆成多个工程，一个服务一个仓库/一个模块；看工单就只打开 ticket 服务的代码，改动范围天然被框住</td>
+          </tr>
+          <tr>
+            <td>部署方式</td>
+            <td>整体打包成一个 jar/war，<b>任何一个小改动都要全量重新部署</b>，上线像"全店停业装修"</td>
+            <td class="good">每个服务单独打包、单独上线；改报表只重启 report 服务，会话服务一秒都不用停，可以按服务灰度发布</td>
+          </tr>
+          <tr>
+            <td>扩容</td>
+            <td>只能整体复制（多买几个"全能厨师"），<b>你只想扩 AI 问答，却被迫连报表也一起复制</b>，钱花在没用的地方</td>
+            <td class="good">按需扩容：AI 服务吃紧就多起 2 个 ai 实例，报表服务一个实例够用就一个，资源花在刀刃上</td>
+          </tr>
+          <tr>
+            <td>故障影响范围</td>
+            <td>一个死循环、一次 OOM，<b>全站一起挂</b>；报表把数据库连接池占满，登录都进不去</td>
+            <td class="good">故障被关在一个服务里：report 挂了，顾客照样能聊天、坐席照样能建工单；再配熔断降级，坏掉的那一环直接走兜底</td>
+          </tr>
+          <tr>
+            <td>技术栈自由度</td>
+            <td>只能一套技术栈到底，升级框架要全店一起动，风险评估起来让人头大</td>
+            <td class="good">每个服务可以选自己合适的（AI 服务用 Python + LangGraph、报表用别的都行），新技术先在一个小服务里试，试错成本低</td>
+          </tr>
+          <tr>
+            <td>运维复杂度</td>
+            <td class="good">简单：一个进程、一份日志、一个部署脚本，出问题登一台机器就够</td>
+            <td class="bad">复杂多了：要注册中心、网关、配置中心，还要监控一堆实例、看分布式日志；<b>7 个服务就是 7 份日志</b></td>
+          </tr>
+          <tr>
+            <td>排查问题</td>
+            <td class="good">一次请求全在一个进程里，打个断点、看一份日志就能顺着走完，堆栈清清楚楚</td>
+            <td class="bad">一次请求跨了 5 个服务，日志散在 5 台机器上，没有链路追踪（traceId）根本拼不出一条完整路径</td>
+          </tr>
+          <tr>
+            <td>数据管理</td>
+            <td class="good">一个库、一张事务就能搞定，本地事务 ACID 免费得到</td>
+            <td class="bad">每个服务自己的数据自己管，<b>没有跨服务的大事务了</b>，"扣库存 + 建工单"要自己保证最终一致（消息、对账、补偿）</td>
+          </tr>
+          <tr>
+            <td>团队协作</td>
+            <td>人少时最舒服；人一多，所有人改同一个仓库，合并冲突、互相等对方上线</td>
+            <td class="good">一个服务一个小组负责，边界清楚，可以并行开发互不阻塞；但要约定好接口契约，不然联调扯皮</td>
+          </tr>
+          <tr>
+            <td>网络与延迟</td>
+            <td class="good">方法调用走内存，纳秒级，不会失败</td>
+            <td class="bad">跨服务调用是网络 IO，毫秒级，而且<b>会超时、会失败、会重试</b>，必须防着重试打爆下游</td>
+          </tr>
+          <tr>
+            <td>适合场景</td>
+            <td class="good">创业早期、需求没稳定、团队 1~5 人、访问量不大 —— <b>先用单体跑起来才是对的</b></td>
+            <td class="good">团队十几人以上、模块负载特征差异大（长耗时 AI / 重查询报表 / 实时会话）、需要按模块独立扩容和发布</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="note">
+      <b>一句话挑明：</b>单体不是"落后"，微服务不是"高级"。单体解决不了的是<b>团队规模和负载差异</b>这两件事 ——
+      人多了会互相挤，负载差异大了会互相拖。这两个问题出现了，拆才有意义。
+    </div>
+
+    <div class="remember"><span class="tag">记住这一句</span><span class="txt">
+      单体和微服务不是对错问题，是规模问题：人少、量小、需求还在变，单体最省钱；团队大了、模块负载差得远了，才值得付微服务那份运维代价。
+    </span></div>
+  </section>
+
+  <!-- ============================================================
+       3. 七个核心名词
+       ============================================================ -->
+  <section id="s3">
+    <div class="sec-head"><span class="no">3</span><h2>七个核心名词（每个都配一张图）</h2></div>
+    <p class="sec-lead">这七个词是微服务的"骨架"。每个都按同一套模板讲：是什么 → 打个比方 → 在我们项目里干嘛。</p>
+
+    <!-- 3.1 服务注册与发现 -->
+    <div class="term" id="t1">
+      <div class="term-head">
+        <span class="idx">1</span><h3>服务注册与发现</h3>
+        <span class="chip c">Nacos</span><span class="tech">＝ 公司通讯录</span>
+      </div>
+      <div class="term-body">
+        <div class="mini">
+          <div class="mt">图 3-1 ｜ 通讯录</div>
+          <div class="col">
+            <div class="row">
+              <div class="box cy" style="flex:1"><span class="t">auth-service</span><span class="s">10.0.0.11:8081</span></div>
+              <div class="box cy" style="flex:1"><span class="t">ticket-service</span><span class="s">10.0.0.15:8084</span></div>
+            </div>
+            <div class="ar-down"></div>
+            <div class="box am"><span class="t">📖 Nacos 通讯录</span><span class="s">谁上线就登记，谁下线就划掉</span></div>
+            <div class="ar-down g"></div>
+            <div class="row">
+              <div class="box gr" style="flex:1"><span class="t">ai-service</span><span class="s">"ticket 在哪？"</span></div>
+              <div class="ar"></div>
+              <div class="box gr" style="flex:1"><span class="t">拿到地址</span><span class="s">10.0.0.15:8084</span></div>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div class="qa-line"><span class="k">是什么</span><span class="v">每个服务启动后，主动把自己的"名字 + IP + 端口"登记到一个公共的地方（注册中心）；别的服务要调用它，就问这个公共地方要地址，而不是把 IP 写死在代码里。</span></div>
+          <div class="qa-line"><span class="k g">打个比方</span><span class="v">公司通讯录。新同事入职自动进通讯录，离职自动划掉。你要找财务，先翻通讯录拿分机号，而不是背下每个人的工位号 —— 因为座位会换、人会走。</span></div>
+          <div class="qa-line"><span class="k a">项目里干嘛</span><span class="v">7 个服务全部注册到 Nacos。这样测试环境、生产环境 IP 不一样不用改代码；某个服务多起了 2 个实例，也会自动出现在通讯录里，调用方立刻就能用上；某个实例挂掉，Nacos 心跳超时会把它摘掉，请求不会再打到死机器上。</span></div>
+          <pre class="code"><span class="c"># 服务自己登记（application.yml 里两行配置的事）</span>
+<span class="k">spring</span>:
+  <span class="k">cloud</span>.<span class="k">nacos</span>.<span class="k">discovery</span>:
+    <span class="k">server-addr</span>: <span class="s">127.0.0.1:8848</span>
+    <span class="k">service</span>: <span class="s">ticket-service</span>   <span class="c"># 我在通讯录里的名字</span></pre>
+          <div class="note small">
+            <b>面试延伸（会被追问）：</b>"如果 Nacos 挂了怎么办？" —— 已经拿到的地址会缓存在本地（<b>本地缓存 + 定时拉取</b>），
+            已建立的调用不会立刻断；Nacos 本身也要做集群（3 个节点起），不能单点。
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3.2 API 网关 -->
+    <div class="term" id="t2">
+      <div class="term-head">
+        <span class="idx">2</span><h3>API 网关</h3>
+        <span class="chip c">Spring Cloud Gateway</span><span class="tech">＝ 公司前台 / 保安</span>
+      </div>
+      <div class="term-body">
+        <div class="mini">
+          <div class="mt">图 3-2 ｜ 前台分流</div>
+          <div class="col">
+            <div class="row">
+              <div class="box bl" style="flex:1"><span class="t">网页 H5</span></div>
+              <div class="box bl" style="flex:1"><span class="t">小程序</span></div>
+              <div class="box bl" style="flex:1"><span class="t">坐席台</span></div>
+            </div>
+            <div class="ar-down"></div>
+            <div class="box cy">
+              <span class="t">🚪 网关（唯一入口）</span>
+              <span class="s">验 JWT · 限流 · 路由 · 注入客户身份 · 记日志</span>
+            </div>
+            <div class="ar-down"></div>
+            <div class="row">
+              <div class="box dash" style="flex:1">auth</div>
+              <div class="box dash" style="flex:1">conversation</div>
+              <div class="box dash" style="flex:1">ticket</div>
+            </div>
+            <div class="small dim" style="text-align:center;margin-top:8px">外面的世界只看得见这一扇门</div>
+          </div>
+        </div>
+        <div>
+          <div class="qa-line"><span class="k">是什么</span><span class="v">所有外部请求的<b>唯一入口</b>。它挡在最前面，先做统一的事（验身份、限流、记日志），再按路径把请求转发给后面正确的服务。</span></div>
+          <div class="qa-line"><span class="k g">打个比方</span><span class="v">公司前台兼保安。所有访客必须先在前台登记（验身份），前台问清你找谁（路由），然后指路或打电话叫人；门口还贴着"每人每天最多来 3 次"（限流）。没有前台，访客就得自己在大楼里乱窜，每个部门还得自己配一个保安。</span></div>
+          <div class="qa-line"><span class="k a">项目里干嘛</span><span class="v">顾客和坐席的所有 <code>/api/**</code> 请求都先到网关：1）解析 JWT 拿到 userId / tenantId / roleId，塞进请求头带给下游（下游就不用各自再验一遍）；2）按前缀路由，<code>/api/tickets/**</code> → ticket-service，<code>/api/ai/**</code> → ai-service；3）对登录接口限流防爆破；4）<b>内部接口 <code>/inner/**</code> 一律不放行</b>，只允许服务之间互相调，外面的人打不进来。</span></div>
+          <pre class="code"><span class="c"># 网关路由：一句话说清"什么请求给谁"</span>
+<span class="k">routes</span>:
+  - <span class="k">id</span>: <span class="s">ticket</span>
+    <span class="k">uri</span>: <span class="s">lb://ticket-service</span>   <span class="c"># lb = 去通讯录里找，并做负载均衡</span>
+    <span class="k">predicates</span>: [ <span class="s">Path=/api/tickets/**</span> ]</pre>
+          <div class="note small">
+            <b>为什么需要它：</b>没有网关，7 个服务就要各自实现一遍"验 token、限流、记日志、跨域"，改一次规则要改 7 个地方，
+            而且每个服务都得暴露在公网上，等于大楼每个房间都开一扇临街的门。
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3.3 服务间调用 -->
+    <div class="term" id="t3">
+      <div class="term-head">
+        <span class="idx">3</span><h3>服务间调用</h3>
+        <span class="chip c">OpenFeign</span><span class="tech">＝ 同事之间打电话（本质就是 HTTP 请求，没有魔法）</span>
+      </div>
+      <div class="term-body">
+        <div class="mini">
+          <div class="mt">图 3-3 ｜ 一个请求的真实样子</div>
+          <div class="col">
+            <div class="box pu"><span class="t">ai-service</span><span class="s">"我要检索知识"</span></div>
+            <div class="ar-down"></div>
+            <div class="box am" style="text-align:left">
+              <span class="t">📞 一通"电话"</span>
+              <span class="s">POST /inner/knowledge/search  (HTTP/1.1)</span>
+              <span class="s">Host: knowledge-service · Content-Type: application/json</span>
+              <span class="s">{ "question": "怎么退货", "topK": 5 }</span>
+            </div>
+            <div class="ar-down"></div>
+            <div class="box cy"><span class="t">knowledge-service</span><span class="s">返回 JSON：5 段知识 + 分数</span></div>
+            <div class="small dim" style="text-align:center;margin-top:8px">
+              没有共享内存、没有共享事务、<b>只有"发一个 HTTP、等一个 JSON"</b>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div class="qa-line"><span class="k">是什么</span><span class="v">一个服务要去用另一个服务的能力时，就发一个 HTTP 请求过去。OpenFeign 只是把这个 HTTP 请求包装成"像调用本地方法一样"的写法，让你少写样板代码。</span></div>
+          <div class="qa-line"><span class="k g">打个比方</span><span class="v">同事之间打电话。你不需要知道对方坐在哪、用什么姿势接电话，你只要拨号、说清要什么、等一个答复。<b>Feign 就是帮你自动拨号的那个"语音助手"</b>，但电话线那头还是电话线，不是心灵感应。</span></div>
+          <div class="qa-line"><span class="k a">项目里干嘛</span><span class="v">AI 服务要检索知识库，就在代码里写一个接口加个注解，调用它跟调用本地方法一样自然；底层 Gateway/Feign 会去 Nacos 查地址、发出真正的 HTTP 请求、把 JSON 转成对象返回。</span></div>
+          <pre class="code"><span class="c">// 1) 声明"我要打的电话号码本"</span>
+<span class="k">@FeignClient</span>(name = <span class="s">"knowledge-service"</span>)   <span class="c">// name 就是 Nacos 里的服务名</span>
+<span class="k">public interface</span> KnowledgeClient {
+    <span class="k">@PostMapping</span>(<span class="s">"/inner/knowledge/search"</span>)
+    List&lt;Chunk&gt; search(<span class="k">@RequestBody</span> SearchReq req);
+}
+
+<span class="c">// 2) 用起来跟本地方法一模一样，但其实已经发了一次 HTTP</span>
+List&lt;Chunk&gt; chunks = knowledgeClient.search(<span class="k">new</span> SearchReq(<span class="s">"怎么退货"</span>, 5));</pre>
+          <div class="note small">
+            <b>重点强调（面试官最爱在这儿挖坑）：</b>Feign 没有任何魔法，它<b>就是一个 HTTP 客户端</b>。
+            所以你必须自己想到：会超时（要配 connectTimeout / readTimeout）、会失败（要配重试或降级）、
+            会有序列化开销、会受网络抖动影响。答出这几句，说明你真的理解而不是背概念。
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3.4 负载均衡 -->
+    <div class="term" id="t4">
+      <div class="term-head">
+        <span class="idx">4</span><h3>负载均衡</h3>
+        <span class="chip c">Spring Cloud LoadBalancer</span><span class="tech">＝ 前台把客人分给空闲的同事</span>
+      </div>
+      <div class="term-body">
+        <div class="mini">
+          <div class="mt">图 3-4 ｜ 三个实例，轮着来</div>
+          <div class="col">
+            <div class="box cy"><span class="t">ai-service</span><span class="s">"知识库服务给我一个地址"</span></div>
+            <div class="ar-down"></div>
+            <div class="box am"><span class="t">LoadBalancer</span><span class="s">从 Nacos 拿到的 3 个地址里挑一个</span></div>
+            <div class="ar-down"></div>
+            <div class="row">
+              <div class="box gr" style="flex:1"><span class="t">实例 A</span><span class="s">本次选它 ✅</span></div>
+              <div class="box dash" style="flex:1"><span class="t">实例 B</span><span class="s">下次</span></div>
+              <div class="box dash" style="flex:1"><span class="t">实例 C</span><span class="s">再下次</span></div>
+            </div>
+            <div class="small dim" style="text-align:center;margin-top:8px">默认轮询；也可以配"同机房优先""响应快的优先"</div>
+          </div>
+        </div>
+        <div>
+          <div class="qa-line"><span class="k">是什么</span><span class="v">同一个服务往往起了好几个实例（为了扛并发），当调用方拿到一串地址时，得有个规则决定"这次打哪一个"，这个规则就是负载均衡。</span></div>
+          <div class="qa-line"><span class="k g">打个比方</span><span class="v">前台看到 5 位同事都能办这个业务，会挑一个手上活最少的客人交过去，而不是全塞给同一个人。要是有位同事今天不在（实例掉了），前台也不会再把客人指给他。</span></div>
+          <div class="qa-line"><span class="k a">项目里干嘛</span><span class="v">conversation 服务要调 ai 服务，ai 起了 3 个实例，LoadBalancer 默认按轮询分发，压力自然摊平；某个 ai 实例挂了，Nacos 把它摘掉后，调用方下一轮就不会再选它，用户基本无感。网关里写的 <code>lb://ticket-service</code> 里的 <b>lb</b> 就是这个意思。</span></div>
+          <div class="note small">
+            <b>和 Nginx 的区别（会被问）：</b>Nginx 是<b>站在门口</b>做负载均衡（外部流量进不来它不知道）；
+            LoadBalancer 是<b>服务自己内部</b>做负载均衡（ai 调 knowledge 这种服务间调用，请求根本没经过 Nginx，只能靠它）。
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3.5 熔断降级 -->
+    <div class="term" id="t5">
+      <div class="term-head">
+        <span class="idx">5</span><h3>熔断降级</h3>
+        <span class="chip c">Sentinel</span><span class="tech">＝ 同事请假了，前台当场给个说法，别让客户干等</span>
+      </div>
+      <div class="term-body">
+        <div class="mini">
+          <div class="mt">图 3-5 ｜ 熔断的三个状态</div>
+          <div class="col">
+            <div class="box rd"><span class="t">knowledge-service 挂了 / 变慢</span><span class="s">请求大量超时</span></div>
+            <div class="ar-down r"></div>
+            <div class="box am" style="text-align:left">
+              <span class="t">🔌 Sentinel</span>
+              <span class="s">① 关闭（正常放行）</span>
+              <span class="s">② <b style="color:#d8cba8">打开</b>（错误率超阈值 → 直接不调了，走兜底）</span>
+              <span class="s">③ 半开（过一会儿放 1 个请求试探，通了就恢复）</span>
+            </div>
+            <div class="ar-down"></div>
+            <div class="box gr"><span class="t">兜底返回（降级）</span><span class="s">"知识库暂时查不到，我先帮您转人工"</span></div>
+            <div class="small dim" style="text-align:center;margin-top:8px">
+              对比：不熔断 = 客户干等 30 秒最后报错
+            </div>
+          </div>
+        </div>
+        <div>
+          <div class="qa-line"><span class="k">是什么</span><span class="v">下游服务出错或变慢时，调用方<b>快速失败</b>，不再傻等，先返回一个提前准备好的"兜底答案"（降级），避免自己的线程被拖死，也避免把下游压垮。</span></div>
+          <div class="qa-line"><span class="k g">打个比方</span><span class="v">某位同事今天请假了。前台不会让你在门口站半小时等他想办法，而是当场告诉你："今天这个业务办不了，我帮您转人工柜台。"<b>客户立刻得到明确答复，前台也不会被一堆干等的客户堵住。</b></span></div>
+          <div class="qa-line"><span class="k a">项目里干嘛</span><span class="v">AI 服务调知识库检索是最容易出问题的一环（向量库慢、模型超时）。我们给它配 Sentinel 规则：<b>1 秒内如果超过 50% 的请求失败，就熔断 10 秒</b>；熔断期间 <code>ai-service</code> 直接走降级逻辑 —— 不硬答，而是返回"我先帮您转人工"并触发转人工流程。这样顾客不会卡住，ai-service 的线程也不会因为等知识库而耗尽（一个线程被卡住，整台机器的并发能力就少一分）。</span></div>
+          <pre class="code"><span class="c">// 降级方法：名字、参数、返回值都要和被保护的方法一致</span>
+<span class="k">@SentinelResource</span>(value = <span class="s">"kbSearch"</span>, fallback = <span class="s">"kbSearchFallback"</span>)
+<span class="k">public</span> List&lt;Chunk&gt; search(String q) { <span class="k">return</span> knowledgeClient.search(q); }
+
+<span class="k">public</span> List&lt;Chunk&gt; kbSearchFallback(String q, Throwable t) {
+    log.warn(<span class="s">"知识库检索被熔断/降级，question={}"</span>, q);
+    <span class="k">return</span> Collections.emptyList();   <span class="c">// 空结果 → 上层判定为"无依据" → 转人工</span>
+}</pre>
+          <div class="note small">
+            <b>一句话区分两个词：</b><b>熔断</b>是"不再调了"（对下游的保护动作），<b>降级</b>是"调不了就给个备选答案"（对用户的兜底动作）。
+            实践中一般是一起出现：熔断触发 → 走降级。
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3.6 配置中心 -->
+    <div class="term" id="t6">
+      <div class="term-head">
+        <span class="idx">6</span><h3>配置中心</h3>
+        <span class="chip c">Nacos Config</span><span class="tech">＝ 公司公告板，改了所有人立刻看到</span>
+      </div>
+      <div class="term-body">
+        <div class="mini">
+          <div class="mt">图 3-6 ｜ 公告板</div>
+          <div class="col">
+            <div class="box am" style="text-align:left">
+              <span class="t">📋 Nacos 公告板</span>
+              <span class="s">ai-service.yaml：</span>
+              <span class="s">llm.timeout = 4000</span>
+              <span class="s">transfer.keywords = 投诉,人工,退款</span>
+              <span class="s">sentinel.flow.qps = 50</span>
+            </div>
+            <div class="ar-down g"></div>
+            <div class="row">
+              <div class="box gr" style="flex:1"><span class="t">ai 实例1</span><span class="s">已生效</span></div>
+              <div class="box gr" style="flex:1"><span class="t">ai 实例2</span><span class="s">已生效</span></div>
+              <div class="box gr" style="flex:1"><span class="t">ai 实例3</span><span class="s">已生效</span></div>
+            </div>
+            <div class="small dim" style="text-align:center;margin-top:8px">改完点发布 → 3 个实例都收到通知 → <b>不重启</b></div>
+          </div>
+        </div>
+        <div>
+          <div class="qa-line"><span class="k">是什么</span><span class="v">把配置（数据库地址、第三方密钥、超时时间、阈值、开关）从代码里搬出来，集中放在一个地方统一管理，改完能让服务<b>不重启就生效</b>。</span></div>
+          <div class="qa-line"><span class="k g">打个比方</span><span class="v">公司公告板。以前通知一件事要挨个进办公室喊（= 改配置 + 重启每个服务，7 个服务就是 7 次）；现在往公告板上一贴，所有人抬眼就看到了（推送到各个实例，动态刷新）。</span></div>
+          <div class="qa-line"><span class="k a">项目里干嘛</span><span class="v">大模型 API Key、超时时间、转人工关键词、Sentinel 限流阈值、知识库召回 Top-K 这些都会变的东西都放 Nacos Config。比如大促期间要临时降低 AI 并发、或者换个模型供应商 —— 在 Nacos 改一下发布，几秒内所有实例生效，<b>不用挑个深夜做一次全量发布</b>。另外测试/生产环境各一套配置，代码一份不带改。</span></div>
+          <pre class="code"><span class="c"># 1) 拉取配置</span>
+<span class="k">spring</span>.<span class="k">config</span>.<span class="k">import</span>: <span class="s">nacos:ai-service.yaml</span>
+
+<span class="c">// 2) 让这个字段跟着公告板变（改了不用重启）</span>
+<span class="k">@RefreshScope</span>
+<span class="k">@RestController</span>
+<span class="k">public class</span> AiController {
+    <span class="k">@Value</span>(<span class="s">"${llm.timeout:3000}"</span>) <span class="k">private int</span> timeout;
+}</pre>
+          <div class="note small">
+            <b>和"注册中心"什么关系：</b>同一个 Nacos，干了两件事 —— 一边是<b>通讯录</b>（服务发现，管"谁在哪"），
+            一边是<b>公告板</b>（配置中心，管"参数是多少"）。所以简历上写"Nacos 做注册与配置中心"是一句话两个功能。
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3.7 链路追踪 -->
+    <div class="term" id="t7">
+      <div class="term-head">
+        <span class="idx">7</span><h3>链路追踪</h3>
+        <span class="chip c">traceId / SkyWalking / Sleuth</span><span class="tech">＝ 快递单号，能查到每一步卡在哪</span>
+      </div>
+      <div class="term-body">
+        <div class="mini">
+          <div class="mt">图 3-7 ｜ 一个单号走完全程</div>
+          <div class="col">
+            <div class="box cy" style="text-align:left">
+              <span class="t">traceId = 7f3a91c2…</span>
+              <span class="s">顾客问一句"我要退货"</span>
+            </div>
+            <div class="ar-down"></div>
+            <div class="box bl" style="text-align:left"><span class="t">① gateway</span><span class="s">生成 traceId，往下传 · 2ms</span></div>
+            <div class="ar-down"></div>
+            <div class="box bl" style="text-align:left"><span class="t">② conversation</span><span class="s">收消息落库 · 12ms</span></div>
+            <div class="ar-down"></div>
+            <div class="box bl" style="text-align:left"><span class="t">③ ai-service</span><span class="s">意图识别 · 380ms</span></div>
+            <div class="ar-down"></div>
+            <div class="box rd" style="text-align:left"><span class="t">④ knowledge 🐌</span><span class="s">向量检索 <b style="color:#c49a96">2300ms ← 卡在这</b></span></div>
+            <div class="ar-down"></div>
+            <div class="box bl" style="text-align:left"><span class="t">⑤ LLM 生成</span><span class="s">1600ms</span></div>
+            <div class="small dim" style="text-align:center;margin-top:8px">拿 traceId 一搜，五段日志拼成一条时间线</div>
+          </div>
+        </div>
+        <div>
+          <div class="qa-line"><span class="k">是什么</span><span class="v">给一次完整的用户请求发一个全局唯一的编号（traceId），这个编号会跟着请求一路传到它经过的每一个服务，每个服务打日志时都带上它。这样一次跨 5 个服务的请求，能用这个号把所有日志拼成一条完整时间线。</span></div>
+          <div class="qa-line"><span class="k g">打个比方</span><span class="v">快递单号。包裹经过多少中转站、每个站停了多久，扫一下单号全看得见。要是没有单号，你只能一个个站点去问"你有没有见过我的包裹"—— 那就是在 7 个服务的日志里瞎翻。</span></div>
+          <div class="qa-line"><span class="k a">项目里干嘛</span><span class="v">顾客抱怨"AI 答一句话要 4 秒"，以前只能靠猜；现在拿顾客那次的 traceId 一查，立刻看到时间花在哪：<b>gateway 2ms、conversation 12ms、意图识别 380ms、<u>向量检索 2300ms</u>、大模型 1600ms</b> —— 瓶颈一眼锁定在知识库检索。这就是链路追踪的价值：把"感觉慢"变成"知道慢在哪"。</span></div>
+          <div class="note small">
+            <b>怎么落地的（能被追问）：</b>网关生成 traceId 放进请求头（如 <code>X-Trace-Id</code>），
+            下游服务用拦截器把它放进 MDC，日志格式里带上 <code>%X{traceId}</code>，Feign 调用时自动透传，
+            再把日志收进 ELK / SkyWalking 里按 traceId 聚合查询。
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="remember"><span class="tag">记住这一句</span><span class="txt">
+      七个词一句话串起来：服务上线先去<b>通讯录（Nacos）</b>登记；外部请求只走<b>前台（网关）</b>；
+      服务之间<b>打电话（Feign，本质是 HTTP）</b>；前台从多个同事里挑一个（<b>负载均衡</b>）；
+      同事请假就当场给客户个说法（<b>熔断降级</b>）；参数变了贴<b>公告板（配置中心）</b>不用重启；出问题靠<b>快递单号（traceId）</b>查卡在哪。
+    </span></div>
+  </section>
+
+  <!-- ============================================================
+       4. 这个项目的 7 个服务
+       ============================================================ -->
+  <section id="s4">
+    <div class="sec-head"><span class="no">4</span><h2>这个项目的 7 个服务（逐个说清）</h2></div>
+    <p class="sec-lead">
+      项目是给企业客户做的「云联客服工单平台」：顾客从网页/公众号进来问问题，AI 先接待，答不了转人工坐席，坐席可以建工单走流程，所有数据进报表。
+      下面 7 个是<b>业务服务</b>；网关是入口层（门卫），不算业务服务，所以业务服务是这 7 个。
+    </p>
+
+    <div class="fig">
+      <div class="fig-title">图 4-1 ｜ 七个服务 + 入口层的整体位置</div>
+      <div class="box bl" style="max-width:640px;margin:0 auto"><span class="t">Nginx + Spring Cloud Gateway</span><span class="s">HTTPS 卸载 · 路由 · JWT 校验 · 限流（入口层，不算业务服务）</span></div>
+      <div class="ar-down"></div>
+      <div class="grid3">
+        <div class="box cy" style="text-align:left"><span class="t">auth</span><span class="s">认证授权</span></div>
+        <div class="box cy" style="text-align:left"><span class="t">customer</span><span class="s">客户与坐席</span></div>
+        <div class="box cy" style="text-align:left"><span class="t">conversation</span><span class="s">会话与消息（WebSocket）</span></div>
+        <div class="box cy" style="text-align:left"><span class="t">ticket</span><span class="s">工单 + SLA</span></div>
+        <div class="box cy" style="text-align:left"><span class="t">knowledge</span><span class="s">知识库 + 向量化</span></div>
+        <div class="box cy" style="text-align:left"><span class="t">ai</span><span class="s">AI 编排</span></div>
+        <div class="box cy" style="text-align:left"><span class="t">report</span><span class="s">报表统计</span></div>
+        <div class="box am dash" style="text-align:left"><span class="t">job（定时任务）</span><span class="s">SLA 扫描 · 报表预计算</span></div>
+      </div>
+      <div class="fig-note">
+        每个服务都有自己的库（或自己的表组）+ 自己的实例数：会话服务要横向扩（连接多），报表服务一个实例就够（跑得慢但没人等）。
+      </div>
+    </div>
+
+    <!-- auth -->
+    <div class="svc">
+      <div class="svc-head"><span class="name">auth-service</span><span class="role">认证授权</span><span class="chip">JWT</span><span class="chip">RBAC</span></div>
+      <div class="svc-body">
+        <div class="kv"><span class="key">职责一句话</span><span>管"你是谁、你能干什么"：登录发令牌（JWT），校验令牌，按角色控制权限。</span></div>
+        <div class="kv"><span class="key">关键表</span><span><code>sys_user</code>（坐席/用户）、<code>sys_role</code>、<code>sys_permission</code>、<code>sys_role_permission</code></span></div>
+        <div class="kv"><span class="key">暴露接口</span><span><code>POST /api/auth/login</code>（返回 JWT，里面带 tenantId/userId/roleId）、<code>POST /api/auth/logout</code>、<code>GET /inner/users/{id}/permissions</code>（内部用）</span></div>
+        <div class="why">
+          <span class="wt">为什么它是一个独立服务</span>
+          ① <b>安全边界要收口</b>：认证是最敏感、最不能出错的一块，独立出来只有这一处实现，改规则不会有遗漏；
+          ② <b>它被所有服务依赖</b>：网关和每个服务都要拿它鉴权，做成公共服务比复制 7 份靠谱；
+          ③ <b>它必须最稳</b>：AI、报表这些服务可以短暂降级，但登录不能，独立部署才方便给它单独的保护（限流、独立资源）。
+        </div>
+      </div>
+    </div>
+
+    <!-- customer -->
+    <div class="svc">
+      <div class="svc-head"><span class="name">customer-service</span><span class="role">客户与坐席</span><span class="chip">主数据</span><span class="chip">技能组</span></div>
+      <div class="svc-body">
+        <div class="kv"><span class="key">职责一句话</span><span>管"有哪些人、怎么分组"：客户（企业）信息、坐席账号、技能组、渠道配置。</span></div>
+        <div class="kv"><span class="key">关键表</span><span><code>tenant</code>（客户）、<code>sys_user</code>（坐席档案扩展）、<code>skill_group</code>（售前/售后/财务）、<code>quick_reply</code>（常用语）</span></div>
+        <div class="kv"><span class="key">暴露接口</span><span><code>GET /api/tenant/agents</code>（坐席列表，分页+按技能组筛选）、<code>POST /api/tenant/agents</code>、<code>PUT /api/tenant/agents/{id}/status</code>（在线/小休/离线）、<code>GET /inner/agents/{id}</code></span></div>
+        <div class="why">
+          <span class="wt">为什么它是一个独立服务</span>
+          ① <b>典型的"主数据"</b>：变更少、被所有人读（会话分配要看技能组、工单派单要看人、报表要按人统计），
+          集中一处管理，其他地方只引用 ID，改一次不用改七处；
+          ② <b>它的负载和别的服务完全不同</b>：读写都很小，几乎不需要扩容，独立出来就不会被 AI、报表那种重负载绑架；
+          ③ <b>权限与业务解耦</b>：坐席的"组织架构"和"在线状态"分属不同关注点，放在一起会让会话服务的代码越滚越乱。
+        </div>
+      </div>
+    </div>
+
+    <!-- conversation -->
+    <div class="svc">
+      <div class="svc-head"><span class="name">conversation-service</span><span class="role">会话与消息</span><span class="chip c">WebSocket</span><span class="chip a">有状态</span></div>
+      <div class="svc-body">
+        <div class="kv"><span class="key">职责一句话</span><span>管"顾客和坐席怎么实时聊天"：维护长连接、存消息、保证顺序、接待分配、转接。</span></div>
+        <div class="kv"><span class="key">关键表</span><span><code>session</code>（会话）、<code>message_202601</code>（消息，<b>按月分表</b>）、<code>session_transfer</code>（转接记录）、<code>agent_status</code>（坐席在线状态）、<code>session_evaluation</code>（满意度）</span></div>
+        <div class="kv"><span class="key">暴露接口</span><span><code>POST /api/session/start</code>、<code>WS /ws/agent</code>（长连接）、<code>GET /api/session/{id}/messages</code>、<code>POST /api/session/{id}/transfer</code>、<code>POST /api/session/{id}/close</code></span></div>
+        <div class="why">
+          <span class="wt">为什么它是一个独立服务</span>
+          ① <b>它是"有状态"的</b>：WebSocket 连接绑在某台机器上，扩容方式、发布方式都跟普通 HTTP 服务不一样（要优雅关闭、考虑连接迁移），混在别的服务里会互相牵制；
+          ② <b>写入量最大</b>：按单客户日均 6 万条消息，一个月 180 万行，消息表和别的业务表根本不是同一个量级，独立出去才好做分表、归档、单独调优；
+          ③ <b>实时性要求最高</b>：聊天要秒回，不能被"顺手也放在这个服务里"的报表、AI 代码拖慢 —— 这是拆它最直接的理由。
+        </div>
+      </div>
+    </div>
+
+    <!-- ticket -->
+    <div class="svc">
+      <div class="svc-head"><span class="name">ticket-service</span><span class="role">工单 + SLA</span><span class="chip">状态机</span><span class="chip a">定时扫描</span></div>
+      <div class="svc-body">
+        <div class="kv"><span class="key">职责一句话</span><span>管"跨部门的事怎么走完"：建单、指派、状态流转、SLA 计时与超时升级、评论与附件。</span></div>
+        <div class="kv"><span class="key">关键表</span><span><code>ticket</code>、<code>ticket_template</code>（模板+自定义字段）、<code>ticket_flow_log</code>（流转日志）、<code>ticket_comment</code>、<code>ticket_attachment</code>、<code>ticket_sla</code>（首响/解决时限）</span></div>
+        <div class="kv"><span class="key">暴露接口</span><span><code>POST /api/tickets</code>、<code>PUT /api/tickets/{id}/assign</code>、<code>PUT /api/tickets/{id}/status</code>（带 SLA 校验）、<code>POST /api/tickets/{id}/comments</code>、<code>POST /inner/tickets</code>（给 AI 的 <code>createTicket</code> 工具用）</span></div>
+        <div class="why">
+          <span class="wt">为什么它是一个独立服务</span>
+          ① <b>它有一套自己的流程和节奏</b>：工单有状态机、有定时任务每分钟扫 SLA、有超时升级，这些都是"后台跑的活"，
+          和在线聊天抢资源最不划算 —— 独立部署后，SLA 扫描把 CPU 用满也不影响顾客聊天；
+          ② <b>业务闭环清晰</b>：从建单到关闭全在 ticket 里，接口边界天然明确，团队里一个人就能负责整个服务；
+          ③ <b>它的数据寿命最长</b>：工单要留档好几年，需要独立的归档和查询策略，跟会话消息那种"热数据"生命周期完全不同。
+        </div>
+      </div>
+    </div>
+
+    <!-- knowledge -->
+    <div class="svc">
+      <div class="svc-head"><span class="name">knowledge-service</span><span class="role">知识库 + 向量化</span><span class="chip p">向量库</span><span class="chip">异步任务</span></div>
+      <div class="svc-body">
+        <div class="kv"><span class="key">职责一句话</span><span>管"AI 回答的依据从哪来"：文档上传解析、切块、向量化、混合检索（BM25 + 向量）、FAQ 管理。</span></div>
+        <div class="kv"><span class="key">关键表</span><span><code>knowledge_base</code>、<code>knowledge_document</code>（文档+解析状态）、<code>knowledge_chunk</code>（片段+vector_id）、<code>knowledge_faq</code>（问题+相似问+命中次数）</span></div>
+        <div class="kv"><span class="key">暴露接口</span><span><code>POST /api/knowledge/documents</code>（上传，返回 docId，向量化异步做）、<code>GET /api/knowledge/faq</code>、<code>POST /inner/knowledge/search</code>（给 ai-service 做 RAG 检索）</span></div>
+        <div class="why">
+          <span class="wt">为什么它是一个独立服务</span>
+          ① <b>它依赖的东西不一样</b>：别人用 MySQL，它还要用向量库（PGVector/Milvus）+ ES 做混合检索，
+          这种"特殊中间件依赖"放进别的服务会污染整个服务的启动和部署方式；
+          ② <b>它的负载形态很怪</b>：上行是"上传文档 → 解析 → 调 Embedding 模型"的长耗时批处理任务，下行是毫秒级的高频检索，
+          两者要各自限流；独立出来才好给它单独配资源；
+          ③ <b>数据物理隔离</b>：每个客户独立向量集合，知识库是 AI 的输入来源，宁可多一个服务也不跟业务库抢资源。
+        </div>
+      </div>
+    </div>
+
+    <!-- ai -->
+    <div class="svc">
+      <div class="svc-head"><span class="name">ai-service</span><span class="role">AI 编排</span><span class="chip r">单次 2~4 秒</span><span class="chip p">Agent</span></div>
+      <div class="svc-body">
+        <div class="kv"><span class="key">职责一句话</span><span>管"机器人怎么把话答对"：意图识别 → 查知识库（RAG）→ 需要业务数据就调工具（Tool Calling）→ 生成答案 → 判定要不要转人工。</span></div>
+        <div class="kv"><span class="key">关键表</span><span><code>ai_agent</code>（机器人配置）、<code>ai_agent_tool</code>（可用工具）、<code>ai_conversation</code>、<code>ai_execution</code>（<b>重点表</b>：输入、意图、召回片段、工具调用、token、耗时、回答来源）、<code>ai_unanswered</code>（未命中问题回流）</span></div>
+        <div class="kv"><span class="key">暴露接口</span><span><code>POST /api/ai/chat</code>（顾客提问，SSE 流式返回）、<code>POST /api/ai/summary/session</code>（会话摘要）、<code>POST /api/ai/quality/inspect</code>（异步质检）、<code>GET /api/ai/executions</code>（执行日志）</span></div>
+        <div class="why">
+          <span class="wt">为什么它是一个独立服务</span>
+          ① <b>它的耗时和别的接口不是一个数量级</b>：普通接口几十毫秒，它一次 2~4 秒，而且线程全在"等大模型回话"（消耗的是等待，不是 CPU）；
+          这种服务必须有自己的线程池和超时策略，混在会话服务里会把聊天线程池占满 —— <b>这是全项目最硬的一条拆分理由</b>；
+          ② <b>它的变化最快</b>：换模型（DeepSeek 换通义）、调 Prompt、加工具、换框架（LangGraph / 自研编排），改得最勤，
+          独立部署才能一天发几次而不惊动其他服务；
+          ③ <b>它最容易出问题</b>：模型超时、限流、答偏，需要熔断降级和日志追踪，独立出来才方便"单独观察、单独降级、单独扩容"。
+        </div>
+      </div>
+    </div>
+
+    <!-- report -->
+    <div class="svc">
+      <div class="svc-head"><span class="name">report-service</span><span class="role">报表统计</span><span class="chip a">重查询</span><span class="chip">离线/实时两条线</span></div>
+      <div class="svc-body">
+        <div class="kv"><span class="key">职责一句话</span><span>管"数据说明什么"：会话量、机器人解决率、转人工率、平均首响、工单超时率、坐席绩效、AI 效果指标。</span></div>
+        <div class="kv"><span class="key">关键表</span><span>统计结果表（按天预聚合）<code>report_daily_session</code>、<code>report_agent_perf</code>、<code>report_ticket_sla</code>、<code>report_ai_effect</code>；明细数据通过 Kafka 事件 + 定时任务汇总，不直接压在线库</span></div>
+        <div class="kv"><span class="key">暴露接口</span><span><code>POST /api/report/session/overview</code>、<code>GET /api/report/agent/performance</code>、<code>GET /api/report/ai/effect</code></span></div>
+        <div class="why">
+          <span class="wt">为什么它是一个独立服务</span>
+          ① <b>它是唯一"慢是正常的"的服务</b>：一条报表 SQL 可能扫几十万行、跑好几秒，
+          这种查询绝对不能和在线会话共用数据库连接池 —— 报表一跑，聊天就卡，这是单体最典型的翻车场景；
+          ② <b>它可以跑在从库/独立的库上</b>，甚至预计算，物理上和业务库分开才敢随便加索引、随便跑大查询；
+          ③ <b>口径变化最频繁</b>：运营每个月都可能要改统计维度，独立服务可以随时发版，不用拉着会话、工单一起上线。
+        </div>
+      </div>
+    </div>
+
+    <div class="note">
+      <b>被追问"7 个是不是太多了 / 为什么不是 3 个"时的答法：</b>拆分的依据是<b>负载特征、数据生命周期、变更频率</b>这三条是否明显不同。
+      这 7 个在这三条上都对不上号（AI 是长等待、报表是重查询、会话是实时高并发、工单是后台流程、others 是低变化主数据），所以拆；
+      如果一个小公司只有 3 个人维护，这些差异就不值得付运维代价，那时候就该合并成 2~3 个服务甚至单体。
+    </div>
+
+    <div class="remember"><span class="tag">记住这一句</span><span class="txt">
+      判断一个服务该不该独立，只看三条：它的<b>负载节奏</b>是不是跟别人不一样、它的<b>数据</b>是不是自己一套、它的<b>变更频率</b>是不是明显更快。三条都对上，才值得拆。
+    </span></div>
+  </section>
+
+  <!-- ============================================================
+       5. 为什么要拆
+       ============================================================ -->
+  <section id="s5">
+    <div class="sec-head"><span class="no">5</span><h2>为什么要拆：三类"节奏完全不同"的活混在一起会互相拖死</h2></div>
+    <p class="sec-lead">这是整个项目最真实、最能说服面试官的拆分理由 —— 不是"显得架构先进"，而是不拆真的会出事。</p>
+
+    <div class="grid3">
+      <div class="card" style="margin:0">
+        <h3>① AI 长耗时 IO</h3>
+        <p class="small">一次问答要调大模型，<b class="hl-p">2~4 秒</b>。这期间线程<b>不干别的，就在等网络</b>。</p>
+        <p class="small dim">不是 CPU 忙，是线程被占着 —— 而线程池是有上限的（比如 200 个）。</p>
+      </div>
+      <div class="card" style="margin:0">
+        <h3>② 报表重查询</h3>
+        <p class="small">一条统计 SQL 扫几十万到上百万行，<b class="hl-a">吃 CPU 和数据库连接</b>，跑起来好几秒。</p>
+        <p class="small dim">它是"没人等着，但资源吃得最狠"的那种活。</p>
+      </div>
+      <div class="card" style="margin:0">
+        <h3>③ 会话实时高并发</h3>
+        <p class="small">几百个坐席 + 上千活跃会话要<b class="hl">秒回</b>，要求延迟毫秒级、连接数上万。</p>
+        <p class="small dim">它的特点是"单个请求很轻，但要求特别快、特别稳"。</p>
+      </div>
+    </div>
+
+    <div class="fig">
+      <div class="fig-title">图 5-1 ｜ 混在一起：三类流量抢同一批线程</div>
+      <div class="row" style="align-items:stretch;gap:14px">
+        <div class="group bad-g" style="flex:1 1 100%">
+          <div class="g-title"><span>单体应用：一个线程池（假设 10 个格子的示意）</span><span class="badge r">大家都在排队</span></div>
+          <div class="slots">
+            <div class="slot ai">AI</div><div class="slot ai">AI</div><div class="slot ai">AI</div><div class="slot ai">AI</div>
+            <div class="slot rp">报</div><div class="slot rp">报</div>
+            <div class="slot ch">聊</div><div class="slot ch">聊</div>
+            <div class="slot">空</div><div class="slot">空</div>
+          </div>
+          <div class="legend">
+            <span><i style="background:rgba(139,122,170,.6)"></i>AI 请求（每个占 2~4 秒）</span>
+            <span><i style="background:rgba(196,169,112,.6)"></i>报表请求（每个跑数秒）</span>
+            <span><i style="background:rgba(139,122,170,.6)"></i>会话请求（本该秒回）</span>
+          </div>
+          <div class="queue">
+            <div class="q"><span style="flex:0 0 120px">顾客消息延迟</span><span class="bar"><i class="rd" style="width:86%"></i></span><span>800ms（示意）</span></div>
+            <div class="q"><span style="flex:0 0 120px">AI 排队时间</span><span class="bar"><i class="am" style="width:62%"></i></span><span>变长</span></div>
+            <div class="q"><span style="flex:0 0 120px">报表把连接池占满</span><span class="bar"><i class="rd" style="width:95%"></i></span><span>登录都进不去</span></div>
+          </div>
+          <div class="small dim" style="margin-top:10px">
+            三个恶性循环：<br>
+            ① AI 线程都卡在等模型 → 会话请求排不上队 → <b class="hl-r">顾客觉得"你这个客服系统卡成狗"</b>；<br>
+            ② 报表大查询占满数据库连接 → 连登录都拿不到连接 → <b class="hl-r">整站不可用</b>；<br>
+            ③ 想给 AI 扩容？单体只能整体复制，<b class="hl-r">顺便又复制了 6 份不需要扩容的服务</b>。
+          </div>
+        </div>
+      </div>
+      <div class="fig-note">一句话：这三类活儿的"节奏"根本不兼容，硬放在一起，谁嗓门大谁抢到资源，最该快的会话反而最慢。</div>
+    </div>
+
+    <div class="fig">
+      <div class="fig-title">图 5-2 ｜ 拆开之后：各用各的资源池，各按各的节奏扩容</div>
+      <div class="grid3">
+        <div class="group good-g">
+          <div class="g-title"><span>ai 服务</span><span class="badge p">长时间等待 → 大线程池</span></div>
+          <div class="col">
+            <div class="box pu"><span class="t">线程池 A（AI 专用）</span><span class="s">就是被等满，也只影响 AI</span></div>
+            <div class="box pu"><span class="t">实例数：3</span><span class="s">忙的时候加到 6</span></div>
+          </div>
+          <div class="small dim" style="margin-top:8px">模型超时 → 熔断降级转人工，绝不外溢。</div>
+        </div>
+        <div class="group good-g">
+          <div class="g-title"><span>report 服务</span><span class="badge a">重查询 → 独立库/从库</span></div>
+          <div class="col">
+            <div class="box am"><span class="t">跑在只读从库上</span><span class="s">爱怎么扫怎么扫</span></div>
+            <div class="box am"><span class="t">实例数：1~2</span><span class="s">晚上预计算，白天秒出</span></div>
+          </div>
+          <div class="small dim" style="margin-top:8px">报表再慢，也只是报表慢，跟聊天无关。</div>
+        </div>
+        <div class="group good-g">
+          <div class="g-title"><span>conversation 服务</span><span class="badge c">实时 → 优先保延迟</span></div>
+          <div class="col">
+            <div class="box cy"><span class="t">线程池 B（会话专用）</span><span class="s">永远留有余量</span></div>
+            <div class="box cy"><span class="t">实例数：4</span><span class="s">按连接数扩</span></div>
+          </div>
+          <div class="small dim" style="margin-top:8px">顾客消息延迟回到几十毫秒量级（示意）。</div>
+        </div>
+      </div>
+      <div class="fig-note">隔离的本质：<b>把"互相抢资源"变成"各花各的钱"</b>。代价是钱花得更多、运维更麻烦 —— 这个代价值不值，看第 6 节。</div>
+    </div>
+
+    <div class="card">
+      <h3>面试时的标准说法（三句话讲完）</h3>
+      <div class="say" style="border-left:3px solid var(--green); background:rgba(127,160,122,.07); padding:9px 13px; border-radius:0 8px 8px 0">
+        "我们拆分的核心理由是<b>三类负载的特性完全不同</b>：AI 问答是单次 2~4 秒的长耗时网络等待，报表是扫大量历史数据的重查询，会话是要求毫秒级的实时高并发。
+        放在一个进程里，它们会共用同一个线程池和数据库连接池，AI 把线程等满、报表把连接占满，最需要快的会话反而被拖到几百毫秒甚至超时。
+        所以按<b>负载特征 + 数据边界 + 变更频率</b>拆成了 7 个服务，各自独立扩容、独立降级。"
+      </div>
+      <p class="small dim">—— "共用同一个线程池/连接池"这几个字是这段话的力量来源，它把一个抽象概念变成了具体的资源竞争。</p>
+    </div>
+
+    <div class="remember"><span class="tag">记住这一句</span><span class="txt">
+      拆分的理由不是"显得高级"，而是三类活的节奏差太远（AI 是长等待、报表是重查询、会话是实时），混在一起就会互相抢线程和数据库连接，结果是该快的变慢、该慢的把全站拖挂。
+    </span></div>
+  </section>
+
+  <!-- ============================================================
+       6. 拆完的代价
+       ============================================================ -->
+  <section id="s6">
+    <div class="sec-head"><span class="no">6</span><h2>拆完的代价（面试要主动说，别等着被挑）</h2></div>
+    <p class="sec-lead">
+      只讲好处不讲代价，面试官会认为你没真做过。主动说代价 + 给出缓解方案，是"做过项目"和"背过概念"的分水岭。
+    </p>
+
+    <div class="card">
+      <h3><span class="badge r">代价 1</span> 运维成本直接翻倍</h3>
+      <p>从一个 jar 变成 7 个服务 + 网关 + Nacos + 消息队列 + 向量库。部署、监控、日志、告警、机器资源全都要乘以份数，出问题要看的地方从一个变成十个。团队里必须有一个人懂这些，小团队会被拖住。</p>
+      <p class="small"><b class="hl-g">所以怎么缓解：</b>用 Docker + 一套统一的 CI/CD 模板，7 个服务用同一个流水线模板，减少重复配置；监控和日志集中收（Prometheus + Grafana + ELK），大家看同一块大盘，不用挨个登机器；环境用一份 docker-compose / K8s 编排文件描述清楚，新人一条命令能起全套。</p>
+    </div>
+
+    <div class="card">
+      <h3><span class="badge r">代价 2</span> 链路变长，排查问题变难</h3>
+      <p>以前一次请求一个堆栈就看完了；现在一次请求可能经过网关 → 会话 → AI → 知识库 → 工单 → 大模型，日志散在 5~6 个服务的多台机器上。没有 traceId，你只能一个个服务去翻日志，猜是哪一环慢、哪一环报错。而且跨服务的异常不像本地堆栈那样一眼到底。</p>
+      <p class="small"><b class="hl-g">所以怎么缓解：</b>全链路 traceId 透传（网关生成 → Feign 传递 → 每个服务日志都带上），日志集中到 ELK，按 traceId 一次搜出完整时间线；关键跨服务调用都打"入参、耗时、结果"三点日志；接口报错统一返回错误码 + traceId，让用户截图就能定位。</p>
+    </div>
+
+    <div class="card">
+      <h3><span class="badge r">代价 3</span> 没有跨服务大事务了，分布式事务很复杂</h3>
+      <p>单体时代一句 <code>@Transactional</code> 就搞定的事，现在变成"工单建好了，但通知坐席失败了""会话结束了，但统计没写进去"。每个服务只能管自己的库，跨服务的"要么都成功要么都失败"要靠自己实现，还要处理中间态、重复消费、对账。</p>
+      <p class="small"><b class="hl-g">所以怎么缓解：</b>能不跨就别跨 —— 把边界划在"一个事务能闭合"的地方，比如工单和它的流转日志、评论都在 ticket 服务内，一个本地事务解决；确实要跨的用<b>最终一致</b>：本地事务表 + Kafka 消息 + 消费端幂等（用业务唯一键去重）+ 定时对账兜底补偿；不追求强一致的地方就接受短暂不一致并明确告知用户（"工单已创建，通知稍后送达"）。</p>
+    </div>
+
+    <div class="card">
+      <h3><span class="badge r">代价 4</span> 网络调用一定会失败 —— 这是新引入的一整类问题</h3>
+      <p>本地方法调用不会"半路消失"，但 HTTP 调用会：网络抖动、下游重启、下游变慢、超时、重复请求。多一次网络就多一个失败点，而且失败方式很讨厌 —— 你不知道对方到底执行了没有（超时可能是没收到，也可能是执行完了回包丢了）。</p>
+      <p class="small"><b class="hl-g">所以怎么缓解：</b>① 所有 Feign 调用<b>必须配超时</b>（连接超时 + 读超时），不配就是默认等很久，线程全卡死；② 关键调用配<b>重试 + 幂等</b>（重试必须保证重复执行不出错，接口用业务唯一键去重）；③ 非核心调用配<b>熔断降级</b>（Sentinel），失败就走兜底，别把上游拖死；④ 允许延迟的调用改成<b>走消息队列</b>（Kafka），发出去就算成功，消费端慢慢处理 + 重试队列兜底。</p>
+    </div>
+
+    <div class="fig">
+      <div class="fig-title">图 6-1 ｜ 代价 vs 缓解，一眼记住</div>
+      <div class="tbl-wrap" style="margin:0">
+        <table class="tbl">
+          <thead><tr><th>代价</th><th>具体疼在哪</th><th>缓解手段（面试说的就是这个）</th></tr></thead>
+          <tbody>
+            <tr><td>运维成本</td><td>东西多了一倍以上，人不够就乱</td><td class="good">统一 CI/CD 模板 + 集中监控日志 + 一份编排文件起全套</td></tr>
+            <tr><td>排查难</td><td>日志散在多台机器，堆栈断了</td><td class="good">traceId 全链路透传 + ELK 聚合 + 关键调用三点日志</td></tr>
+            <tr><td>分布式事务</td><td>跨服务没有免费的事务了</td><td class="good">边界内用本地事务；跨服务用本地消息表 + MQ + 幂等 + 对账补偿</td></tr>
+            <tr><td>调用会失败</td><td>新增超时、抖动、重复请求一整类问题</td><td class="good">必配超时 + 重试要幂等 + 熔断降级 + 能异步就上 MQ</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="remember"><span class="tag">记住这一句</span><span class="txt">
+      微服务不是免费午餐：它把"代码复杂度"换成了"分布式复杂度"。面试时先主动说出这四条代价，再补一句缓解方案，比只夸好处可信得多。
+    </span></div>
+  </section>
+
+  <!-- ============================================================
+       7. 面试问答
+       ============================================================ -->
+  <section id="s7">
+    <div class="sec-head"><span class="no">7</span><h2>面试问答 10 问 10 答（点开看答案，答案可以直接背）</h2></div>
+    <p class="sec-lead">每条答案都按"<b>先比喻 / 先结论 → 再说我们项目怎么做 → 最后补一句权衡</b>"的结构写，2~4 句话，口语化，不要背成书面语。</p>
+
+    <details class="qa" open>
+      <summary><span class="qno">Q1</span>什么是微服务？和单体有什么区别？</summary>
+      <div class="ans">
+        <div class="say"><span class="lab">可以直接这样说</span>
+          "微服务就是把一个大的程序拆成多个能独立运行、独立部署的小服务，每个服务只干一件事，之间通过网络调用。
+          单体就像一个厨师又切菜又炒菜又洗碗，微服务就是分工的厨房 —— 配菜、炒锅、洗碗各管一摊，谁忙给谁加人。
+          区别主要在三点：单体改一处要整体上线，微服务可以只发一个服务；单体出问题全站挂，微服务故障被关在一个服务里；单体的扩容只能整体复制，微服务可以按需只扩某一个。"
+        </div>
+        <p class="small dim">追问"那微服务是不是更好"→ 答："不是，它运维更复杂、排查更难、还要自己处理分布式事务和网络失败，团队小、量不大的时候单体更划算。"</p>
+      </div>
+    </details>
+
+    <details class="qa">
+      <summary><span class="qno">Q2</span>你们的服务是怎么拆的？按什么维度拆？</summary>
+      <div class="ans">
+        <div class="say"><span class="lab">可以直接这样说</span>
+          "我们主要按<b>业务能力</b>拆，同时看三个具体的判断标准：负载特征、数据边界、变更频率。
+          比如 AI 问答是单次 2~4 秒的长耗时调用，报表是扫大量数据的重查询，会话是要求毫秒级的实时高并发，这三类节奏完全不同，放一个进程里会互相抢线程池和数据库连接，所以必须拆开。
+          拆完就是 auth、customer、conversation、ticket、knowledge、ai、report 这 7 个业务服务，每个服务自己的数据库表自己管。"
+        </div>
+        <p class="small dim">如果被追问"什么是高内聚低耦合"（这词不解释就用会被扣分）→ "说人话就是：<b>一个服务里放的都是同一件事的代码，所以改动不出这个圈；服务之间只通过明确的接口打交道，所以我改我的实现，只要接口不变，别人不用动。</b>就像厨房里配菜台换了把新刀，炒锅师傅完全不用知道。"</p>
+      </div>
+    </details>
+
+    <details class="qa">
+      <summary><span class="qno">Q3</span>服务之间怎么调用？为什么用 Feign？</summary>
+      <div class="ans">
+        <div class="say"><span class="lab">可以直接这样说</span>
+          "本质就是发一个 HTTP 请求，<b>没有魔法</b>。用 OpenFeign 只是因为它把这个 HTTP 请求包装成接口加注解，调用起来像调本地方法，省掉了手写 URL、拼参数、反序列化这些样板代码。
+          地址不用写死，Feign 会去 Nacos 按服务名拿地址，再配合 LoadBalancer 在多个实例里挑一个。
+          但因为是网络调用，所以我们一定会配连接超时和读超时，关键接口还要幂等和降级，不然下游一慢，上游线程就全卡住。"
+        </div>
+      </div>
+    </details>
+
+    <details class="qa">
+      <summary><span class="qno">Q4</span>Nacos 是干什么的？</summary>
+      <div class="ans">
+        <div class="say"><span class="lab">可以直接这样说</span>
+          "Nacos 干两件事：<b>服务注册发现</b>和<b>配置中心</b>。
+          注册发现就是公司通讯录 —— 每个服务启动时把自己的名字、IP、端口登记进去，别的服务要调用就先翻通讯录拿地址，这样 IP 变了、实例多了少了都不用改代码；某台实例挂了，心跳超时会被自动摘掉，请求不会再打到死机器上。
+          配置中心就是公告板 —— 数据库地址、大模型超时、转人工关键词、限流阈值这些会变的东西都放上面，改完发布，各个实例动态刷新，不用重启服务。"
+        </div>
+        <p class="small dim">追问"它挂了怎么办"→ "Nacos 要做 3 节点集群，不能单点；客户端有本地缓存，已经拉到的地址不会立刻失效，能撑一段时间。"</p>
+      </div>
+    </details>
+
+    <details class="qa">
+      <summary><span class="qno">Q5</span>网关的作用是什么？为什么需要它？</summary>
+      <div class="ans">
+        <div class="say"><span class="lab">可以直接这样说</span>
+          "网关是所有外部请求的唯一入口，就像公司前台兼保安：先统一验身份（解析 JWT，把 userId、tenantId、角色塞到请求头带给下游），再按路径把请求转给对应的服务，同时做限流、记日志、跨域这些公共的事。
+          为什么需要：没有它，这 7 个服务就要各自实现一遍验 token、限流、日志，改一次规则要改 7 个地方，而且每个服务都得暴露在公网上。
+          另外我们还靠它把内部接口 <code>/inner/**</code> 全部拦掉，那些只允许服务之间互相调，外面打不进来。"
+        </div>
+      </div>
+    </details>
+
+    <details class="qa">
+      <summary><span class="qno">Q6</span>什么是服务熔断和降级？举你们项目的例子</summary>
+      <div class="ans">
+        <div class="say"><span class="lab">可以直接这样说</span>
+          "熔断是下游出错或变慢时不再继续调它，快速失败；降级是调不了的时候给用户一个提前准备好的兜底答案。打个比方：某位同事请假了，前台当场告诉客户'今天这个业务办不了，我帮您转人工'，而不是让客户在门口干等半小时。
+          我们项目里最典型的是 AI 服务调知识库检索：如果 1 秒内失败率超过 50%，Sentinel 就把这条链路熔断 10 秒，这期间 ai-service 直接走降级逻辑，不硬答，而是返回'我先帮您转人工'并触发转人工流程。
+          这样顾客立刻得到明确答复，ai-service 的线程也不会因为干等知识库而被占满。"
+        </div>
+      </div>
+    </details>
+
+    <details class="qa">
+      <summary><span class="qno">Q7</span>微服务有什么缺点？</summary>
+      <div class="ans">
+        <div class="say"><span class="lab">可以直接这样说</span>
+          "主要四条。第一，<b>运维成本高</b>，从一个 jar 变成七八个服务加一堆中间件，部署、监控、日志都要乘以份数。
+          第二，<b>排查变难</b>，一次请求跨五六个服务，日志散在多台机器上，没有 traceId 根本拼不出完整链路。
+          第三和第四是分布式带来的新麻烦：单体一句 <code>@Transactional</code> 的事，跨服务得靠消息、幂等、对账补偿才做到最终一致；网络调用还一定会失败，会超时、会重复，必须配超时、幂等和熔断降级。
+          所以我们的态度很明确：不是必要不拆。"
+        </div>
+      </div>
+    </details>
+
+    <details class="qa">
+      <summary><span class="qno">Q8</span>你们怎么保证服务间调用的可靠性？</summary>
+      <div class="ans">
+        <div class="say"><span class="lab">可以直接这样说</span>
+          "我们分了四层：第一层是<b>超时</b>，所有 Feign 调用都显式配连接和读超时，绝不用默认值，避免线程被无限期占住。
+          第二层是<b>熔断降级</b>，用 Sentinel 给关键调用配规则，失败率超阈值就熔断走兜底，不让故障顺着调用链往上蔓延。
+          第三层是<b>重试加幂等</b>，只对查询这类可以安全重试的接口重试，写接口靠业务唯一键保证重复执行不出错。
+          第四层是<b>能异步就异步</b>，通知坐席、写统计、知识库向量化这些允许延迟的直接发 Kafka，发出去就算成功，消费端幂等消费加重试队列兜底。"
+        </div>
+      </div>
+    </details>
+
+    <details class="qa">
+      <summary><span class="qno">Q9</span>一个请求进来了，完整链路是怎样的？</summary>
+      <div class="ans">
+        <div class="say"><span class="lab">可以直接这样说</span>
+          "以顾客问一句'我要退货'为例：请求先到 Nginx 再到网关，网关生成一个 traceId 并校验 JWT，把它路由到 conversation 服务；conversation 建会话、存消息、把最近几轮上下文放 Redis，然后通过 Feign 调 ai-service。
+          ai-service 先做意图识别，再到 knowledge-service 做 RAG 向量检索拿 Top5 知识片段；如果需要订单、物流、工单这类实时数据，就通过 Tool Calling 再调对应服务；最后把资料交给大模型生成答案，并写入 ai_execution 日志。
+          答案原路返回到 conversation，通过 WebSocket 推给顾客；如果命中了转人工条件，就由 conversation 做接待分配，把会话推给空闲坐席。整个链路所有日志都带同一个 traceId，方便事后查。"
+        </div>
+      </div>
+    </details>
+
+    <details class="qa">
+      <summary><span class="qno">Q10</span>如果让你重新设计，你会怎么拆？</summary>
+      <div class="ans">
+        <div class="say"><span class="lab">可以直接这样说</span>
+          "如果重来，我会先<b>从单体开始</b>，把业务跑通，等模块的负载差异真的体现出来、团队也变大了，再按现在的标准拆 —— 因为一开始就上微服务，付出的是运维和分布式复杂度，换回来的是当时并不需要的弹性。
+          真拆的时候我会做两点改进：一是把<b>报表从第一天就放在只读从库上、走预计算</b>，而不是等它把在线库拖慢才想起来分离；
+          二是<b>把 AI 的调用全部设计成异步加回调/SSE</b>，不让任何一个 HTTP 线程在那儿干等 2~4 秒，这样 ai-service 的扩容压力会小很多。
+          另外我会把服务数量控制在更少一点，比如 auth 和 customer 合并成'用户与权限'，因为它们的负载和变更频率其实差不多，合并能省一套部署和运维成本。"
+        </div>
+        <p class="small dim">这一问考的是<b>权衡意识</b>，不是让你说自己项目拆错了。最后那句"合并两个服务"最能加分。</p>
+      </div>
+    </details>
+
+    <div class="remember"><span class="tag">记住这一句</span><span class="txt">
+      所有微服务面试题的答题模板都一样：<b>先用生活比喻说清概念 → 再说我们项目里具体怎么做的（带数字） → 最后补一句代价或权衡</b>。三步齐了，答案就不可能像背的。
+    </span></div>
+  </section>
+
+  <!-- ============================================================
+       8. 一页速记
+       ============================================================ -->
+  <section id="s8">
+    <div class="sec-head"><span class="no">8</span><h2>一页速记：面试前 5 分钟扫一眼</h2></div>
+    <p class="sec-lead">下面这张卡就是全文的压缩版。进面试间前扫一遍，把 7 + 7 + 3 记住就够撑起整场对话。</p>
+
+    <div class="flash">
+      <h3>⚡ 微服务速记卡（7 个服务 · 7 个名词 · 3 个必说代价）</h3>
+
+      <div class="block">
+        <div class="bt">▍7 个服务 —— 一句话记住它是谁</div>
+        <div class="items">
+          <div class="it"><b>auth</b> 认证授权<em>登录发 JWT、RBAC 权限（管你是谁）</em></div>
+          <div class="it"><b>customer</b> 客户与坐席<em>客户、坐席、技能组（管有哪些人）</em></div>
+          <div class="it"><b>conversation</b> 会话与消息<em>WebSocket 长连接、消息顺序、转人工（管实时聊天）</em></div>
+          <div class="it"><b>ticket</b> 工单 + SLA<em>建单、流转、超时升级（管跨部门流程）</em></div>
+          <div class="it"><b>knowledge</b> 知识库 + 向量化<em>文档切块、向量检索（管 AI 的依据）</em></div>
+          <div class="it"><b>ai</b> AI 编排<em>意图识别→RAG→Tool Calling→转人工（管答得对）</em></div>
+          <div class="it"><b>report</b> 报表统计<em>解决率、首响、超时率（管数据说话）</em></div>
+        </div>
+      </div>
+
+      <div class="block">
+        <div class="bt">▍7 个名词 —— 一句话记住它的比喻</div>
+        <div class="items">
+          <div class="it"><b>服务注册发现（Nacos）</b><em>公司通讯录：上线自动登记，挂了自动划掉</em></div>
+          <div class="it"><b>API 网关（Gateway）</b><em>前台兼保安：唯一入口，先验身份再指路</em></div>
+          <div class="it"><b>服务间调用（OpenFeign）</b><em>同事打电话：本质就是 HTTP，没有魔法</em></div>
+          <div class="it"><b>负载均衡（LoadBalancer）</b><em>前台把客人分给空闲的同事</em></div>
+          <div class="it"><b>熔断降级（Sentinel）</b><em>同事请假就当场给说法，别让客户干等</em></div>
+          <div class="it"><b>配置中心（Nacos Config）</b><em>公司公告板：改了所有人立刻看到，不用重启</em></div>
+          <div class="it"><b>链路追踪（traceId）</b><em>快递单号：一眼看出卡在哪一环</em></div>
+        </div>
+      </div>
+
+      <div class="block">
+        <div class="bt">▍3 个必说的代价（说完立刻补缓解方案）</div>
+        <div class="costs">
+          <div class="it"><b>1. 运维成本翻倍</b><em>→ 统一 CI/CD 模板 + 集中监控日志 + 一份编排起全套</em></div>
+          <div class="it"><b>2. 链路长、排查难</b><em>→ traceId 全链路透传 + ELK 按单号聚合查询</em></div>
+          <div class="it"><b>3. 没有跨服务大事务 + 网络调用一定会失败</b><em>→ 本地事务划边界、跨服务最终一致（MQ + 幂等 + 对账）、超时必配、熔断降级兜底</em></div>
+        </div>
+      </div>
+
+      <div class="block">
+        <div class="bt">▍开口三句话（不知道从哪说起时就用它）</div>
+        <div class="items">
+          <div class="it"><b>拆的理由</b><em>三类负载节奏完全不同：AI 长等待、报表重查询、会话要实时</em></div>
+          <div class="it"><b>拆的依据</b><em>负载特征 + 数据边界 + 变更频率，三条都对上才拆</em></div>
+          <div class="it"><b>拆的态度</b><em>不是必要不拆；小团队、量不大，单体才是最划算的</em></div>
+        </div>
+      </div>
+
+      <div class="one"><span class="tag">一句话</span>微服务就是把「一个厨师全包」改成「分工的厨房 + 谁忙给谁加人」；好处是各干各的互不拖累，代价是原来喊一嗓子的事现在要打电话 —— 所以我先看值不值得，再决定拆不拆。</div>
+    </div>
+
+    <div class="remember"><span class="tag">记住这一句</span><span class="txt">
+      面试前只扫这张卡：<b>7 个服务名（auth / customer / conversation / ticket / knowledge / ai / report）+ 7 个比喻 + 3 个代价</b>，答任何微服务问题都先从这个框架里找位置。
+    </span></div>
+  </section>
+
+  <footer>
+    微服务图解手册 · 单文件离线版 · 深色主题（#0a0a1a / #8b7aaa）<br>
+    全部示意图由纯 CSS 绘制，无任何外部依赖；配套项目：云联客服工单平台（7 个业务服务）
+  </footer>
+</main>
+
+<a class="totop" href="#top">↑ 回顶部</a>
+
+<!-- 实测 sticky 导航高度，写回 --stick。
+     窄屏（≤640px）时 .navlinks 会折成两行，导航从 52px 变成 ~163px，
+     如果锚点偏移量写死，点目录跳转后标题会被导航压住。 -->
+<script>
+(function () {
+  var bar = document.querySelector('.topbar');
+  if (!bar) return;
+  function sync() {
+    var h = Math.round(bar.getBoundingClientRect().height);
+    if (h > 0) document.documentElement.style.setProperty('--stick', h + 'px');
+  }
+  sync();
+  addEventListener('resize', sync);
+  addEventListener('orientationchange', sync);
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(sync).catch(function () {});
+})();
+</script>
+
+</body>
+</html>

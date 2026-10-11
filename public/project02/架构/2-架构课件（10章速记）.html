@@ -1,0 +1,1616 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>云联客服工单平台 · 架构与面试速记课件</title>
+<style>
+/* ============ 基础变量 ============ */
+:root{
+  --bg:#0a0a1a;
+  --bg-soft:#12102a;
+  --card:#171430;
+  --card-2:#1a1734;
+  --line:#2a2740;
+  --line-soft:#262338;
+  --cyan:#8b7aaa;
+  --blue:#7f8fb5;
+  --green:#7fa07a;
+  --amber:#c4a970;
+  --red:#b56a6a;
+  --purple:#8b7aaa;
+  --txt:#d8d2c8;
+  --dim:#8d8779;
+  --bright:#e8e2d8;
+  --mono: ui-monospace, "Cascadia Mono", "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  --radius:14px;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0;
+  background:
+    radial-gradient(1100px 600px at 12% -6%, rgba(139,122,170,.10), transparent 60%),
+    radial-gradient(900px 520px at 92% 4%, rgba(127,143,181,.10), transparent 62%),
+    var(--bg);
+  color:var(--txt);
+  font-family:var(--mono);
+  font-size:14.5px;
+  line-height:1.75;
+  -webkit-font-smoothing:antialiased;
+  letter-spacing:.1px;
+}
+a{color:var(--cyan);text-decoration:none}
+code{font-family:var(--mono)}
+
+/* ============ 顶部导航 ============ */
+.topbar{
+  position:sticky; top:0; z-index:900;
+  background:rgba(13,13,36,.88);
+  backdrop-filter:blur(12px);
+  border-bottom:1px solid var(--line);
+  box-shadow:0 6px 26px -14px rgba(0,0,0,.95);
+}
+.topbar-inner{
+  max-width:1240px; margin:0 auto; padding:10px 20px;
+  display:flex; align-items:center; gap:18px; flex-wrap:wrap;
+}
+.brand{display:flex;align-items:center;gap:10px;font-weight:700;color:var(--bright);white-space:nowrap}
+.brand .dot{
+  width:10px;height:10px;border-radius:50%;
+  background:var(--cyan); box-shadow:0 0 12px 2px rgba(139,122,170,0.30);
+  animation:pulse 2.4s ease-in-out infinite;
+}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+.brand small{color:var(--dim);font-weight:400;font-size:11.5px}
+.nav{display:flex;gap:6px;flex-wrap:wrap}
+.nav a{
+  font-size:12.5px; color:var(--dim); padding:5px 10px; border-radius:8px;
+  border:1px solid transparent; transition:.16s; white-space:nowrap;
+}
+.nav a:hover{color:var(--cyan);border-color:rgba(139,122,170,.35);background:rgba(139,122,170,.06)}
+.nav a.active{color:#12102a;background:var(--cyan);border-color:var(--cyan);font-weight:700}
+
+/* ============ 布局 ============ */
+main{max-width:1240px;margin:0 auto;padding:34px 20px 90px}
+section{scroll-margin-top:78px;margin-bottom:64px}
+.sec-head{display:flex;align-items:center;gap:14px;margin:0 0 8px}
+.sec-no{
+  flex:0 0 auto; min-width:38px; height:38px; padding:0 8px;
+  display:flex;align-items:center;justify-content:center;
+  border-radius:11px; font-weight:700; font-size:16px;
+  color:#12102a; background:linear-gradient(135deg,var(--cyan),var(--blue));
+  box-shadow:0 0 22px -4px rgba(139,122,170,0.26);
+}
+h2{margin:0;font-size:21px;color:var(--bright);letter-spacing:.4px}
+.sec-sub{color:var(--dim);font-size:12.5px;margin:0 0 22px;padding-left:52px}
+h3{font-size:15.5px;color:var(--cyan);margin:30px 0 12px;letter-spacing:.3px}
+h3::before{content:"▍";color:var(--blue);margin-right:6px}
+h4{font-size:13.5px;color:var(--bright);margin:0 0 8px}
+
+/* ============ 卡片 ============ */
+.card{
+  background:linear-gradient(180deg,var(--card-2),var(--card));
+  border:1px solid var(--line);
+  border-radius:var(--radius);
+  padding:18px 20px;
+  margin-bottom:16px;
+}
+.card.glow{
+  border-color:rgba(139,122,170,.34);
+  box-shadow:0 0 0 1px rgba(139,122,170,.06), 0 0 30px -12px rgba(139,122,170,0.22);
+}
+.card.blue-glow{
+  border-color:rgba(127,143,181,.34);
+  box-shadow:0 0 0 1px rgba(127,143,181,.06), 0 0 30px -12px rgba(127,143,181,0.22);
+}
+.grid{display:grid;gap:14px}
+.g2{grid-template-columns:repeat(2,minmax(0,1fr))}
+.g3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.g4{grid-template-columns:repeat(4,minmax(0,1fr))}
+@media(max-width:1000px){.g3,.g4{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:680px){.g2,.g3,.g4{grid-template-columns:1fr}.sec-sub{padding-left:0}}
+
+/* 指标卡 */
+.kpi{
+  background:linear-gradient(180deg,#1a1734,#171430);
+  border:1px solid var(--line); border-radius:var(--radius);
+  padding:16px 16px 14px; position:relative; overflow:hidden;
+}
+.kpi::after{
+  content:""; position:absolute; inset:0 0 auto 0; height:2px;
+  background:linear-gradient(90deg,var(--cyan),var(--blue),transparent);
+}
+.kpi .num{font-size:25px;font-weight:700;color:var(--cyan);line-height:1.2;letter-spacing:.5px}
+.kpi .num .unit{font-size:13px;color:var(--dim);font-weight:400;margin-left:3px}
+.kpi .lbl{font-size:12px;color:var(--dim);margin-top:4px}
+.kpi.blue .num{color:var(--blue)}
+.kpi.amber .num{color:var(--amber)}
+
+/* 表格 */
+.tbl-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:var(--radius);background:var(--card)}
+table{width:100%;border-collapse:collapse;font-size:13px;min-width:640px}
+thead th{
+  text-align:left;padding:11px 14px;background:#1c1936;color:var(--bright);
+  font-size:12.5px;font-weight:700;letter-spacing:.4px;border-bottom:1px solid var(--line);
+  white-space:nowrap;
+}
+tbody td{padding:10px 14px;border-bottom:1px solid var(--line-soft);vertical-align:top;color:var(--txt)}
+tbody tr:last-child td{border-bottom:none}
+tbody tr:hover{background:rgba(139,122,170,.045)}
+td.k{color:var(--cyan);font-weight:600;white-space:nowrap}
+td.m{color:var(--dim);font-size:12.5px}
+
+/* 徽标 */
+.badge{
+  display:inline-block;font-size:11px;padding:2px 8px;border-radius:999px;
+  border:1px solid var(--line);color:var(--dim);background:rgba(255,255,255,.02);
+  line-height:1.6;white-space:nowrap;
+}
+.badge.cy{border-color:rgba(139,122,170,.5);color:var(--cyan);background:rgba(139,122,170,.09)}
+.badge.bl{border-color:rgba(127,143,181,.5);color:#a8b2cf;background:rgba(127,143,181,.1)}
+.badge.gr{border-color:rgba(127,160,122,.5);color:#95b28f;background:rgba(127,160,122,.1)}
+.badge.am{border-color:rgba(196,169,112,.5);color:#c9b47c;background:rgba(196,169,112,.1)}
+.badge.rd{border-color:rgba(181,106,106,.5);color:#bb8680;background:rgba(181,106,106,.1)}
+.badge.pu{border-color:rgba(139,122,170,.5);color:#ab9cc4;background:rgba(139,122,170,.1)}
+.mono{font-family:var(--mono)}
+.dim{color:var(--dim)}
+.cyan{color:var(--cyan)}
+.blue{color:var(--blue)}
+.amber{color:var(--amber)}
+.red{color:var(--red)}
+
+/* ============ 架构图 ============ */
+.arch{margin-top:10px}
+.layer{
+  border:1px dashed var(--line); border-radius:var(--radius);
+  padding:12px 14px 14px; background:rgba(19,17,45,.55); position:relative;
+}
+.layer-label{
+  position:absolute; top:-11px; left:16px; font-size:11px; letter-spacing:1px;
+  color:var(--dim); background:var(--bg); padding:0 8px; text-transform:uppercase;
+}
+.row{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+.node{
+  position:relative;
+  border:1px solid var(--line); border-radius:11px;
+  background:linear-gradient(180deg,#201c3c,#181532);
+  padding:10px 14px; min-width:120px; text-align:center;
+  transition:.18s; cursor:default;
+}
+.node .nt{font-size:13px;color:var(--bright);font-weight:700}
+.node .nd{font-size:11px;color:var(--dim);margin-top:2px}
+.node:hover{
+  border-color:rgba(139,122,170,.7); transform:translateY(-2px);
+  box-shadow:0 0 20px -6px rgba(139,122,170,0.28);
+}
+.node.cy{border-color:rgba(139,122,170,.45);background:linear-gradient(180deg,#1a1732,#191630)}
+.node.bl{border-color:rgba(127,143,181,.45);background:linear-gradient(180deg,#1a1734,#181532)}
+.node.pu{border-color:rgba(139,122,170,.4);background:linear-gradient(180deg,#241f40,#1d193a)}
+.node.mw{min-width:126px}
+
+/* CSS tooltip */
+.tip::after{
+  content:attr(data-tip);
+  position:absolute; left:50%; bottom:calc(100% + 10px);
+  transform:translateX(-50%) translateY(6px);
+  width:max-content; max-width:270px;
+  background:#0a0a1a; color:var(--txt);
+  border:1px solid rgba(139,122,170,.55); border-radius:9px;
+  padding:8px 11px; font-size:12px; line-height:1.6; text-align:left;
+  letter-spacing:0; font-weight:400;
+  opacity:0; pointer-events:none; transition:.18s; z-index:800;
+  box-shadow:0 10px 30px -8px rgba(0,0,0,.9), 0 0 18px -6px rgba(139,122,170,0.20);
+}
+.tip::before{
+  content:""; position:absolute; left:50%; bottom:calc(100% + 4px);
+  transform:translateX(-50%) translateY(6px);
+  border:6px solid transparent; border-top-color:rgba(139,122,170,.55);
+  opacity:0; transition:.18s; z-index:801; pointer-events:none;
+}
+.tip:hover::after{opacity:1;transform:translateX(-50%) translateY(0)}
+.tip:hover::before{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* 层间箭头 */
+.varrow{display:flex;justify-content:center;padding:2px 0}
+.varrow span{
+  position:relative; display:block; width:2px; height:26px;
+  background:linear-gradient(180deg,rgba(139,122,170,.15),rgba(139,122,170,.85));
+}
+.varrow span::after{
+  content:""; position:absolute; left:50%; bottom:-8px; transform:translateX(-50%);
+  border:6px solid transparent; border-top-color:rgba(139,122,170,.9);
+}
+.varrow .tag{
+  position:absolute; left:14px; top:4px; white-space:nowrap;
+  font-size:11px; color:var(--dim);
+}
+.arch-legend{display:flex;gap:16px;flex-wrap:wrap;font-size:12px;color:var(--dim);margin-top:14px}
+.arch-legend i{display:inline-block;width:9px;height:9px;border-radius:3px;margin-right:6px}
+
+/* ============ 流程条 ============ */
+.flow{display:flex;gap:0;flex-wrap:wrap;align-items:stretch;justify-content:center}
+.fstep{
+  flex:1 1 168px; min-width:168px; max-width:230px;
+  background:linear-gradient(180deg,#1a1734,#151230);
+  border:1px solid var(--line); border-radius:12px;
+  padding:12px 13px; position:relative; transition:.18s; margin:6px 0;
+}
+.fstep:hover{border-color:rgba(127,143,181,.65);box-shadow:0 0 22px -8px rgba(127,143,181,0.32);transform:translateY(-2px)}
+.fstep .fn{
+  display:inline-flex;align-items:center;justify-content:center;
+  width:22px;height:22px;border-radius:50%;font-size:12px;font-weight:700;
+  color:#12102a;background:var(--cyan);margin-bottom:6px;
+  box-shadow:0 0 14px -3px rgba(139,122,170,0.36);
+}
+.fstep .ft{font-size:13px;color:var(--bright);font-weight:700;line-height:1.5}
+.fstep .fd{font-size:11.5px;color:var(--dim);margin-top:5px;line-height:1.65}
+.fstep .fd b{color:var(--cyan);font-weight:600}
+.farrow{
+  align-self:center; flex:0 0 auto; padding:0 5px; color:var(--blue);
+  font-size:18px; text-shadow:0 0 10px rgba(127,143,181,0.36); font-weight:700;
+}
+@media(max-width:760px){.farrow{transform:rotate(90deg)}}
+
+/* ============ 步骤链（AI 链路） ============ */
+.chain{position:relative;padding-left:34px}
+.chain::before{
+  content:"";position:absolute;left:11px;top:6px;bottom:6px;width:2px;
+  background:linear-gradient(180deg,rgba(139,122,170,.8),rgba(127,143,181,.55),rgba(139,122,170,.5));
+  border-radius:2px;
+}
+.chain-item{position:relative;margin-bottom:12px}
+.chain-item::before{
+  content:"";position:absolute;left:-29px;top:16px;width:11px;height:11px;border-radius:50%;
+  background:var(--bg);border:2px solid var(--cyan);box-shadow:0 0 12px -1px rgba(139,122,170,0.36);
+}
+.chain-item.alt::before{border-color:var(--blue);box-shadow:0 0 12px -1px rgba(127,143,181,0.36)}
+.chain-item.warn::before{border-color:var(--red);box-shadow:0 0 12px -1px rgba(181,106,106,0.36)}
+.chain-box{
+  background:linear-gradient(180deg,#1a1734,#151230);
+  border:1px solid var(--line); border-radius:12px; padding:12px 15px;
+}
+.chain-box .ct{font-size:13.5px;color:var(--bright);font-weight:700;margin-bottom:4px}
+.chain-box .cd{font-size:12.5px;color:var(--dim);line-height:1.7}
+.chain-box .cd b{color:var(--cyan);font-weight:600}
+.chain-box .cd em{color:var(--amber);font-style:normal}
+
+/* ============ 难点卡 ============ */
+.hard .stages{display:grid;gap:10px;grid-template-columns:repeat(2,minmax(0,1fr));margin-top:12px}
+@media(max-width:760px){.hard .stages{grid-template-columns:1fr}}
+.stage{border-left:3px solid var(--line);padding:9px 12px;background:rgba(255,255,255,.017);border-radius:0 10px 10px 0}
+.stage.s1{border-left-color:var(--red)}
+.stage.s2{border-left-color:var(--amber)}
+.stage.s3{border-left-color:var(--blue)}
+.stage.s4{border-left-color:var(--green)}
+.stage .sh{font-size:12px;font-weight:700;letter-spacing:1px;margin-bottom:3px}
+.stage.s1 .sh{color:var(--red)}
+.stage.s2 .sh{color:var(--amber)}
+.stage.s3 .sh{color:var(--blue)}
+.stage.s4 .sh{color:var(--green)}
+.stage p{margin:0;font-size:12.5px;color:var(--txt);line-height:1.7}
+
+/* ============ details 折叠 ============ */
+details{
+  border:1px solid var(--line); border-radius:12px; background:var(--card);
+  margin-bottom:10px; overflow:hidden; transition:.18s;
+}
+details[open]{border-color:rgba(139,122,170,.45);box-shadow:0 0 26px -14px rgba(139,122,170,0.30)}
+summary{
+  cursor:pointer; padding:12px 16px; font-size:13.5px; color:var(--bright);
+  list-style:none; display:flex; align-items:center; gap:10px; transition:.15s;
+}
+summary::-webkit-details-marker{display:none}
+summary::before{
+  content:"+"; color:var(--cyan); font-weight:700; font-size:15px;
+  width:18px; text-align:center; flex:0 0 auto;
+}
+details[open] summary::before{content:"−"}
+summary:hover{background:rgba(139,122,170,.06)}
+details .body{padding:0 16px 15px 44px;font-size:13px;color:var(--txt);line-height:1.8}
+details .body .hl{color:var(--cyan);font-weight:600}
+details .body .bad{color:var(--red);font-weight:600}
+
+/* 速记数字墙 */
+.numwall{display:flex;flex-wrap:wrap;gap:9px}
+.chip{
+  border:1px solid var(--line); border-radius:10px; padding:7px 12px;
+  background:rgba(255,255,255,.02); font-size:12.5px; transition:.16s;
+}
+.chip:hover{border-color:rgba(139,122,170,.5);background:rgba(139,122,170,.07)}
+.chip b{color:var(--cyan);font-size:14px}
+
+/* Demo 路线 */
+.timeline{position:relative;padding-left:38px}
+.timeline::before{content:"";position:absolute;left:12px;top:8px;bottom:8px;width:2px;background:linear-gradient(180deg,var(--cyan),var(--blue),rgba(139,122,170,.35))}
+.tl-item{position:relative;margin-bottom:16px}
+.tl-item::before{
+  content:attr(data-stage);
+  position:absolute; left:-38px; top:14px;
+  width:26px;height:26px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:12px;font-weight:700;color:#12102a;
+  background:linear-gradient(135deg,var(--cyan),var(--blue));
+  box-shadow:0 0 16px -3px rgba(139,122,170,0.36);
+}
+.tl-item .card{margin-bottom:0}
+.tl-meta{margin-top:10px;display:grid;gap:8px;grid-template-columns:1fr 1fr}
+@media(max-width:760px){.tl-meta{grid-template-columns:1fr}}
+.tl-meta div{font-size:12.5px;line-height:1.7}
+.tl-meta .k{color:var(--blue);font-weight:700;font-size:12px;display:block;margin-bottom:2px}
+
+/* 页脚 */
+footer{
+  border-top:1px solid var(--line); margin-top:20px; padding:26px 20px 40px;
+  text-align:center; color:var(--dim); font-size:12px;
+}
+kbd{
+  font-family:var(--mono);font-size:11.5px;padding:1px 6px;border-radius:5px;
+  border:1px solid var(--line);background:#1c1936;color:var(--txt);
+}
+.hr{height:1px;background:linear-gradient(90deg,transparent,var(--line),transparent);margin:26px 0}
+ul.tight{margin:8px 0 0;padding-left:20px}
+ul.tight li{font-size:12.8px;color:var(--txt);margin-bottom:4px;line-height:1.75}
+ul.tight li b{color:var(--cyan)}
+.note{
+  border-left:3px solid var(--amber); background:rgba(196,169,112,.07);
+  border-radius:0 10px 10px 0; padding:10px 14px; font-size:12.5px; color:var(--txt);
+  margin-top:12px; line-height:1.75;
+}
+.note b{color:var(--amber)}
+</style>
+<style id="sd-skin">
+/* ==================================================================
+   Star Desk skin — 星空桌面 (generated)
+   bg #07060f/#0a0a1a · 柔紫 #8b7aaa · 淡金 #c4a970
+   glass rgba(20,18,40,.55) + blur(12px) + 1px rgba(255,255,255,.06)
+   ================================================================== */
+
+/* ---- deep night sky on the root element ---- */
+html{
+  background-color:#07060f;
+  background-image:
+    radial-gradient(1100px 620px at 8% -8%,rgba(139,122,170,.13),transparent 62%),
+    radial-gradient(900px 560px at 96% 4%,rgba(127,143,181,.10),transparent 64%),
+    radial-gradient(1200px 800px at 50% 118%,rgba(196,169,112,.05),transparent 66%);
+  background-attachment:fixed;
+  background-repeat:no-repeat;
+  background-size:cover;
+}
+/* body must not paint over the stars */
+body{
+  background-color:transparent !important;
+  background-image:none !important;
+}
+
+/* ---- twinkling starfield (two parallax-ish layers) ---- */
+body::before,body::after{
+  content:'';position:fixed;inset:0;z-index:-1;pointer-events:none;
+  background-repeat:repeat;
+}
+body::before{
+  background-image:radial-gradient(1.1px 1.1px at 166px 391px,rgba(255,252,244,0.48),rgba(255,252,244,0)),radial-gradient(1.0px 1.0px at 23px 428px,rgba(255,252,244,0.72),rgba(255,252,244,0)),radial-gradient(0.7px 0.7px at 352px 209px,rgba(255,252,244,0.73),rgba(255,252,244,0)),radial-gradient(0.9px 0.9px at 28px 469px,rgba(255,252,244,0.72),rgba(255,252,244,0)),radial-gradient(1.0px 1.0px at 337px 166px,rgba(255,252,244,0.80),rgba(255,252,244,0)),radial-gradient(1.3px 1.3px at 363px 287px,rgba(255,252,244,0.80),rgba(255,252,244,0)),radial-gradient(1.3px 1.3px at 50px 13px,rgba(255,252,244,0.76),rgba(255,252,244,0)),radial-gradient(1.1px 1.1px at 249px 165px,rgba(255,252,244,0.64),rgba(255,252,244,0)),radial-gradient(0.8px 0.8px at 24px 110px,rgba(255,252,244,0.65),rgba(255,252,244,0)),radial-gradient(0.7px 0.7px at 390px 181px,rgba(255,252,244,0.88),rgba(255,252,244,0)),radial-gradient(0.9px 0.9px at 36px 135px,rgba(255,252,244,0.82),rgba(255,252,244,0)),radial-gradient(1.1px 1.1px at 460px 286px,rgba(255,252,244,0.33),rgba(255,252,244,0)),radial-gradient(1.1px 1.1px at 217px 29px,rgba(255,252,244,0.36),rgba(255,252,244,0)),radial-gradient(0.6px 0.6px at 385px 236px,rgba(255,252,244,0.38),rgba(255,252,244,0)),radial-gradient(1.3px 1.3px at 97px 283px,rgba(255,252,244,0.38),rgba(255,252,244,0)),radial-gradient(1.3px 1.3px at 150px 108px,rgba(255,252,244,0.51),rgba(255,252,244,0)),radial-gradient(0.8px 0.8px at 14px 13px,rgba(255,252,244,0.49),rgba(255,252,244,0)),radial-gradient(1.4px 1.4px at 54px 407px,rgba(255,252,244,0.55),rgba(255,252,244,0)),radial-gradient(1.0px 1.0px at 217px 283px,rgba(255,252,244,0.44),rgba(255,252,244,0)),radial-gradient(1.0px 1.0px at 182px 421px,rgba(255,252,244,0.64),rgba(255,252,244,0)),radial-gradient(1.0px 1.0px at 146px 365px,rgba(255,252,244,0.60),rgba(255,252,244,0)),radial-gradient(1.2px 1.2px at 3px 464px,rgba(255,252,244,0.58),rgba(255,252,244,0)),radial-gradient(1.3px 1.3px at 41px 64px,rgba(255,252,244,0.62),rgba(255,252,244,0)),radial-gradient(1.3px 1.3px at 49px 122px,rgba(255,252,244,0.83),rgba(255,252,244,0)),radial-gradient(1.2px 1.2px at 364px 245px,rgba(255,252,244,0.41),rgba(255,252,244,0)),radial-gradient(1.3px 1.3px at 451px 396px,rgba(255,252,244,0.36),rgba(255,252,244,0)),radial-gradient(0.8px 0.8px at 141px 370px,rgba(255,252,244,0.80),rgba(255,252,244,0)),radial-gradient(0.7px 0.7px at 234px 52px,rgba(255,252,244,0.88),rgba(255,252,244,0)),radial-gradient(0.7px 0.7px at 243px 135px,rgba(255,252,244,0.52),rgba(255,252,244,0)),radial-gradient(1.0px 1.0px at 201px 325px,rgba(255,252,244,0.66),rgba(255,252,244,0)),radial-gradient(1.2px 1.2px at 206px 382px,rgba(255,252,244,0.55),rgba(255,252,244,0)),radial-gradient(1.2px 1.2px at 9px 170px,rgba(255,252,244,0.46),rgba(255,252,244,0)),radial-gradient(0.6px 0.6px at 105px 250px,rgba(255,252,244,0.35),rgba(255,252,244,0)),radial-gradient(1.0px 1.0px at 242px 16px,rgba(255,252,244,0.51),rgba(255,252,244,0));
+  background-size:480px 480px;
+  animation:sd-twinkle 7s ease-in-out infinite alternate;
+}
+body::after{
+  background-image:radial-gradient(1.8px 1.8px at 491px 761px,rgba(255,252,244,0.35),rgba(255,252,244,0)),radial-gradient(0.9px 0.9px at 346px 725px,rgba(255,252,244,0.29),rgba(255,252,244,0)),radial-gradient(1.7px 1.7px at 805px 163px,rgba(255,252,244,0.18),rgba(255,252,244,0)),radial-gradient(0.9px 0.9px at 109px 249px,rgba(255,252,244,0.38),rgba(255,252,244,0)),radial-gradient(1.8px 1.8px at 451px 568px,rgba(255,252,244,0.46),rgba(255,252,244,0)),radial-gradient(1.4px 1.4px at 468px 155px,rgba(255,252,244,0.44),rgba(255,252,244,0)),radial-gradient(1.3px 1.3px at 331px 649px,rgba(255,252,244,0.31),rgba(255,252,244,0)),radial-gradient(1.6px 1.6px at 489px 563px,rgba(255,252,244,0.27),rgba(255,252,244,0)),radial-gradient(0.6px 0.6px at 85px 177px,rgba(255,252,244,0.48),rgba(255,252,244,0)),radial-gradient(1.7px 1.7px at 504px 678px,rgba(255,252,244,0.33),rgba(255,252,244,0)),radial-gradient(0.8px 0.8px at 741px 281px,rgba(255,252,244,0.20),rgba(255,252,244,0)),radial-gradient(1.0px 1.0px at 30px 499px,rgba(255,252,244,0.49),rgba(255,252,244,0)),radial-gradient(0.6px 0.6px at 426px 580px,rgba(255,252,244,0.37),rgba(255,252,244,0)),radial-gradient(1.4px 1.4px at 652px 677px,rgba(255,252,244,0.19),rgba(255,252,244,0)),radial-gradient(1.6px 1.6px at 542px 481px,rgba(255,252,244,0.20),rgba(255,252,244,0)),radial-gradient(1.1px 1.1px at 186px 242px,rgba(255,252,244,0.42),rgba(255,252,244,0)),radial-gradient(1.1px 1.1px at 14px 830px,rgba(255,252,244,0.32),rgba(255,252,244,0)),radial-gradient(1.1px 1.1px at 173px 250px,rgba(255,252,244,0.43),rgba(255,252,244,0)),radial-gradient(0.9px 0.9px at 523px 311px,rgba(255,252,244,0.39),rgba(255,252,244,0)),radial-gradient(1.6px 1.6px at 75px 284px,rgba(255,252,244,0.28),rgba(255,252,244,0)),radial-gradient(0.8px 0.8px at 804px 65px,rgba(255,252,244,0.26),rgba(255,252,244,0)),radial-gradient(1.7px 1.7px at 128px 669px,rgba(255,252,244,0.40),rgba(255,252,244,0));
+  background-size:880px 880px;
+  animation:sd-twinkle 11s ease-in-out infinite alternate-reverse;
+}
+@keyframes sd-twinkle{ 0%{opacity:.45} 100%{opacity:.92} }
+
+/* ---- glass cards (large surfaces get the real blur) ---- */
+.card,.term,.svc,.kpi,.chain-box,.group,.fig,.hero,.check,.intro,.tblwrap,.tbl-wrap,.tl-item > .card{
+  background:rgba(20,18,40,.55) !important;
+  -webkit-backdrop-filter:blur(12px);
+  backdrop-filter:blur(12px);
+  border:1px solid rgba(255,255,255,.06) !important;
+  border-radius:16px;
+  transition:border-color .3s ease,background .3s ease,transform .3s ease;
+}
+.card:hover,.term:hover,.svc:hover,.kpi:hover,.chain-box:hover,.group:hover,.fig:hover,.hero:hover,.check:hover,.intro:hover,.tblwrap:hover,.tbl-wrap:hover,.tl-item > .card:hover{
+  border-color:rgba(255,255,255,.10) !important;
+}
+/* small repeated elements: translucent, no blur (perf) */
+.node,.box,.chip,.note{
+  background:rgba(20,18,40,.62) !important;
+  border:1px solid rgba(255,255,255,.06) !important;
+  border-radius:12px;
+  transition:border-color .3s ease,transform .25s ease;
+}
+.node:hover,.box:hover,.chip:hover{
+  transform:translateY(-2px);
+  border-color:rgba(255,255,255,.14) !important;
+}
+/* keep callout colour coding on the left edge */
+.note.ok,.note.red{border-left-width:3px !important;border-radius:14px;}
+.intro{border-left:3px solid rgba(139,122,170,.5) !important;}
+
+/* ---- glass chrome bars ---- */
+.topbar,#topbar,.topbar-inner{ background:transparent !important; }
+.topbar,#topbar{
+  -webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);
+  background:rgba(13,13,36,.72) !important;
+  border-bottom:1px solid rgba(255,255,255,.06) !important;
+}
+#bar{
+  -webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);
+  background:rgba(13,13,36,.72) !important;
+  border-top:1px solid rgba(255,255,255,.06) !important;
+}
+button,a.backlink,.backlink{
+  background:rgba(20,18,40,.62) !important;
+  border-color:rgba(255,255,255,.08) !important;
+  border-radius:10px;
+}
+
+/* ---- serif accents, echoing the Star Desk section labels ---- */
+.brand,#brand,.sec-no,.sec-head .no,.hero h1,h2.part,h1#barT,.t h1{
+  font-family:'Georgia','Noto Serif SC','Songti SC',serif;
+  letter-spacing:.03em;
+}
+
+/* ---- slow breathing on hero/kpi surfaces ---- */
+@keyframes sd-float{ 0%,100%{transform:translateY(0)} 50%{transform:translateY(-3px)} }
+.hero,.intro,.kpi{ animation:sd-float 6s ease-in-out infinite; }
+.kpi:nth-child(2n){ animation-duration:7.2s;animation-delay:-1.6s; }
+.kpi:nth-child(3n){ animation-duration:6.6s;animation-delay:-3.1s; }
+
+/* ---- scrollbar ---- */
+::-webkit-scrollbar{width:9px;height:9px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:rgba(139,122,170,.28);border-radius:999px}
+::-webkit-scrollbar-thumb:hover{background:rgba(139,122,170,.45)}
+
+/* ---- mobile: same trade-off Star Desk makes — no blur ---- */
+@media (max-width:767px){
+  .card,.term,.svc,.kpi,.chain-box,.group,.fig,.hero,.check,.intro,.tblwrap,.tbl-wrap,.tl-item > .card{
+    -webkit-backdrop-filter:none;backdrop-filter:none;
+    background:rgba(20,18,40,.72) !important;
+  }
+  .topbar,#topbar,#bar{-webkit-backdrop-filter:none;backdrop-filter:none}
+  body::before,body::after{animation:none;opacity:.6}
+}
+@media (prefers-reduced-motion:reduce){
+  body::before,body::after,.hero,.intro,.kpi{animation:none !important}
+  body::before{opacity:.55}body::after{opacity:.4}
+}
+</style>
+</head>
+<body>
+
+<!-- ================= 顶部导航 ================= -->
+<header class="topbar">
+  <div class="topbar-inner">
+    <div class="brand">
+      <span class="dot"></span>
+      云联客服工单平台
+      <small>· AI 智能客服 + 工单 · 面试课件</small>
+    </div>
+    <nav class="nav">
+      <a href="#s1">① 概览</a>
+      <a href="#s2">② 架构</a>
+      <a href="#s3">③ 业务流</a>
+      <a href="#s4">④ AI链路</a>
+      <a href="#s5">⑤ Tools</a>
+      <a href="#s6">⑥ 库表</a>
+      <a href="#s7">⑦ API</a>
+      <a href="#s8">⑧ 难点</a>
+      <a href="#s9">⑨ 速记</a>
+      <a href="#s10">⑩ Demo</a>
+    <a class="backlink" href="../路线.html" style="display:inline-flex;align-items:center;min-height:32px;padding:0 10px;border:1px solid #2a2740;border-radius:6px;background:#141230;color:#7f8fb5;text-decoration:none;font-size:13px;white-space:nowrap;touch-action:manipulation;-webkit-tap-highlight-color:transparent">← 回学习路线</a></nav>
+  </div>
+</header>
+
+<main>
+
+<!-- ================= 1 一页纸概览 ================= -->
+<section id="s1">
+  <div class="sec-head"><div class="sec-no">01</div><h2>项目一页纸概览</h2></div>
+  <p class="sec-sub">面试开场 60 秒要能讲完的东西：是什么、给谁用、多大、扛多少量。</p>
+
+  <div class="card glow">
+    <div class="grid g2">
+      <div>
+        <h4>项目名称</h4>
+        <p style="margin:0;font-size:19px;color:var(--cyan);font-weight:700;letter-spacing:1px">云联客服工单平台</p>
+        <p class="dim" style="margin:8px 0 0;font-size:12.5px">一套可复用的客服底座：在线会话 + 智能机器人 + 工单协同 + 知识库 + 报表。</p>
+      </div>
+      <div>
+        <h4>产品定位（必须说准）</h4>
+        <p style="margin:0;font-size:13px">
+          <span class="badge cy">企业软件定制交付</span>
+          <span class="badge bl">不是多租户 SaaS 产品</span>
+        </p>
+        <p class="dim" style="margin:8px 0 0;font-size:12.5px">
+          交付给 <b class="cyan">3 家企业客户</b>：1 家连锁零售 + 2 家电商，部署在客户自己的环境里。
+          因为是交付型，天然没有对外产品官网 —— 这正好避开面试官"打开官网给我看看"的致命问题。
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <h3>关键数字（背下来，口径按"最大单客户"）</h3>
+  <div class="grid g4">
+    <div class="kpi"><div class="num">7<span class="unit">个</span></div><div class="lbl">微服务：auth / customer / conversation / ticket / knowledge / ai / report</div></div>
+    <div class="kpi blue"><div class="num">约 29<span class="unit">张表</span></div><div class="lbl">客户与权限 6 + 会话消息 7 + 工单 7（含 ticket_escalation） + 知识库 4 + AI 5</div></div>
+    <div class="kpi"><div class="num">8000<span class="unit">会话/日</span></div><div class="lbl">日均会话量（单客户）</div></div>
+    <div class="kpi blue"><div class="num">6<span class="unit">万条/日</span></div><div class="lbl">日均消息量（单客户）</div></div>
+    <div class="kpi"><div class="num">600<span class="unit">单/日</span></div><div class="lbl">日均工单量（单客户）</div></div>
+    <div class="kpi amber"><div class="num">30<span class="unit">次/秒</span></div><div class="lbl">内部处理速率【估算】（非网关入口 QPS）</div></div>
+    <div class="kpi amber"><div class="num">8<span class="unit">TPS</span></div><div class="lbl">峰值写 TPS（设计目标）</div></div>
+    <div class="kpi"><div class="num">40<span class="unit">多人</span></div><div class="lbl">公司规模（软件定制交付型）</div></div>
+  </div>
+
+  <div class="card" style="margin-top:16px">
+    <h4>规模自洽性（面试官一定会算这笔账）</h4>
+    <ul class="tight">
+      <li>最大客户日均 <b>6 万条消息</b>，集中在 <b>10 小时</b> ≈ <b>1.7 条消息/秒</b>；按每条消息可能触发的内部处理动作估，平均内部操作约 <b>8 次/秒</b>，再乘约 <b>4 倍</b>峰值系数 ≈ <b>30 次/秒</b>。</li>
+      <li>所以报"内部处理速率【估算】约 30 次/秒 / 写 TPS 8"是<b>自洽</b>的；报 QPS 120 就和"40 人公司交付 3 家客户"的规模对不上了。</li>
+      <li><b>口径红线</b>：这个 30 是<b>基于业务量的估算</b>，<b>不等于网关入口 QPS，也不是压测实测值</b>。压测只能验证"扛不扛得住"，不能反推生产峰值。</li>
+      <li>数据量口径统一说"<b>按最大单客户</b>"，<b>不要把三家相加</b>。</li>
+      <li>坐席规模 <b>200 人</b>左右，单坐席同时在服会话上限 <b>5 个</b>。</li>
+      <li>团队：项目经理 1、产品 1（共享）、架构师 1、后端 6（高级 1 : 中级 4 : 初级 1）、前端 2（共享）、测试 2（共享）、运维 1（共享）。</li>
+      <li>开发周期 12 个月，其中我负责的模块开发 7 个月。</li>
+    </ul>
+    <div class="note"><b>口径铁律：</b>凡是要说"租户"的地方，口头一律换成"客户"；隔离方式说"<b>每个客户独立 schema + 独立向量 collection</b>"，不能说成"SaaS 共享库 tenant_id 隔离"。</div>
+  </div>
+</section>
+
+<!-- ================= 2 架构图 ================= -->
+<section id="s2">
+  <div class="sec-head"><div class="sec-no">02</div><h2>整体架构图（分层）</h2></div>
+  <p class="sec-sub">自顶向下五层：接入 → 网关 → 注册配置 → 业务服务 → 中间件。鼠标悬停任意节点看它的职责说明。</p>
+
+  <div class="card arch">
+    <!-- 接入层 -->
+    <div class="layer">
+      <span class="layer-label">接入层</span>
+      <div class="row">
+        <div class="node cy tip" data-tip="HTTPS 卸载、限流、灰度发布。所有外部流量（H5 / 公众号 / 小程序回调）的第一道门。">
+          <div class="nt">Nginx</div><div class="nd">HTTPS 卸载 · 限流 · 灰度</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="varrow"><span><i class="tag">HTTP / WSS</i></span></div>
+
+    <!-- 网关 -->
+    <div class="layer">
+      <span class="layer-label">网关层</span>
+      <div class="row">
+        <div class="node bl tip" data-tip="Spring Cloud Gateway：统一路由、JWT 校验、客户上下文（tenantId）注入、接口限流。/inner/** 内部接口网关不放行。">
+          <div class="nt">Spring Cloud Gateway</div><div class="nd">路由 · JWT 校验 · 客户上下文注入 · 限流</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="varrow"><span><i class="tag">服务发现 / 负载均衡</i></span></div>
+
+    <!-- 注册配置 -->
+    <div class="layer">
+      <span class="layer-label">注册与配置</span>
+      <div class="row">
+        <div class="node pu tip" data-tip="Nacos：服务注册发现 + 配置中心 + 动态刷新（改配置不用重启服务）。">
+          <div class="nt">Nacos</div><div class="nd">服务发现 · 配置中心 · 动态刷新</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="varrow"><span><i class="tag">RPC / OpenFeign</i></span></div>
+
+    <!-- 业务服务 -->
+    <div class="layer" style="border-color:rgba(139,122,170,.28)">
+      <span class="layer-label">业务服务层 · 7 个微服务</span>
+      <div class="row">
+        <div class="node cy tip" data-tip="认证授权：JWT 签发与校验、RBAC 权限、SSO 对接。">
+          <div class="nt">auth</div><div class="nd">认证授权</div>
+        </div>
+        <div class="node cy tip" data-tip="客户与坐席：企业、坐席、技能组、角色权限、渠道配置。">
+          <div class="nt">customer</div><div class="nd">客户与坐席</div>
+        </div>
+        <div class="node cy tip" data-tip="会话与消息：WebSocket 长连接、消息存储、接待分配、转接。多实例部署，靠 Redis 路由表 + Kafka 分区保序。">
+          <div class="nt">conversation</div><div class="nd">会话与消息（WebSocket）</div>
+        </div>
+        <div class="node cy tip" data-tip="工单：工单流转、SLA 引擎、触发器、跨部门协同。">
+          <div class="nt">ticket</div><div class="nd">工单 + SLA</div>
+        </div>
+        <div class="node cy tip" data-tip="知识库：文档、FAQ、相似问、向量化、混合检索（BM25 + 向量 + RRF 融合）。">
+          <div class="nt">knowledge</div><div class="nd">知识库 + 向量化</div>
+        </div>
+        <div class="node cy tip" data-tip="AI 编排：意图识别、RAG、Tool Calling、LLM 生成、后置校验、Agent 执行日志。">
+          <div class="nt">ai</div><div class="nd">AI 编排</div>
+        </div>
+        <div class="node cy tip" data-tip="报表统计：会话 / 工单 / 坐席 / AI 效果指标，离线 + 实时。">
+          <div class="nt">report</div><div class="nd">报表统计</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="varrow"><span><i class="tag">数据访问</i></span></div>
+
+    <!-- 中间件 -->
+    <div class="layer">
+      <span class="layer-label">中间件层</span>
+      <div class="row">
+        <div class="node mw tip" data-tip="MySQL 8：业务库 + AI 库，每个客户独立 schema。消息表按月分表，工单表不冗余顾客信息只存快照 JSON。">
+          <div class="nt">MySQL 8</div><div class="nd">业务库 / AI 库</div>
+        </div>
+        <div class="node mw tip" data-tip="Redis 7：缓存、会话状态、sessionId→实例路由表、分布式锁、限流、Lua 原子扣减坐席在服会话数。">
+          <div class="nt">Redis 7</div><div class="nd">缓存 · 会话 · 路由 · 锁</div>
+        </div>
+        <div class="node mw tip" data-tip="Kafka：消息投递、工单事件、知识库异步向量化。按 sessionId 分区保证单会话消息有序。">
+          <div class="nt">Kafka</div><div class="nd">消息投递 · 事件 · 削峰</div>
+        </div>
+        <div class="node mw tip" data-tip="Elasticsearch 8：消息全文检索、工单检索、知识检索兜底（BM25 那一路）。">
+          <div class="nt">Elasticsearch 8</div><div class="nd">全文检索 · BM25</div>
+        </div>
+        <div class="node mw tip" data-tip="MinIO：附件与知识文档的对象存储（工单附件、知识库原始文件）。">
+          <div class="nt">MinIO</div><div class="nd">附件 / 知识文档</div>
+        </div>
+        <div class="node mw tip" data-tip="PGVector：向量库。独立部署，不和业务库争资源；每个客户一个 collection，检索时再带 tenant_id 做 metadata 过滤。">
+          <div class="nt">PGVector</div><div class="nd">向量库 · 每客户独立 collection</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="varrow"><span><i class="tag">模型调用</i></span></div>
+
+    <!-- 模型层 -->
+    <div class="layer">
+      <span class="layer-label">AI 模型层</span>
+      <div class="row">
+        <div class="node pu tip" data-tip="Python + LangChain + LangGraph 做 Agent 编排与工具调用；大模型 API 走 DeepSeek / 通义千问双通道，可切换。DeepSeek 走性价比，通义千问走长文本；模型超时或失败自动降级到备用模型。">
+          <div class="nt">LangChain + LangGraph</div><div class="nd">DeepSeek / 通义千问 双通道 · 可切换</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="arch-legend">
+      <span><i style="background:#8b7aaa"></i>核心业务链路</span>
+      <span><i style="background:#7f8fb5"></i>网关 / 入口</span>
+      <span><i style="background:#8b7aaa"></i>注册配置 / 模型</span>
+      <span class="dim">· 悬停节点查看职责</span>
+    </div>
+  </div>
+
+  <div class="card blue-glow">
+    <h4>一句话记住这张图</h4>
+    <p style="margin:0;font-size:13px">
+      <span class="cyan">Nginx</span> 挡流量 →
+      <span class="blue">Gateway</span> 管路由和身份 →
+      <span class="purple" style="color:var(--purple)">Nacos</span> 管服务在哪 →
+      <span class="cyan">7 个服务</span>各管一摊 →
+      <span class="dim">6 个中间件</span>兜住存储、缓存、消息、检索、文件、向量。
+    </p>
+  </div>
+</section>
+
+<!-- ================= 3 核心业务流程 ================= -->
+<section id="s3">
+  <div class="sec-head"><div class="sec-no">03</div><h2>核心业务流程图</h2></div>
+  <p class="sec-sub">从顾客进线到数据回流知识库的完整闭环 —— 这是你面试讲 15 分钟的主线。每一步下面都标了"技术点是什么"。</p>
+
+  <div class="card">
+    <div class="flow">
+      <div class="fstep">
+        <div class="fn">1</div>
+        <div class="ft">顾客进线</div>
+        <div class="fd">顾客在网页 / H5 发起咨询，建会话、写库、状态=机器人接待中。<br><b>技术点：</b>Redis 存会话上下文（最近 <b>10 轮</b>），过期 <b>30 分钟</b>。</div>
+      </div>
+      <div class="farrow">➜</div>
+
+      <div class="fstep">
+        <div class="fn">2</div>
+        <div class="ft">机器人接待</div>
+        <div class="fd">意图识别 → RAG 检索 Top5 → Tool Calling → LLM 生成。<br><b>技术点：</b>SSE 流式返回；答案必须带知识引用。</div>
+      </div>
+      <div class="farrow">➜</div>
+
+      <div class="fstep">
+        <div class="fn">3</div>
+        <div class="ft">转人工（接待分配）</div>
+        <div class="fd">按技能组分配坐席：轮询 → 空闲优先 → 技能组匹配 → 会话上限超 <b>5 个</b>不再分配。<br><b>技术点：</b>Redis <b>Lua 原子扣减</b>坐席在服会话数，防并发超分。</div>
+      </div>
+      <div class="farrow">➜</div>
+
+      <div class="fstep">
+        <div class="fn">4</div>
+        <div class="ft">人工接待</div>
+        <div class="fd">双向消息 WebSocket 收发，落 MySQL + 异步投 Kafka。<br><b>技术点：</b>Kafka 按 <b>sessionId 分区</b>，单会话串行消费保序。</div>
+      </div>
+      <div class="farrow">➜</div>
+
+      <div class="fstep">
+        <div class="fn">5</div>
+        <div class="ft">建工单</div>
+        <div class="fd">坐席点"转工单"，选模板（退款/发票/技术故障/投诉），自动带入顾客信息 + AI 会话摘要 + 附件。<br><b>技术点：</b>发 Kafka 事件：通知处理人、写统计、<b>SLA 计时启动</b>。</div>
+      </div>
+      <div class="farrow">➜</div>
+
+      <div class="fstep">
+        <div class="fn">6</div>
+        <div class="ft">SLA 计时与超时升级</div>
+        <div class="fd">每分钟扫描未完成工单，算首响 / 解决 SLA 剩余。<br><b>技术点：</b>剩余 <b>20%</b> 提醒处理人；超时升级上级 + 标记超时；支持<b>暂停计时</b>（等客户回复时暂停，<code>paused_time</code> 累计）。</div>
+      </div>
+      <div class="farrow">➜</div>
+
+      <div class="fstep">
+        <div class="fn">7</div>
+        <div class="ft">结束 + AI 质检</div>
+        <div class="fd">会话结束触发 AI 质检（Kafka 异步）：情绪、违规词、服务态度、是否解决；生成满意度邀请（1~5 星）。<br><b>技术点：</b>异步解耦，不阻塞主链路。</div>
+      </div>
+      <div class="farrow">➜</div>
+
+      <div class="fstep" style="border-color:rgba(139,122,170,.45)">
+        <div class="fn" style="background:var(--purple)">8</div>
+        <div class="ft">数据回流知识库</div>
+        <div class="fd">未命中的问题写 <code>ai_unanswered</code>，运营补充知识后重新向量化生效。<br><b>技术点：</b>Kafka 异步向量化，形成"<b>AI 接待 → 未命中 → 补知识 → 命中率回升</b>"的闭环。</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h4>转人工的触发条件（人工兜底不可绕过，这是真实客服产品铁律）</h4>
+    <p style="margin:0;font-size:12.8px">
+      <span class="badge rd">意图 = 投诉</span>
+      <span class="badge am">连续 2 次未识别</span>
+      <span class="badge cy">命中转人工关键词（最多 30 个）</span>
+      <span class="badge bl">顾客主动说"人工"</span>
+      <span class="badge pu">召回为空 / 重排分不达标</span>
+    </p>
+    <p class="dim" style="margin:8px 0 0;font-size:12.5px">命中任意一条 → 直接返回 TRANSFER，交给 conversation 服务做接待分配。</p>
+  </div>
+
+  <div class="card">
+    <h4>知识库从上传到生效（第二条能讲的流程）</h4>
+    <p style="margin:0;font-size:12.8px" class="dim">
+      上传文档到 MinIO → 写 <code>knowledge_document</code>（parse_status=解析中）→ 发 Kafka 异步任务 →
+      文档解析切分 chunk → 调 embedding 模型向量化 → 写 <code>knowledge_chunk</code>（<code>vector_id</code> 指向向量库主键）+ 写 PGVector →
+      同时写 ES 供 BM25 → parse_status=已完成，检索立即可用。
+    </p>
+  </div>
+</section>
+
+<!-- ================= 4 AI Agent 链路 ================= -->
+<section id="s4">
+  <div class="sec-head"><div class="sec-no">04</div><h2>AI Agent 链路图</h2></div>
+  <p class="sec-sub">顾客一句话，在系统里到底走了多少步。这张图是"你真的做过 AI 落地"的证明。</p>
+
+  <div class="card glow">
+    <div class="chain">
+      <div class="chain-item">
+        <div class="chain-box">
+          <div class="ct">顾客消息</div>
+          <div class="cd">网页 / H5 / 公众号等渠道进来的一句话。</div>
+        </div>
+      </div>
+
+      <div class="chain-item alt">
+        <div class="chain-box">
+          <div class="ct">conversation 服务</div>
+          <div class="cd">WebSocket 收消息 → 落库 → Redis 存会话上下文（最近 10 轮，TTL 30 分钟）。</div>
+        </div>
+      </div>
+
+      <div class="chain-item alt">
+        <div class="chain-box">
+          <div class="ct">OpenFeign 调用</div>
+          <div class="cd"><code>conversation-service → ai-service</code>：<span class="badge bl">POST /inner/ai/chat</span> 机器人接待。</div>
+        </div>
+      </div>
+
+      <div class="chain-item">
+        <div class="chain-box">
+          <div class="ct">ai 服务（编排入口）</div>
+          <div class="cd">所有智能能力都收敛在这一个服务里，业务服务不感知模型细节。</div>
+        </div>
+      </div>
+
+      <div class="chain-item">
+        <div class="chain-box">
+          <div class="ct">① 意图识别</div>
+          <div class="cd">一次轻量 LLM 调用或小模型分类，输出 <b>intent + confidence</b>。分类：售前咨询 / 售后 / 物流 / 投诉 / 其他。<br>
+          命中转人工条件 → 直接返回 <em>TRANSFER</em>，不再往下走。</div>
+        </div>
+      </div>
+
+      <div class="chain-item">
+        <div class="chain-box">
+          <div class="ct">② RAG 检索（混合检索 + 融合）</div>
+          <div class="cd">
+            调 knowledge 服务：<span class="badge bl">POST /inner/knowledge/search</span><br>
+            问题向量化 → 向量库召回 → 与 ES <b>BM25</b> 结果做 <b>RRF 融合</b> → 重排取 <b>Top5</b> 知识片段。<br>
+            只查本客户知识库（客户之间物理隔离），并带 <code>tenant_id</code> metadata 过滤做二次防护。
+          </div>
+        </div>
+      </div>
+
+      <div class="chain-item">
+        <div class="chain-box">
+          <div class="ct">③ 判定是否需要业务数据</div>
+          <div class="cd">
+            <b>需要</b> → <b>Tool Calling</b>（LLM Function Calling 决策），用 OpenFeign / RestTemplate 调业务服务，把结构化结果回填 Prompt；<br>
+            <b>不需要</b> → 仅用知识片段进生成。
+          </div>
+        </div>
+      </div>
+
+      <div class="chain-item">
+        <div class="chain-box">
+          <div class="ct">④ LLM 生成答案</div>
+          <div class="cd">System Prompt 强制约束：<b>只依据给定资料回答，不确定就转人工</b>。走 DeepSeek / 通义千问双通道，失败自动降级备用模型。</div>
+        </div>
+      </div>
+
+      <div class="chain-item warn">
+        <div class="chain-box" style="border-color:rgba(181,106,106,.45)">
+          <div class="ct" style="color:#bb8680">⑤ 后置校验（幻觉兜底）</div>
+          <div class="cd">
+            <b class="red" style="color:var(--red)">召回片段为空，或重排分不达标（设计中的经验阈值 0.72）→ 禁止生成</b>，直接走兜底话术（"我帮您转人工确认一下"）+ 转人工。<br>
+            ★注意：<b>向量相似度只作参考信号，不能单独触发兜底</b>——BM25 可能精确命中而向量分很低，硬过滤会误杀正确结果。
+            其余校验：是否引用知识、是否包含违规词、长度是否合理。
+          </div>
+        </div>
+      </div>
+
+      <div class="chain-item alt">
+        <div class="chain-box">
+          <div class="ct">⑥ 写 ai_execution 日志（Kafka 异步）</div>
+          <div class="cd">记录：<code>intent / confidence / retrieved_chunk_ids / tool_calls_json / prompt_tokens / completion_tokens / latency_ms / model_code / answer_source / is_transferred</code>。<br>
+          同时把未命中的问题写进 <code>ai_unanswered</code>，回流知识库优化。</div>
+        </div>
+      </div>
+
+      <div class="chain-item">
+        <div class="chain-box" style="border-color:rgba(139,122,170,.45)">
+          <div class="ct cyan">返回：答案 + 知识引用 + 是否转人工</div>
+          <div class="cd">回到 conversation 服务，通过 WebSocket 推给顾客；若 <code>is_transferred=1</code>，转入接待分配流程。</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card blue-glow">
+    <h4>面试官追问"你怎么知道 AI 答得准不准"→ 指这张图</h4>
+    <ul class="tight">
+      <li><b>可观测：</b><code>ai_execution</code> 全链路日志（意图 / 召回 / 工具 / 耗时 / token / 是否转人工）。</li>
+      <li><b>可量化：</b>AI 解决率 = <code>robot_resolved</code> 会话数 ÷ 机器人接待会话数。</li>
+      <li><b>可回归：</b>报表里出平均首响、token 成本、AI 解决率；<code>answer_source</code> 标 KB / TOOL / LLM / FALLBACK 一眼看出答案从哪来。</li>
+      <li><b>闭环：</b>未命中 → <code>ai_unanswered</code> → 运营补知识 → 命中率回升。</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ================= 5 Agent Tools ================= -->
+<section id="s5">
+  <div class="sec-head"><div class="sec-no">05</div><h2>Agent Tools 清单（8 个，直接背）</h2></div>
+  <p class="sec-sub">工具签名存在 <code>ai_agent_tool.param_schema_json</code> 里给 LLM 看；调用明细落到 <code>ai_execution.tool_calls_json</code>。</p>
+
+  <div class="tbl-wrap">
+    <table>
+      <thead>
+        <tr><th style="width:170px">工具</th><th style="width:200px">入参</th><th>出参</th><th style="width:230px">对应业务场景</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="k">queryOrder</td>
+          <td class="m">订单号 / 手机号</td>
+          <td>订单状态、商品、金额、下单时间</td>
+          <td class="m">顾客问"我买的东西到哪了/我的订单什么状态"</td>
+        </tr>
+        <tr>
+          <td class="k">queryLogistics</td>
+          <td class="m">订单号</td>
+          <td>物流公司、运单号、最新轨迹</td>
+          <td class="m">物流进度查询，替代人工查快递</td>
+        </tr>
+        <tr>
+          <td class="k">queryRefundRule</td>
+          <td class="m">商品类目 / 订单号</td>
+          <td>退款规则、可退期限</td>
+          <td class="m">退货退款规则咨询（也是幻觉高发问题）</td>
+        </tr>
+        <tr>
+          <td class="k">queryProduct</td>
+          <td class="m">商品 ID / 关键词</td>
+          <td>商品属性（成分 / 尺码 / 功效）、价格、活动价</td>
+          <td class="m">商品属性联动导购</td>
+        </tr>
+        <tr>
+          <td class="k">queryActivity</td>
+          <td class="m">商品 ID / 客户标识</td>
+          <td>当前活动、优惠券、会员权益</td>
+          <td class="m">活动关联，售前促单</td>
+        </tr>
+        <tr>
+          <td class="k">queryTicket</td>
+          <td class="m">工单号</td>
+          <td>工单状态、当前处理人、SLA 剩余</td>
+          <td class="m">工单衔接在线客服：顾客问"我的问题处理得怎么样了"</td>
+        </tr>
+        <tr>
+          <td class="k">createTicket</td>
+          <td class="m">意图、摘要、顾客 ID</td>
+          <td>工单号</td>
+          <td class="m">转人工前兜底建单，保证问题不丢</td>
+        </tr>
+        <tr>
+          <td class="k">createCallback</td>
+          <td class="m">手机号、原因</td>
+          <td>回访任务号</td>
+          <td class="m">留资 / 回访，顾客要"稍后让客服打给我"</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="note"><b>被追问时的一句话：</b>工具不是让 LLM 随便调外部 HTTP，而是每个工具在 <code>ai_agent_tool</code> 里配好 <code>tool_code / param_schema_json / api_path / method / timeout_ms</code>，
+  LLM 只输出"工具名 + 参数 JSON"，真正发请求的是 ai 服务，参数要过 JSON Schema 校验，超时可控、可审计。</div>
+</section>
+
+<!-- ================= 6 数据库表 ================= -->
+<section id="s6">
+  <div class="sec-head"><div class="sec-no">06</div><h2>数据库表总览（约 29 张，5 大类）</h2></div>
+  <p class="sec-sub">6 + 7 + 7 + 4 + 5 = 29 张（工单 7 张含 ticket_escalation）。AI 那 5 张是最容易被追问的，重点看。</p>
+
+  <div class="card">
+    <h4><span class="badge cy">6 张</span> 客户与权限</h4>
+    <div class="tbl-wrap" style="margin-top:10px">
+      <table>
+        <thead><tr><th style="width:190px">表名</th><th style="width:44%">一句话职责</th><th>关键字段</th></tr></thead>
+        <tbody>
+          <tr><td class="k">tenant</td><td>客户（部署实例）：一个部署实例对应一个客户</td><td class="m">id, name, code, package_type, seat_limit, expire_time, status</td></tr>
+          <tr><td class="k">sys_user</td><td>企业用户 / 坐席账号</td><td class="m">tenant_id, username, password, real_name, role_id, group_id, max_session, status, last_login_time</td></tr>
+          <tr><td class="k">sys_role</td><td>角色，含数据范围</td><td class="m">tenant_id, role_name, role_code, data_scope</td></tr>
+          <tr><td class="k">sys_permission</td><td>权限点（菜单 / 按钮 / 接口）</td><td class="m">parent_id, name, code, type, path</td></tr>
+          <tr><td class="k">sys_role_permission</td><td>角色-权限关联</td><td class="m">role_id, permission_id</td></tr>
+          <tr><td class="k">skill_group</td><td>技能组（售前 / 售后 / 财务），转人工分配的落点</td><td class="m">tenant_id, group_name, strategy, max_session_per_agent, status</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <h4><span class="badge bl">7 张</span> 会话与消息</h4>
+    <div class="tbl-wrap" style="margin-top:10px">
+      <table>
+        <thead><tr><th style="width:190px">表名</th><th style="width:44%">一句话职责</th><th>关键字段</th></tr></thead>
+        <tbody>
+          <tr><td class="k">visitor</td><td>顾客（访客），跨渠道的身份收敛</td><td class="m">tenant_id, channel, external_id, nickname, phone, tags, last_active_time</td></tr>
+          <tr><td class="k">session</td><td>会话主表，状态机：机器人 / 排队 / 人工 / 已结束</td><td class="m">visitor_id, agent_id, group_id, channel, status, source_url, first_response_time, close_reason, satisfaction_score, <b>robot_resolved</b></td></tr>
+          <tr><td class="k">message</td><td>消息表，按月分表（如 <code>message_202601</code>），增长最快的表</td><td class="m">session_id, sender_type, sender_id, msg_type, content, extra_json, client_msg_id, send_time</td></tr>
+          <tr><td class="k">session_transfer</td><td>会话转接记录（转人工 / 转接其他坐席）</td><td class="m">session_id, from_agent_id, to_agent_id, reason, create_time</td></tr>
+          <tr><td class="k">agent_status</td><td>坐席状态：在线 / 小休 / 忙碌 + 当前在服会话数</td><td class="m">tenant_id, agent_id, status, current_session_count, update_time</td></tr>
+          <tr><td class="k">quick_reply</td><td>常用语（快捷回复），带使用次数便于排序</td><td class="m">tenant_id, group_id, title, content, use_count</td></tr>
+          <tr><td class="k">session_evaluation</td><td>会话评价（1~5 星 + 标签）</td><td class="m">session_id, score, comment, tag_json</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="note">消息表按月分表的原因：按单客户日均 6 万条算，一个月约 <b>180 万行</b>，按月分表主要为归档和历史查询方便。</div>
+  </div>
+
+  <div class="card">
+    <h4><span class="badge am">6 张</span> 工单</h4>
+    <div class="tbl-wrap" style="margin-top:10px">
+      <table>
+        <thead><tr><th style="width:190px">表名</th><th style="width:44%">一句话职责</th><th>关键字段</th></tr></thead>
+        <tbody>
+          <tr><td class="k">ticket</td><td>工单主表，含 SLA 双 deadline 与暂停累计时长</td><td class="m">ticket_no, template_id, type, priority, status（待处理/处理中/待客户回复/已解决/已关闭）, handler_id, group_id, session_id, <b>sla_response_deadline</b>, <b>sla_resolve_deadline</b>, <b>paused_time</b>, is_timeout, finish_time, customer_snapshot_json</td></tr>
+          <tr><td class="k">ticket_template</td><td>工单模板：自定义字段 + 流转节点 + SLA 配置</td><td class="m">tenant_id, name, type, field_json, flow_json, sla_json, status</td></tr>
+          <tr><td class="k">ticket_flow_log</td><td>工单流转日志，每次状态变更都留痕</td><td class="m">ticket_id, node, operator_id, action, from_status, to_status, remark</td></tr>
+          <tr><td class="k">ticket_comment</td><td>工单评论 / 回复，区分内部备注与对外回复</td><td class="m">ticket_id, user_id, content, <b>is_internal</b>, attach_json</td></tr>
+          <tr><td class="k">ticket_attachment</td><td>工单附件元数据（文件在 MinIO）</td><td class="m">ticket_id, comment_id, file_name, file_url, file_size</td></tr>
+          <tr><td class="k">ticket_sla</td><td>SLA 规则：按优先级配首响 / 解决时限与升级对象</td><td class="m">tenant_id, name, priority, first_response_minutes, resolve_minutes, warning_percent, escalate_role_id</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="note">工单表<b>不冗余</b>顾客信息（顾客可能改手机号），但 <code>ticket</code> 冗余 <code>customer_snapshot_json</code> 记录下单时的顾客信息快照 —— 典型的"读多写少用冗余 JSON"权衡。</div>
+  </div>
+
+  <div class="card">
+    <h4><span class="badge gr">4 张</span> 知识库</h4>
+    <div class="tbl-wrap" style="margin-top:10px">
+      <table>
+        <thead><tr><th style="width:190px">表名</th><th style="width:44%">一句话职责</th><th>关键字段</th></tr></thead>
+        <tbody>
+          <tr><td class="k">knowledge_base</td><td>知识库：FAQ / 文档 / 混合三种类型，绑定 embedding 模型</td><td class="m">tenant_id, name, description, type, embedding_model, status</td></tr>
+          <tr><td class="k">knowledge_document</td><td>知识文档：文件在 MinIO，记录解析状态与分块数</td><td class="m">kb_id, title, file_url, file_type, file_size, chunk_count, parse_status, version</td></tr>
+          <tr><td class="k">knowledge_chunk</td><td>文档分块，<code>vector_id</code> 指向向量库主键，是 RAG 的检索单元</td><td class="m">doc_id, kb_id, chunk_index, content, token_count, <b>vector_id</b></td></tr>
+          <tr><td class="k">knowledge_faq</td><td>FAQ 问答对，支持相似问，按命中/提问次数做高频优先</td><td class="m">kb_id, question, similar_questions_json, answer, category, hit_count, ask_count, source</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card glow">
+    <h4><span class="badge cy">5 张</span> AI 相关 <span class="badge rd">面试重灾区</span></h4>
+    <div class="tbl-wrap" style="margin-top:10px">
+      <table>
+        <thead><tr><th style="width:190px">表名</th><th style="width:44%">一句话职责</th><th>关键字段</th></tr></thead>
+        <tbody>
+          <tr>
+            <td class="k">ai_agent</td>
+            <td>机器人配置（一个客户可多个机器人：售前机器人、售后机器人）</td>
+            <td class="m">tenant_id, name, scene, model_code, temperature, top_k, <b>threshold</b>, system_prompt, fallback_strategy（转人工/不回答/兜底话术）, max_unanswered, transfer_keywords_json, status</td>
+          </tr>
+          <tr>
+            <td class="k">ai_agent_tool</td>
+            <td>Agent 可用工具：给 LLM 看的工具签名 + 实际 API 映射</td>
+            <td class="m">agent_id, tool_code, tool_name, description, <b>param_schema_json</b>（JSON Schema）, api_path, method, timeout_ms, status</td>
+          </tr>
+          <tr>
+            <td class="k">ai_conversation</td>
+            <td>AI 会话，一个会话可有多轮 Agent 执行</td>
+            <td class="m">tenant_id, session_id, agent_id, turn_count, create_time</td>
+          </tr>
+          <tr style="background:rgba(139,122,170,.06)">
+            <td class="k" style="color:#b9a98f">ai_execution <span class="badge rd">最重要</span></td>
+            <td><b>Agent 执行明细</b>：面试官问"你怎么知道 AI 答得准不准"就指这张表。记录意图、召回片段、工具调用、token、耗时、是否转人工</td>
+            <td class="m">session_id, agent_id, turn_no, user_question, <b>intent</b>, confidence, <b>retrieved_chunk_ids</b>, <b>tool_calls_json</b>, <b>prompt_tokens</b>, <b>completion_tokens</b>, <b>latency_ms</b>, model_code, answer, <b>answer_source</b>（KB/TOOL/LLM/FALLBACK）, <b>is_transferred</b>, feedback</td>
+          </tr>
+          <tr>
+            <td class="k">ai_unanswered</td>
+            <td>未命中问题表：知识库优化闭环的入口</td>
+            <td class="m">tenant_id, kb_id, question, intent, hit_count, first_time, last_time, status（待处理/已补充/已忽略）</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="note">
+      <b>三个设计要点：</b>
+      ① <code>ai_execution</code> <b>独立库（AI 库）</b>，避免大字段（prompt/answer）拖慢业务库；
+      ② 三家客户独立部署：各自一个 MySQL schema + 各自一个向量库 collection，物理隔离，同时表内保留 <code>tenant_id</code> 作为联合索引最左列做二次防护；
+      ③ 被问"既然独立库了为什么还要 tenant_id"，答：防同一客户内部多品牌 / 多门店，以及将来代码被复用到共享库部署时漏写 where。
+    </div>
+  </div>
+</section>
+
+<!-- ================= 7 核心 API ================= -->
+<section id="s7">
+  <div class="sec-head"><div class="sec-no">07</div><h2>核心 API 列表</h2></div>
+  <p class="sec-sub">三组分清楚：传统业务接口、AI 接口、内部调用。<code>/inner/*</code> 网关不放行，只走服务间 OpenFeign。</p>
+
+  <h3>7.1 传统业务接口</h3>
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th style="width:80px">方法</th><th style="width:300px">路径</th><th>说明</th></tr></thead>
+      <tbody>
+        <tr><td><span class="badge bl">POST</span></td><td class="k">/api/auth/login</td><td>坐席登录，返回 JWT（含 tenantId、userId、roleId）</td></tr>
+        <tr><td><span class="badge gr">GET</span></td><td class="k">/api/tenant/agents</td><td>坐席列表（分页、按技能组筛选）<span class="dim">（归 customer 服务）</span></td></tr>
+        <tr><td><span class="badge bl">POST</span></td><td class="k">/api/tenant/agents</td><td>新增坐席</td></tr>
+        <tr><td><span class="badge am">PUT</span></td><td class="k">/api/tenant/agents/{id}/status</td><td>坐席状态切换（在线 / 小休 / 离线）</td></tr>
+        <tr><td><span class="badge bl">POST</span></td><td class="k">/api/session/start</td><td>顾客发起会话（渠道回调进入）</td></tr>
+        <tr><td><span class="badge gr">GET</span></td><td class="k">/api/session/{id}/messages</td><td>拉历史消息（分页 + ES 检索）</td></tr>
+        <tr><td><span class="badge bl">POST</span></td><td class="k">/api/session/{id}/transfer</td><td>转人工 / 转接其他坐席</td></tr>
+        <tr><td><span class="badge bl">POST</span></td><td class="k">/api/session/{id}/close</td><td>结束会话</td></tr>
+        <tr><td><span class="badge bl">POST</span></td><td class="k">/api/session/{id}/evaluate</td><td>顾客评价（1~5 星）</td></tr>
+        <tr><td><span class="badge bl">POST</span></td><td class="k">/api/tickets</td><td>创建工单（可从会话带入摘要与附件）</td></tr>
+        <tr><td><span class="badge gr">GET</span></td><td class="k">/api/tickets/{id}</td><td>工单详情（含流转日志、评论）</td></tr>
+        <tr><td><span class="badge am">PUT</span></td><td class="k">/api/tickets/{id}/assign</td><td>指派 / 转派</td></tr>
+        <tr><td><span class="badge am">PUT</span></td><td class="k">/api/tickets/{id}/status</td><td>状态流转（含 SLA 校验）</td></tr>
+        <tr><td><span class="badge bl">POST</span></td><td class="k">/api/tickets/{id}/comments</td><td>回复（内部备注 / 对外回复）</td></tr>
+        <tr><td><span class="badge gr">GET</span></td><td class="k">/api/knowledge/bases</td><td>知识库列表</td></tr>
+        <tr><td><span class="badge bl">POST</span></td><td class="k">/api/knowledge/documents</td><td>上传文档，返回 docId（异步向量化）</td></tr>
+        <tr><td><span class="badge gr">GET</span></td><td class="k">/api/knowledge/faq</td><td>FAQ 分页（按 ask_count 排序 = 高频优先）</td></tr>
+        <tr><td><span class="badge bl">POST</span></td><td class="k">/api/report/session/overview</td><td>会话概览报表</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="dim" style="font-size:12px;margin-top:8px">注：<code>/api/tenant/*</code> 归 customer 服务，<code>/api/session/*</code> 归 conversation 服务，<code>/api/tickets/*</code> 归 ticket 服务。</p>
+
+  <h3>7.2 AI 接口</h3>
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th style="width:80px">方法</th><th style="width:300px">路径</th><th>说明</th></tr></thead>
+      <tbody>
+        <tr><td><span class="badge bl">POST</span></td><td class="k">/api/ai/chat</td><td>顾客提问，返回答案 + 引用知识 + 是否转人工（<b>SSE 流式</b>）</td></tr>
+        <tr><td><span class="badge bl">POST</span></td><td class="k">/api/ai/agents</td><td>创建 / 配置机器人（绑定知识库、工具、兜底策略）</td></tr>
+        <tr><td><span class="badge bl">POST</span></td><td class="k">/api/ai/agents/{id}/tools</td><td>配置 Agent 可用工具</td></tr>
+        <tr><td><span class="badge bl">POST</span></td><td class="k">/api/ai/knowledge/search</td><td>纯检索（调试用，返回 Top-K 片段与分数）</td></tr>
+        <tr><td><span class="badge bl">POST</span></td><td class="k">/api/ai/summary/session</td><td>会话摘要（坐席转工单时自动调用）</td></tr>
+        <tr><td><span class="badge bl">POST</span></td><td class="k">/api/ai/quality/inspect</td><td>会话质检（异步，Kafka 触发）</td></tr>
+        <tr><td><span class="badge gr">GET</span></td><td class="k">/api/ai/executions</td><td>Agent 执行日志查询（含 token、耗时、命中来源）</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>7.3 内部调用（OpenFeign，网关不放行）</h3>
+  <div class="card" style="padding:14px 16px">
+    <div class="chain" style="padding-left:30px">
+      <div class="chain-item alt"><div class="chain-box" style="padding:9px 13px">
+        <div class="cd"><b>ai-service → knowledge-service</b>　<span class="badge bl">POST /inner/knowledge/search</span>　RAG 检索</div>
+      </div></div>
+      <div class="chain-item alt"><div class="chain-box" style="padding:9px 13px">
+        <div class="cd"><b>ai-service → ticket-service</b>　<span class="badge bl">POST /inner/tickets</span>　createTicket 工具</div>
+      </div></div>
+      <div class="chain-item alt"><div class="chain-box" style="padding:9px 13px">
+        <div class="cd"><b>ticket-service → conversation-service</b>　<span class="badge gr">GET /inner/session/{id}/summary</span>　工单带入会话上下文</div>
+      </div></div>
+      <div class="chain-item alt"><div class="chain-box" style="padding:9px 13px">
+        <div class="cd"><b>conversation-service → ai-service</b>　<span class="badge bl">POST /inner/ai/chat</span>　机器人接待</div>
+      </div></div>
+      <div class="chain-item alt"><div class="chain-box" style="padding:9px 13px">
+        <div class="cd"><b>customer-service → auth-service</b>　<span class="badge gr">GET /inner/agents/{id}</span>　坐席鉴权与信息</div>
+      </div></div>
+      <div class="chain-item alt"><div class="chain-box" style="padding:9px 13px">
+        <div class="cd"><b>所有服务 → ai-service</b>　<span class="badge bl">POST /inner/ai/execution</span>　写执行日志（异步 MQ）</div>
+      </div></div>
+    </div>
+    <div class="note"><b>为什么 /inner 网关不放行：</b>内部接口假设"调用方已经是可信服务、且租户上下文由调用链传递"，直接暴露到公网就等于把 tenantId 参数交给外部随便填，会造成越权。<b>四层防越权：</b>独立库/schema 物理隔离 + 表内 tenant_id 二次防护 + 向量库 collection 隔离 + Redis key 前缀。</div>
+  </div>
+</section>
+
+<!-- ================= 8 三大难点 ================= -->
+<section id="s8">
+  <div class="sec-head"><div class="sec-no">08</div><h2>三大难点（现象 → 定位 → 方案 → 结果）</h2></div>
+  <p class="sec-sub">这三张卡是面试的核心弹药，每张都要能脱稿讲 2 分钟。</p>
+
+  <div class="card hard glow">
+    <h4><span class="badge rd">难点 1</span> 多实例 WebSocket 的消息路由与会话一致性</h4>
+    <div class="stages">
+      <div class="stage s1">
+        <div class="sh">现象</div>
+        <p>坐席 A 连在实例 1，顾客消息却被实例 2 收到，坐席 A 收不到消息（消息"串话"）；会话结束后 Redis 里残留路由信息。</p>
+      </div>
+      <div class="stage s2">
+        <div class="sh">定位</div>
+        <p>抓日志发现同一个 sessionId 同时出现在两台机器上；进一步查 Redis，发现 <code>session_route</code> key 没有随会话结束删除。</p>
+      </div>
+      <div class="stage s3">
+        <div class="sh">方案</div>
+        <p>Redis 存 <code>session_route:{sessionId} → {instanceId}</code> 路由表；消息先写 Kafka（按 <b>sessionId 分区</b>保证单会话有序），各实例消费后<b>只推送本机持有的连接</b>；会话关闭事件里删除路由 key，另加兜底 TTL <b>30 分钟</b>。</p>
+      </div>
+      <div class="stage s4">
+        <div class="sh">结果</div>
+        <p>消息串话问题归零，<b>P99 消息投递在 500ms 以内</b>（含落库、Kafka、推送三段）。</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="card hard glow">
+    <h4><span class="badge rd">难点 2</span> SLA 引擎的超时计算与"暂停计时"</h4>
+    <div class="stages">
+      <div class="stage s1">
+        <div class="sh">现象</div>
+        <p>工单等客户回复期间 SLA 仍在计时，导致大量误判超时，客户投诉。</p>
+      </div>
+      <div class="stage s2">
+        <div class="sh">定位</div>
+        <p>扫描任务只按 <code>deadline</code> 算剩余时间，没有把"等客户回复"这段排除掉；而且多实例各自跑扫描任务，同一张工单被重复升级。</p>
+      </div>
+      <div class="stage s3">
+        <div class="sh">方案</div>
+        <p>工单加 <code>paused_at</code>（本次暂停开始时间）+ <code>paused_total</code>（累计暂停时长）两个字段；状态切到"待客户回复"时写 <code>paused_at</code>，切回时把这次暂停时长累加进 <code>paused_total</code> 并清空 <code>paused_at</code>；扫描任务用 <code>deadline + paused_total</code> 计算真实剩余；扫描用 <b>XXL-JOB 分片广播</b>避免多实例重复执行。</p>
+      </div>
+      <div class="stage s4">
+        <div class="sh">结果</div>
+        <p>超时误判率从 <b>12% 降到 1% 以内</b>。</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="card hard glow">
+    <h4><span class="badge rd">难点 3</span> AI 答案不准 / 幻觉</h4>
+    <div class="stages">
+      <div class="stage s1">
+        <div class="sh">现象</div>
+        <p>顾客问"能不能退"，机器人编了一个不存在的 7 天无理由政策。</p>
+      </div>
+      <div class="stage s2">
+        <div class="sh">定位</div>
+        <p>查 <code>ai_execution</code>，发现 <code>retrieved_chunk_ids</code> 为空却仍然走了 LLM 生成 —— 也就是"没有命中知识也硬答"。</p>
+      </div>
+      <div class="stage s3">
+        <div class="sh">方案</div>
+        <p>加后置校验：<code>retrieved_chunk_ids</code> 为空，或<b>重排分</b>低于设计中的经验阈值 <b>0.72</b> 时<b>不允许生成</b>（★<b>向量相似度只作参考信号，不单独触发兜底</b>——BM25 可能精确命中而向量分很低，硬过滤会误杀正确结果），直接走兜底话术 + 转人工；同时把该问题写入 <code>ai_unanswered</code> 表，运营补充知识后命中率回升。</p>
+      </div>
+      <div class="stage s4">
+        <div class="sh">结果</div>
+        <p>机器人解决率【<b>目标</b>】从 <b>41% 提升到 63%</b>（★项目设定的目标区间，不是已验证的生产成果），转人工率下降 <b>15 个百分点</b>，误答投诉归零。</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="card blue-glow">
+    <h4>附加弹药：线上问题一个（面试官问"讲一个你处理过的线上故障"）</h4>
+    <ul class="tight">
+      <li><b>现象：</b>客户做会员日活动当天咨询量涨了 <b>6 倍</b>，出现消息延迟和部分消息丢失。</li>
+      <li><b>定位：</b>Kafka 消费者 lag 报警 → 发现消费逻辑里有同步调 LLM（每次 2~4 秒），把消费线程占满了。</li>
+      <li><b>解决：</b>把 LLM 调用从消费者里剥离成独立的线程池 + 有界队列；LLM 超时从 10s 降到 3s，超时走兜底话术；消费者只做落库和推送。</li>
+      <li><b>预防：</b>加入队列水位监控和消费 lag 告警；对 LLM 调用做熔断（Sentinel），失败率超 20% 自动降级为"全部转人工"的保底模式。</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ================= 9 面试速记 ================= -->
+<section id="s9">
+  <div class="sec-head"><div class="sec-no">09</div><h2>面试速记区</h2></div>
+  <p class="sec-sub">进面试前 10 分钟只看这一块：数字墙 + 6 个"为什么不选另一个"。点开折叠看答案。</p>
+
+  <h3>必背数字墙</h3>
+  <div class="card">
+    <div class="numwall">
+      <div class="chip">微服务 <b>7</b> 个</div>
+      <div class="chip">表 <b>约 29</b> 张（6+7+7+4+5）</div>
+      <div class="chip">客户 <b>3</b> 家（1 连锁零售 + 2 电商）</div>
+      <div class="chip">公司 <b>40</b> 多人</div>
+      <div class="chip">日均会话 <b>8000</b></div>
+      <div class="chip">日均消息 <b>6 万</b> 条</div>
+      <div class="chip">日均工单 <b>600</b> 单</div>
+      <div class="chip">内部处理速率【估算】<b>约 30 次/秒</b> / 写 <b>TPS 8</b></div>
+      <div class="chip">AI 并发 <b>5~10</b></div>
+      <div class="chip">坐席 <b>200</b> 人</div>
+      <div class="chip">单坐席会话上限 <b>5</b></div>
+      <div class="chip">上下文 <b>最近 10 轮</b> / TTL <b>30 分钟</b></div>
+      <div class="chip">RAG 取 <b>Top5</b></div>
+      <div class="chip">幻觉阈值 <b>重排分 0.72</b>（设计经验值）</div>
+      <div class="chip">消息投递 <b>P99 &lt; 500ms</b></div>
+      <div class="chip">SLA 提醒 <b>剩余 20%</b></div>
+      <div class="chip">超时误判 <b>12% → 1%</b></div>
+      <div class="chip">解决率【目标】<b>41% → 63%</b></div>
+      <div class="chip">转人工率 <b>↓15 个百分点</b></div>
+      <div class="chip">转人工关键词最多 <b>30</b> 个</div>
+      <div class="chip">连续 <b>2</b> 次未识别即转人工</div>
+      <div class="chip">消息表月增 <b>约 180 万</b> 行</div>
+      <div class="chip">开发周期 <b>12</b> 个月（我负责 <b>7</b> 个月）</div>
+      <div class="chip">后端 <b>6</b> 人（高 1 : 中 4 : 初 1）</div>
+    </div>
+  </div>
+
+  <h3>6 个"为什么不选另一个"（点开看答案）</h3>
+
+  <details>
+    <summary>① 为什么用 WebSocket，不用轮询？</summary>
+    <div class="body">
+      客服会话是<b class="hl">双向实时</b>的：顾客发一句，坐席要立刻看到；坐席回一句，顾客要立刻看到。<br><br>
+      轮询要 2~3 秒一次，<span class="bad">200 个坐席 × 数千个活跃会话</span>会产生大量空请求 —— 大部分轮询返回的是"没有新消息"，
+      既浪费连接数，也白白打数据库 IO，还把实时性拖到秒级。<br><br>
+      换成 WebSocket 长连接后：服务端有消息主动推，实时性是毫秒级；连接复用，没有无效请求。<br><br>
+      <b class="hl">追问"WebSocket 多实例怎么办"</b> → 正好接难点 1：Redis 存 <code>session_route:{sessionId} → {instanceId}</code>，
+      消息先写 Kafka（按 sessionId 分区保序），各实例消费后只推本机持有的连接。
+    </div>
+  </details>
+
+  <details>
+    <summary>② 为什么用 Redis 做会话路由？</summary>
+    <div class="body">
+      因为 WebSocket 是<b class="hl">有状态</b>的：坐席 A 的连接实实在在握在实例 1 的内存里。
+      顾客消息可能被任意一台实例收到（网关负载均衡），但只有实例 1 能把消息推给坐席 A。<br><br>
+      所以需要一张"<b class="hl">会话 → 实例</b>"的路由表，而且必须满足三点：<br>
+      · <b>读写极快</b>：每条消息都要查一次，QPS 不低；<br>
+      · <b>多实例共享</b>：不能存在单机内存里；<br>
+      · <b>可设过期</b>：会话结束后要能自动清理，避免残留脏路由。<br><br>
+      Redis 的 <code>SET key value EX 1800</code> 正好三件事全满足。库里再配一个会话关闭事件主动删 key，
+      双保险（主动删 + 兜底 TTL 30 分钟）。<br><br>
+      另外坐席分配的"<b class="hl">在服会话数原子扣减</b>"也用 Redis + Lua 做，防止并发把同一个坐席超分。
+    </div>
+  </details>
+
+  <details>
+    <summary>③ 为什么用 Kafka，而不是服务间直接调用？</summary>
+    <div class="body">
+      工单创建之后要做的事是<b class="hl">一对多、且允许延迟</b>的：通知处理人、发短信、写统计、触发 AI 质检。<br><br>
+      如果直接同步调四个下游：<br>
+      · <span class="bad">强耦合</span> —— 短信服务挂了，工单就建不了；<br>
+      · <span class="bad">响应变慢</span> —— 建单接口要等四个下游全返回；<br>
+      · <span class="bad">扛不住峰</span> —— 大促咨询洪峰时，下游被打穿。<br><br>
+      用 Kafka 之后：工单服务只管发一条事件，下游各自订阅；解耦、削峰、可重放（下游补数据时能重消费）。
+      同时 Kafka 的<b class="hl">按 sessionId 分区</b>还顺手解决了单会话消息保序的问题 —— 同一 sessionId 一定落到同一分区，串行消费不乱序。<br><br>
+      <b class="hl">追问"那 LLM 调用为什么也放消费者里"</b> → 这就是我踩过的坑：LLM 单次 2~4 秒，把消费线程占满导致 lag 飙升。
+      后来剥离成独立线程池 + 有界队列，消费者只做落库和推送。
+    </div>
+  </details>
+
+  <details>
+    <summary>④ 为什么用 Elasticsearch？</summary>
+    <div class="body">
+      因为坐席要按<b class="hl">关键词搜历史会话和工单</b>，而 <code>MySQL like '%关键词%'</code> <span class="bad">无法走索引</span>，
+      只能全表扫描 —— 消息表一个月就 180 万行，扫一次就崩。<br><br>
+      ES 解决的问题：<br>
+      · 倒排索引，全文检索走索引；<br>
+      · 中文分词，能搜"退款"也能搜到"退货退款流程"；<br>
+      · 检索 + 高亮 + 分页 + 聚合统计，坐席工作台直接能用。<br><br>
+      另外 ES 在知识检索里还有第二个身份：<b class="hl">BM25 那一路</b>的召回器，和向量召回做 RRF 融合。
+      关键词精确命中（比如订单号、专有名词）向量检索往往不如 BM25，两路互补。
+    </div>
+  </details>
+
+  <details>
+    <summary>⑤ 为什么向量库要独立部署？</summary>
+    <div class="body">
+      三个理由：<br>
+      · <b class="hl">资源不能争</b>：知识库检索是 AI 的<b>输入</b>，每次问答都要跑。如果和业务库放一起，
+        向量检索的 CPU / 内存消耗会直接影响下单、建单这些核心链路；<br>
+      · <b class="hl">检索方式不同</b>：需要 "BM25 + 向量" 的混合检索，这是 PGVector / Milvus 这类专用向量库的能力，
+        MySQL 的全文索引做不到；<br>
+      · <b class="hl">隔离更好做</b>：每个客户一个独立向量 collection，物理隔离；再在检索时带 <code>tenant_id</code> 做 metadata 过滤，
+        防同一客户内部多品牌 / 多门店串数据。<br><br>
+      初中级阶段我选了 <b class="hl">PGVector</b> 而不是 Milvus，理由是降低运维门槛、和已有的 PG 生态复用，
+      但要能说出取舍：数据量再上一个量级会考虑换 Milvus。
+    </div>
+  </details>
+
+  <details>
+    <summary>⑥ 为什么不用 Flowable / Activiti 做工作流？</summary>
+    <div class="body">
+      因为我们的工单流转<b class="hl">不需要通用工作流引擎</b>。<br><br>
+      实际需求是：按 <code>ticket_template.flow_json</code> 配置若干节点（提交 → 处理 → 待客户回复 → 已解决 → 已关闭），
+      每次流转写一条 <code>ticket_flow_log</code>，并且和 <b class="hl">SLA 计时 / paused_time 暂停计时 / 超时升级</b>强联动。<br><br>
+      用 Flowable 的代价：<br>
+      · <span class="bad">引入 BPMN 建模、流程定义部署、各类 Activator / Listener</span>，团队学习成本高；<br>
+      · <span class="bad">多出一整套引擎表（ACT_* 几十张）</span>，和"约 29 张表"的口径也对不上；<br>
+      · <span class="bad">SLA 这种跟业务状态强耦合的计时逻辑</span>，写在引擎监听器里反而比写在状态机里更难维护、更难排查。<br><br>
+      所以最终选了<b class="hl">"自定义状态机 + 模板配置 + 流转日志"</b>的轻量方案：
+      状态枚举清晰、流转日志可追溯、SLA 计算和状态切换在同一个事务里，出问题看 <code>ticket_flow_log</code> 一眼定位。<br><br>
+      <b class="hl">这样答的好处</b>：体现你是<b>按需求选型</b>，而不是"什么火用什么"。可以补一句
+      "如果将来要支持跨系统、多角色的复杂审批流，会再评估引入 Flowable"。
+    </div>
+  </details>
+
+  <h3>还有 4 句话，随时能接上</h3>
+  <div class="card">
+    <ul class="tight">
+      <li><b>AI 解决率怎么算：</b>robot_resolved 会话数 ÷ 机器人接待会话数。</li>
+      <li><b>多模型可切换：</b>ai_agent.model_code 配置化，DeepSeek 走性价比、通义千问走长文本；模型超时或失败自动降级到备用模型 + 记录降级次数。</li>
+      <li><b>隔离怎么说：</b>独立库 / schema 物理隔离 + 表内 tenant_id 二次防护 + 向量库 collection 隔离 + Redis key 前缀，四层防越权。</li>
+      <li><b>人工兜底不可绕过：</b>连续 N 次未识别、命中转人工关键词、顾客主动说"人工"、意图是投诉 → 一律转人工。</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ================= 10 Demo 复现路线 ================= -->
+<section id="s10">
+  <div class="sec-head"><div class="sec-no">10</div><h2>Demo 复现路线（从零搭一个最小可跑的 Demo）</h2></div>
+  <p class="sec-sub">6 个阶段，每个阶段都能独立跑起来、独立验证。前 5 个阶段是单体，第 6 阶段才拆成 7 个微服务 —— 先跑通再拆分。</p>
+
+  <div class="timeline">
+    <!-- 阶段 1 -->
+    <div class="tl-item" data-stage="1">
+      <div class="card">
+        <h4>阶段一：单体 Spring Boot + MySQL + Redis 起架子</h4>
+        <p class="dim" style="margin:6px 0 0;font-size:12.5px">目标：服务能起来、能连库、能读写缓存，把"工程底座"钉死。</p>
+        <div class="tl-meta">
+          <div>
+            <span class="k">要写的类 / 表 / 接口</span>
+            <b>工程：</b>Spring Boot 2.7 工程 + MyBatis-Plus + Druid + Redis 客户端。<br>
+            <b>类：</b><code>Tenant</code> / <code>SysUser</code> / <code>SkillGroup</code> 实体与 Mapper、
+            <code>TenantLineInnerInterceptor</code> 配置类（自动拼 tenant_id）、<code>RedisConfig</code>、统一返回 <code>Result&lt;T&gt;</code>、全局异常处理。<br>
+            <b>表：</b><code>tenant</code>、<code>sys_user</code>、<code>skill_group</code>。<br>
+            <b>接口：</b><span class="badge bl">POST</span> <code>/api/auth/login</code>（返回 JWT）、
+            <span class="badge gr">GET</span> <code>/api/tenant/agents</code>。
+          </div>
+          <div>
+            <span class="k">验证标准</span>
+            · 启动无报错，Nacos / 本地都能注册；<br>
+            · 登录拿到 JWT，带 token 请求 <code>/api/tenant/agents</code> 能分页返回坐席；<br>
+            · <b>不带 token 返回 401</b>；<br>
+            · 手动改库里另一个 tenant 的数据，接口查不到（隔离生效）；<br>
+            · Redis 里能看到写入的 key（<code>redis-cli keys '*'</code>）。
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 阶段 2 -->
+    <div class="tl-item" data-stage="2">
+      <div class="card">
+        <h4>阶段二：WebSocket 聊天 + 消息落库</h4>
+        <p class="dim" style="margin:6px 0 0;font-size:12.5px">目标：两个浏览器窗口能互相发消息，消息不丢、按序、能拉历史。</p>
+        <div class="tl-meta">
+          <div>
+            <span class="k">要写的类 / 表 / 接口</span>
+            <b>类：</b><code>WebSocketConfig</code>（注册 handler）、<code>ChatWebSocketHandler</code>、
+            <code>SessionManager</code>（<code>Map&lt;sessionId, WebSocketSession&gt;</code>）、
+            <code>MessageService</code>、<code>RedisContextService</code>（存最近 10 轮上下文，TTL 30 分钟）。<br>
+            <b>表：</b><code>visitor</code>、<code>session</code>、<code>message</code>。<br>
+            <b>接口：</b><span class="badge bl">POST</span> <code>/api/session/start</code>、
+            <span class="badge gr">GET</span> <code>/api/session/{id}/messages</code>、
+            WS 路径 <code>/ws/chat?sessionId=</code>。
+          </div>
+          <div>
+            <span class="k">验证标准</span>
+            · 打开两个页面连同一 sessionId，一边发一边立刻收到；<br>
+            · 刷新页面调 <code>/messages</code> 能拉到完整历史；<br>
+            · 断网重连后消息不丢（<code>client_msg_id</code> 去重生效）；<br>
+            · <code>redis-cli ttl</code> 看到上下文 key 是 1800 秒左右；<br>
+            · 连发 100 条，库里顺序与发送顺序一致。
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 阶段 3 -->
+    <div class="tl-item" data-stage="3">
+      <div class="card">
+        <h4>阶段三：坐席工作台 + 转工单</h4>
+        <p class="dim" style="margin:6px 0 0;font-size:12.5px">目标：坐席能接会话、能改状态、能把会话转成工单。</p>
+        <div class="tl-meta">
+          <div>
+            <span class="k">要写的类 / 表 / 接口</span>
+            <b>类：</b><code>AgentAssignService</code>（轮询 → 空闲优先 → 技能组匹配 → 上限 5 个）、
+            <code>RedisLuaScript</code>（原子扣减在服会话数）、<code>TicketService</code>、<code>TicketFlowService</code>、
+            <code>SessionSummaryService</code>（会话摘要，先用规则拼，后面阶段换成 AI）。<br>
+            <b>表：</b><code>agent_status</code>、<code>session_transfer</code>、<code>quick_reply</code>、
+            <code>ticket</code>、<code>ticket_template</code>、<code>ticket_flow_log</code>、<code>ticket_comment</code>。<br>
+            <b>接口：</b><span class="badge bl">POST</span> <code>/api/session/{id}/transfer</code>、
+            <span class="badge bl">POST</span> <code>/api/tickets</code>、
+            <span class="badge gr">GET</span> <code>/api/tickets/{id}</code>、
+            <span class="badge am">PUT</span> <code>/api/tickets/{id}/status</code>。
+          </div>
+          <div>
+            <span class="k">验证标准</span>
+            · 用 JMeter / 脚本并发 20 次转人工，坐席在服数<b>不会超过 5</b>（Lua 原子扣减生效）；<br>
+            · 建单后 <code>ticket_flow_log</code> 有一条初始流转记录；<br>
+            · 工单详情接口能一次返回流转日志 + 评论；<br>
+            · 转工单时自动带入会话摘要和顾客信息快照（<code>customer_snapshot_json</code>）。
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 阶段 4 -->
+    <div class="tl-item" data-stage="4">
+      <div class="card">
+        <h4>阶段四：工单 SLA 定时任务</h4>
+        <p class="dim" style="margin:6px 0 0;font-size:12.5px">目标：SLA 能算准、能暂停、能升级，且多实例不会重复执行。</p>
+        <div class="tl-meta">
+          <div>
+            <span class="k">要写的类 / 表 / 接口</span>
+            <b>类：</b><code>SlaScanJob</code>（XXL-JOB 分片广播）、<code>SlaCalculator</code>
+            （真实剩余 = <code>deadline + paused_time</code> - now）、<code>PauseTimeService</code>（状态切"待客户回复"开始暂停、切回累加）、
+            <code>EscalateService</code>（剩余 20% 提醒、超时升级上级）。<br>
+            <b>表：</b><code>ticket_sla</code>，以及 <code>ticket</code> 的
+            <code>sla_response_deadline</code> / <code>sla_resolve_deadline</code> / <code>paused_time</code> / <code>is_timeout</code> 字段。<br>
+            <b>接口：</b><span class="badge am">PUT</span> <code>/api/tickets/{id}/status</code>（含 SLA 校验）。
+          </div>
+          <div>
+            <span class="k">验证标准</span>
+            · 建一张 SLA 首响 5 分钟的工单，到点后 <code>is_timeout</code> 变 1 并产生升级记录；<br>
+            · 把工单切到"待客户回复"放 10 分钟，再切回来，<b>剩余时间没有减少</b>（暂停生效，<code>paused_time</code> 正确累加）；<br>
+            · 起两个实例同时跑，同一张工单<b>只被升级一次</b>（分片广播生效）；<br>
+            · 用长事务压测扫描任务，单轮扫描不拖垮库（加索引 <code>(status, sla_resolve_deadline)</code>）。
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 阶段 5 -->
+    <div class="tl-item" data-stage="5">
+      <div class="card">
+        <h4>阶段五：知识库上传 + RAG 问答（接 DeepSeek）</h4>
+        <p class="dim" style="margin:6px 0 0;font-size:12.5px">目标：传一份文档进去，问一个相关问题，机器人能基于它回答并带引用；问不相关的能兜底转人工。</p>
+        <div class="tl-meta">
+          <div>
+            <span class="k">要写的类 / 表 / 接口</span>
+            <b>类：</b><code>DocumentParseService</code>（解析 + 切分 chunk）、<code>EmbeddingService</code>（调 embedding，写 PGVector）、
+            <code>EsIndexService</code>（写 ES 供 BM25）、<code>HybridSearchService</code>（向量 + BM25 → <b>RRF 融合</b> → 重排 Top5）、
+            <code>IntentService</code>、<code>ToolCallingService</code>、<code>LlmClient</code>（DeepSeek）、
+            <code>PostCheckService</code>（<b>召回为空或重排分不达标禁止生成，走兜底 + 转人工；向量相似度只作参考</b>）、
+            <code>AiExecutionLogger</code>（异步写日志）。<br>
+            <b>表：</b><code>knowledge_base</code>、<code>knowledge_document</code>、<code>knowledge_chunk</code>、<code>knowledge_faq</code>、
+            <code>ai_agent</code>、<code>ai_agent_tool</code>、<code>ai_conversation</code>、<code>ai_execution</code>、<code>ai_unanswered</code>。<br>
+            <b>接口：</b><span class="badge bl">POST</span> <code>/api/knowledge/documents</code>、
+            <span class="badge bl">POST</span> <code>/api/ai/chat</code>（SSE 流式）、
+            <span class="badge bl">POST</span> <code>/api/ai/knowledge/search</code>（调检索用）、
+            <span class="badge gr">GET</span> <code>/api/ai/executions</code>。
+          </div>
+          <div>
+            <span class="k">验证标准</span>
+            · 上传文档后 <code>knowledge_document.parse_status</code> 从"解析中"变"已完成"，<code>chunk_count</code> &gt; 0；<br>
+            · 问文档里的问题，答案是<b>基于文档</b>内容且带知识引用（不是瞎编）；<br>
+            · 问一个文档里完全没有的问题，<b>命中兜底话术并转人工</b>，同时 <code>ai_unanswered</code> 多一条记录；<br>
+            · 查 <code>ai_execution</code>：<code>intent</code> / <code>retrieved_chunk_ids</code> / <code>prompt_tokens</code> / <code>latency_ms</code> / <code>is_transferred</code> 都有值；<br>
+            · 问"我的订单到哪了"，<code>tool_calls_json</code> 里能看到 <code>queryLogistics</code> 被调用；<br>
+            · <code>/api/ai/chat</code> 是流式的（curl 能看到逐字输出）。
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 阶段 6 -->
+    <div class="tl-item" data-stage="6">
+      <div class="card">
+        <h4>阶段六：编排成 7 个微服务</h4>
+        <p class="dim" style="margin:6px 0 0;font-size:12.5px">目标：把单体按业务边界拆成 7 个服务，加上网关、注册中心、消息队列，变成架构图里的样子。</p>
+        <div class="tl-meta">
+          <div>
+            <span class="k">要做的拆分与改造</span>
+            <b>拆服务：</b>auth / customer / conversation / ticket / knowledge / ai / report 七个 Spring Boot 工程（<code>report</code> 最后做，先读别人的库出报表）。<br>
+            <b>加组件：</b>Spring Cloud Gateway（路由 + JWT 校验 + tenantId 注入 + <code>/inner/**</code> 不放行）、
+            Nacos（注册 + 配置 + 动态刷新）、OpenFeign（<code>/inner/*</code> 六个内部调用）、Kafka（消息投递 / 工单事件 / 异步向量化 / 写执行日志）。<br>
+            <b>多实例一致性：</b>Redis <code>session_route:{sessionId} → {instanceId}</code> 路由表 + Kafka 按 sessionId 分区 + 会话关闭删 key + TTL 30 分钟兜底。<br>
+            <b>中间件补齐：</b>MinIO 存附件与知识文档、Elasticsearch 8 做全文检索与 BM25、PGVector 独立部署（每客户一个 collection）。
+          </div>
+          <div>
+            <span class="k">验证标准</span>
+            · 起 2 个 conversation 实例，两个浏览器分别连不同实例，<b>消息能互通且不串话</b>，P99 投递 &lt; 500ms；<br>
+            · 关掉 knowledge 服务，<code>/api/ai/chat</code> 走降级（兜底转人工）而不是整个链路 500；<br>
+            · 从网关访问 <code>/inner/knowledge/search</code> <b>返回 404 / 403</b>（不放行）；<br>
+            · 改 Nacos 里一个配置项，服务<b>不重启</b>就生效；<br>
+            · 全链路日志能用 traceId 串起来（conversation → ai → knowledge）；<br>
+            · 报表接口能出：会话量、工单量、平均首响、token 成本、AI 解决率。
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="note" style="margin-top:16px">
+    <b>演示顺序建议（面试现场 5 分钟）：</b>阶段五的 RAG 问答（带引用 + 兜底转人工）→ 阶段四的 SLA 暂停与超时升级 → 阶段六的双实例消息互通。
+    这三个演示分别对应"AI 真做了""业务复杂度真做了""分布式问题真踩过"，比讲十分钟架构图有效得多。
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div>云联客服工单平台 · 架构与面试速记课件 · 单文件离线版（无任何外部依赖）</div>
+  <div style="margin-top:6px">按 <kbd>Ctrl</kbd> + <kbd>F</kbd> 可直接搜关键词；点击顶部导航跳转章节</div>
+</footer>
+
+<script>
+(function () {
+  // 1) 平滑滚动（兼容不支持 scroll-behavior 的环境，并修正 sticky 导航遮挡）
+  var links = Array.prototype.slice.call(document.querySelectorAll('.nav a'));
+  links.forEach(function (a) {
+    a.addEventListener('click', function (e) {
+      var id = a.getAttribute('href');
+      if (!id || id.charAt(0) !== '#') return;
+      var el = document.querySelector(id);
+      if (!el) return;
+      e.preventDefault();
+      var top = el.getBoundingClientRect().top + window.pageYOffset - 74;
+      try {
+        window.scrollTo({ top: top, behavior: 'smooth' });
+      } catch (err) {
+        window.scrollTo(0, top);
+      }
+      if (history.replaceState) history.replaceState(null, '', id);
+    });
+  });
+
+  // 2) 导航高亮：滚动时标记当前章节
+  var sections = Array.prototype.slice.call(document.querySelectorAll('main section[id]'));
+  var map = {};
+  links.forEach(function (a) { map[a.getAttribute('href').slice(1)] = a; });
+
+  function activate(id) {
+    links.forEach(function (a) { a.classList.remove('active'); });
+    if (map[id]) map[id].classList.add('active');
+  }
+
+  function onScroll() {
+    var pos = window.pageYOffset + 120;
+    var current = sections.length ? sections[0].id : null;
+    for (var i = 0; i < sections.length; i++) {
+      if (sections[i].offsetTop <= pos) current = sections[i].id;
+    }
+    if (current) activate(current);
+  }
+
+  var ticking = false;
+  window.addEventListener('scroll', function () {
+    if (ticking) return;
+    ticking = true;
+    window.requestAnimationFrame(function () { onScroll(); ticking = false; });
+  }, { passive: true });
+
+  window.addEventListener('load', onScroll);
+  onScroll();
+
+  // 3) 折叠面板：展开时自动滚动到可见位置，避免内容过长看不到
+  Array.prototype.slice.call(document.querySelectorAll('details')).forEach(function (d) {
+    d.addEventListener('toggle', function () {
+      if (!d.open) return;
+      var rect = d.getBoundingClientRect();
+      if (rect.top < 74) {
+        window.scrollTo({ top: window.pageYOffset + rect.top - 84, behavior: 'smooth' });
+      }
+    });
+  });
+})();
+</script>
+</body>
+</html>

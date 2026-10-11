@@ -8,7 +8,7 @@ const config = {
 	},
 
 	avatar: "/img/avatar.jpg", // 头像
-	welcometitle: "Hi, I'm Leleo", // 标题
+	welcometitle: "Hi, I'm Chunyanyan", // 标题
 
 	// 颜色配置
 	color: {
@@ -134,7 +134,7 @@ const config = {
 	//项目卡片 其中 字段"show"控制初始卡片的text是否展开
 	projectcards: [
 		{ go: "🚀 前往", img: "/img/sunshine.jpg", title: "科大智慧校园", subtitle: "1,000 miles of wonder", text: "If you see this line, I've managed to get your attention.", url: "https://ehall.gxust.edu.cn/", show: false },
-		{ go: "🗂️ 前往", img: "/img/sunshine.jpg", title: "Project 2", subtitle: "2,000 miles of wonder", text: "If you see this line, I've managed to get your attention.", url: "https://baidu.com", show: false },
+		{ go: "📚 前往", img: "/img/sunshine.jpg", title: "微服务学习路线", subtitle: "架构 · 动画 · 原型", text: "微服务学习路线：架构总览 Canvas 动态图、4 场景动画、4 个高保真交互原型。", url: "/project02/", show: false },
 		{ go: "📝 前往", img: "/img/sunshine.jpg", title: "Project 3", subtitle: "3,000 miles of wonder", text: "If you see this line, I've managed to get your attention.", url: "https://leleo.top", show: false },
 		{ go: "👍 前往", img: "/img/sunshine.jpg", title: "Project 4", subtitle: "4,000 miles of wonder", text: "If you see this line, I've managed to get your attention.", url: "https://leleo.top", show: false },
 		{ go: "🗃 前往", img: "/img/sunshine.jpg", title: "Project 5", subtitle: "5,000 miles of wonder", text: "If you see this line, I've managed to get your attention.", url: "https://leleo.top", show: false },

@@ -1,0 +1,2740 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>AI 智能客服 + 工单平台 · 微服务架构实时动画</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  html,body{width:100%;max-width:100%;height:100%;overflow:hidden;overflow-x:hidden;
+    overscroll-behavior:none;-webkit-text-size-adjust:100%;background:#07060f;
+    font-family:"PingFang SC","Microsoft YaHei","Hiragino Sans GB","Source Han Sans SC",
+      "Noto Sans CJK SC","WenQuanYi Micro Hei",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    color:#d4cee2;-webkit-font-smoothing:antialiased}
+  #app{position:fixed;inset:0;display:flex;flex-direction:column}
+  #topbar{display:flex;align-items:center;gap:6px;flex:0 0 auto;
+    padding:calc(9px + env(safe-area-inset-top)) calc(14px + env(safe-area-inset-right)) 0 calc(14px + env(safe-area-inset-left));
+    border-bottom:1px solid rgba(139,122,170,.14);background:linear-gradient(180deg,#0a0a1a,#07060f)}
+  #tabs{display:flex;align-items:center;gap:6px;min-width:0}
+  #brand{font-size:13px;font-weight:700;letter-spacing:.4px;color:#8b7aaa;
+    text-shadow:0 0 10px rgba(139,122,170,0.22);margin-right:14px;white-space:nowrap}
+  #brand small{color:#7d7799;font-weight:400;font-size:11px;margin-left:6px;letter-spacing:0}
+  .tab{position:relative;border:1px solid rgba(127,143,181,.30);background:rgba(16,15,41,.72);
+    color:#a79fbe;padding:7px 15px;border-radius:8px 8px 0 0;cursor:pointer;font-size:13px;
+    transition:color .18s,background .18s,border-color .18s;user-select:none;white-space:nowrap}
+  .tab:hover{color:#d4cee2;border-color:rgba(139,122,170,.55)}
+  .tab.on{color:#efe9f5;background:rgba(26,23,50,.85);border-color:#8b7aaa;
+    box-shadow:0 0 16px rgba(139,122,170,0.14),inset 0 -2px 0 #8b7aaa}
+  .tab i{font-style:normal;opacity:.55;margin-right:5px;font-size:11px}
+  /* 竖屏“完整尺寸”模式：舞台变成横向滚动容器，画布按 2.4 倍手机宽渲染 */
+  #stage{position:relative;flex:1 1 auto;min-height:0;overflow-x:hidden;overflow-y:hidden;
+    overscroll-behavior:contain}
+  #cvbox{position:relative;width:100%;height:100%}
+  body.m-wide #stage{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  body.m-wide #stage::-webkit-scrollbar{height:5px}
+  body.m-wide #stage::-webkit-scrollbar-track{background:rgba(255,255,255,.04)}
+  body.m-wide #stage::-webkit-scrollbar-thumb{background:rgba(139,122,170,.4);border-radius:3px}
+  #cv{display:block;width:100%;height:100%;cursor:grab;touch-action:none;
+    -webkit-user-select:none;user-select:none}
+  #bar{flex:0 0 auto;display:flex;align-items:center;gap:10px;height:44px;
+    padding:0 calc(16px + env(safe-area-inset-right)) env(safe-area-inset-bottom) calc(16px + env(safe-area-inset-left));
+    border-top:1px solid rgba(139,122,170,.14);background:linear-gradient(0deg,#0a0a1a,#07060f)}
+  #bar button{border:1px solid rgba(139,122,170,.35);background:rgba(16,15,41,.85);color:#d4cee2;
+    font:inherit;font-size:13px;padding:6px 14px;border-radius:7px;cursor:pointer;transition:.16s}
+  #bar button:hover{border-color:#8b7aaa;box-shadow:0 0 12px rgba(139,122,170,0.14);color:#fff}
+  #bar button:active{transform:translateY(1px)}
+  #bar button.on{border-color:#8b7aaa;color:#efe9f5;background:rgba(26,23,50,.9);
+    box-shadow:0 0 14px rgba(139,122,170,0.16)}
+  #bar label{display:flex;align-items:center;gap:7px;font-size:12.5px;color:#a79fbe;cursor:pointer;
+    padding:5px 11px;border:1px dashed rgba(127,143,181,.35);border-radius:7px;user-select:none}
+  #bar label:hover{color:#d4cee2;border-color:rgba(139,122,170,.5)}
+  #bar input{accent-color:#8b7aaa;width:14px;height:14px;cursor:pointer}
+  #hint{margin-left:auto;font-size:11.5px;color:#6f6a8b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  #hint b{color:#8b7aaa;font-weight:600}
+  #st{font-size:11.5px;color:#807aa2;min-width:172px}
+
+  /* ---- 移动端新增控件 ---- */
+  #swipeHint{display:none;align-items:center;font-size:12px;color:#a294bb;white-space:nowrap;
+    padding:7px 10px;border:1px dashed rgba(139,122,170,.45);border-radius:7px;
+    background:rgba(16,14,40,.62);transition:opacity .6s;opacity:1}
+  body.m-wide #swipeHint{display:flex}
+  #swipeHint.dim{opacity:.4}
+  #btnZoomIn,#btnZoomOut{min-width:44px;font-weight:700}
+  /* 手机上节点详情 = 全宽底部抽屉（替代桌面右侧窄栏） */
+  #drawer{position:fixed;left:0;right:0;bottom:0;max-height:70vh;overflow-y:auto;
+    -webkit-overflow-scrolling:touch;overscroll-behavior:contain;z-index:60;display:none;
+    background:linear-gradient(180deg,rgba(13,13,36,.985),rgba(10,10,26,.99));
+    border-top:1px solid rgba(139,122,170,.5);box-shadow:0 -14px 44px rgba(0,0,0,.72);
+    padding:12px calc(14px + env(safe-area-inset-right)) calc(16px + env(safe-area-inset-bottom)) calc(14px + env(safe-area-inset-left));
+    color:#d4cee2;font-size:13px;line-height:1.6}
+  #drawer.show{display:block}
+  #drawer .dw-hd{display:flex;align-items:flex-start;gap:10px}
+  #drawer .dw-name{flex:1 1 auto;font-size:17px;font-weight:800;color:#efe9f5;word-break:break-word}
+  #drawer .dw-x{flex:0 0 auto;width:44px;height:44px;margin:-6px -6px 0 0;border-radius:10px;
+    border:1px solid rgba(181,106,106,.5);background:rgba(181,106,106,.14);color:#c08a8a;
+    font:inherit;font-size:20px;line-height:1;display:flex;align-items:center;justify-content:center;cursor:pointer}
+  #drawer .dw-layer{font-size:12px;font-weight:700;color:#8b7aaa;margin-top:2px}
+  #drawer .dw-tech{font-size:12px;color:#a79fbe;margin-top:4px}
+  #drawer .dw-m{display:flex;gap:10px;margin:10px 0 4px 0}
+  #drawer .dw-m>div{flex:1 1 0;border:1px solid rgba(139,122,170,.3);border-radius:9px;
+    background:rgba(139,122,170,.07);padding:7px 10px;min-width:0}
+  #drawer .dw-m span{display:block;font-size:12px;color:#807aa2}
+  #drawer .dw-m b{font-size:16px;color:#8b7aaa;word-break:break-all}
+  #drawer h4{font-size:12.5px;font-weight:700;margin:12px 0 6px 0;color:#8b7aaa}
+  #drawer h4+.api{color:#7fa07a}
+  #drawer ul{list-style:none}
+  #drawer li{font-size:12.5px;color:#cdc7dd;background:rgba(127,143,181,.09);
+    border-radius:6px;padding:6px 9px;margin-bottom:6px;word-break:break-word}
+  #drawer li.star{color:#c4a970;font-weight:700}
+  #drawer ul.api li{background:rgba(127,160,122,.08);color:#c3d3bf}
+  #drawer p{font-size:12.5px;color:rgba(212,206,226,.92)}
+
+  /* ================= 手机（窄屏）适配 ================= */
+  @media (max-width:860px){
+    #topbar{flex-direction:column;align-items:stretch;gap:0;padding-right:0;padding-left:0;
+      padding-top:calc(8px + env(safe-area-inset-top))}
+    #brand{margin:0 0 6px 0;padding:0 calc(12px + env(safe-area-inset-right)) 0 calc(12px + env(safe-area-inset-left));
+      font-size:13px;white-space:normal}
+    #brand small{font-size:12px;margin-left:5px}
+    #tabs{overflow-x:auto;overflow-y:hidden;white-space:nowrap;-webkit-overflow-scrolling:touch;
+      gap:6px;padding:0 calc(10px + env(safe-area-inset-right)) 0 calc(10px + env(safe-area-inset-left));
+      scrollbar-width:none}
+    #tabs::-webkit-scrollbar{display:none}
+    .tab{flex:0 0 auto;min-height:44px;display:flex;align-items:center;font-size:12.5px;padding:0 12px}
+    .tab i{font-size:11px;margin-right:4px}
+    #bar{height:auto;min-height:44px;flex-wrap:wrap;gap:8px;
+      padding:8px calc(12px + env(safe-area-inset-right)) calc(8px + env(safe-area-inset-bottom)) calc(12px + env(safe-area-inset-left))}
+    #bar button{flex:0 1 auto;min-height:40px;font-size:13px;padding:8px 10px}
+    #btnPlay,#btnReset{flex:1 1 0}
+    #btnZoomIn,#btnZoomOut{flex:0 0 46px;min-width:46px;padding:0;font-size:16px}
+    #bar label{flex:0 1 auto;min-height:40px;font-size:12.5px;padding:8px 10px}
+    #st{font-size:12px;min-width:0;flex:0 1 auto;order:9;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    #hint{display:none}
+    #swipeHint{font-size:12px;flex:0 1 auto}
+  }
+
+  /* 横屏手机（矮视口）：顶栏压成一行、控制条压成两行，把高度留给画布 */
+  @media (max-width:900px) and (max-height:540px){
+    #topbar{flex-direction:row;align-items:center}
+    #brand{margin:0 10px 0 0;padding:0;font-size:13px}
+    #tabs{flex:1 1 auto}
+    .tab{min-height:40px;padding:0 10px}
+    #bar button,#bar label{min-height:40px;padding-top:6px;padding-bottom:6px}
+    #st{flex:1 1 auto;order:0}
+  }
+</style>
+<style id="sd-skin">
+/* ==================================================================
+   Star Desk skin — 星空桌面 (generated)
+   bg #07060f/#0a0a1a · 柔紫 #8b7aaa · 淡金 #c4a970
+   glass rgba(20,18,40,.55) + blur(12px) + 1px rgba(255,255,255,.06)
+   ================================================================== */
+
+/* ---- deep night sky on the root element ---- */
+html{
+  background-color:#07060f;
+  background-image:
+    radial-gradient(1100px 620px at 8% -8%,rgba(139,122,170,.13),transparent 62%),
+    radial-gradient(900px 560px at 96% 4%,rgba(127,143,181,.10),transparent 64%),
+    radial-gradient(1200px 800px at 50% 118%,rgba(196,169,112,.05),transparent 66%);
+  background-attachment:fixed;
+  background-repeat:no-repeat;
+  background-size:cover;
+}
+/* body must not paint over the stars */
+body{
+  background-color:transparent !important;
+  background-image:none !important;
+}
+
+/* ---- twinkling starfield (two parallax-ish layers) ---- */
+body::before,body::after{
+  content:'';position:fixed;inset:0;z-index:-1;pointer-events:none;
+  background-repeat:repeat;
+}
+body::before{
+  background-image:radial-gradient(1.1px 1.1px at 166px 391px,rgba(255,252,244,0.48),rgba(255,252,244,0)),radial-gradient(1.0px 1.0px at 23px 428px,rgba(255,252,244,0.72),rgba(255,252,244,0)),radial-gradient(0.7px 0.7px at 352px 209px,rgba(255,252,244,0.73),rgba(255,252,244,0)),radial-gradient(0.9px 0.9px at 28px 469px,rgba(255,252,244,0.72),rgba(255,252,244,0)),radial-gradient(1.0px 1.0px at 337px 166px,rgba(255,252,244,0.80),rgba(255,252,244,0)),radial-gradient(1.3px 1.3px at 363px 287px,rgba(255,252,244,0.80),rgba(255,252,244,0)),radial-gradient(1.3px 1.3px at 50px 13px,rgba(255,252,244,0.76),rgba(255,252,244,0)),radial-gradient(1.1px 1.1px at 249px 165px,rgba(255,252,244,0.64),rgba(255,252,244,0)),radial-gradient(0.8px 0.8px at 24px 110px,rgba(255,252,244,0.65),rgba(255,252,244,0)),radial-gradient(0.7px 0.7px at 390px 181px,rgba(255,252,244,0.88),rgba(255,252,244,0)),radial-gradient(0.9px 0.9px at 36px 135px,rgba(255,252,244,0.82),rgba(255,252,244,0)),radial-gradient(1.1px 1.1px at 460px 286px,rgba(255,252,244,0.33),rgba(255,252,244,0)),radial-gradient(1.1px 1.1px at 217px 29px,rgba(255,252,244,0.36),rgba(255,252,244,0)),radial-gradient(0.6px 0.6px at 385px 236px,rgba(255,252,244,0.38),rgba(255,252,244,0)),radial-gradient(1.3px 1.3px at 97px 283px,rgba(255,252,244,0.38),rgba(255,252,244,0)),radial-gradient(1.3px 1.3px at 150px 108px,rgba(255,252,244,0.51),rgba(255,252,244,0)),radial-gradient(0.8px 0.8px at 14px 13px,rgba(255,252,244,0.49),rgba(255,252,244,0)),radial-gradient(1.4px 1.4px at 54px 407px,rgba(255,252,244,0.55),rgba(255,252,244,0)),radial-gradient(1.0px 1.0px at 217px 283px,rgba(255,252,244,0.44),rgba(255,252,244,0)),radial-gradient(1.0px 1.0px at 182px 421px,rgba(255,252,244,0.64),rgba(255,252,244,0)),radial-gradient(1.0px 1.0px at 146px 365px,rgba(255,252,244,0.60),rgba(255,252,244,0)),radial-gradient(1.2px 1.2px at 3px 464px,rgba(255,252,244,0.58),rgba(255,252,244,0)),radial-gradient(1.3px 1.3px at 41px 64px,rgba(255,252,244,0.62),rgba(255,252,244,0)),radial-gradient(1.3px 1.3px at 49px 122px,rgba(255,252,244,0.83),rgba(255,252,244,0)),radial-gradient(1.2px 1.2px at 364px 245px,rgba(255,252,244,0.41),rgba(255,252,244,0)),radial-gradient(1.3px 1.3px at 451px 396px,rgba(255,252,244,0.36),rgba(255,252,244,0)),radial-gradient(0.8px 0.8px at 141px 370px,rgba(255,252,244,0.80),rgba(255,252,244,0)),radial-gradient(0.7px 0.7px at 234px 52px,rgba(255,252,244,0.88),rgba(255,252,244,0)),radial-gradient(0.7px 0.7px at 243px 135px,rgba(255,252,244,0.52),rgba(255,252,244,0)),radial-gradient(1.0px 1.0px at 201px 325px,rgba(255,252,244,0.66),rgba(255,252,244,0)),radial-gradient(1.2px 1.2px at 206px 382px,rgba(255,252,244,0.55),rgba(255,252,244,0)),radial-gradient(1.2px 1.2px at 9px 170px,rgba(255,252,244,0.46),rgba(255,252,244,0)),radial-gradient(0.6px 0.6px at 105px 250px,rgba(255,252,244,0.35),rgba(255,252,244,0)),radial-gradient(1.0px 1.0px at 242px 16px,rgba(255,252,244,0.51),rgba(255,252,244,0));
+  background-size:480px 480px;
+  animation:sd-twinkle 7s ease-in-out infinite alternate;
+}
+body::after{
+  background-image:radial-gradient(1.8px 1.8px at 491px 761px,rgba(255,252,244,0.35),rgba(255,252,244,0)),radial-gradient(0.9px 0.9px at 346px 725px,rgba(255,252,244,0.29),rgba(255,252,244,0)),radial-gradient(1.7px 1.7px at 805px 163px,rgba(255,252,244,0.18),rgba(255,252,244,0)),radial-gradient(0.9px 0.9px at 109px 249px,rgba(255,252,244,0.38),rgba(255,252,244,0)),radial-gradient(1.8px 1.8px at 451px 568px,rgba(255,252,244,0.46),rgba(255,252,244,0)),radial-gradient(1.4px 1.4px at 468px 155px,rgba(255,252,244,0.44),rgba(255,252,244,0)),radial-gradient(1.3px 1.3px at 331px 649px,rgba(255,252,244,0.31),rgba(255,252,244,0)),radial-gradient(1.6px 1.6px at 489px 563px,rgba(255,252,244,0.27),rgba(255,252,244,0)),radial-gradient(0.6px 0.6px at 85px 177px,rgba(255,252,244,0.48),rgba(255,252,244,0)),radial-gradient(1.7px 1.7px at 504px 678px,rgba(255,252,244,0.33),rgba(255,252,244,0)),radial-gradient(0.8px 0.8px at 741px 281px,rgba(255,252,244,0.20),rgba(255,252,244,0)),radial-gradient(1.0px 1.0px at 30px 499px,rgba(255,252,244,0.49),rgba(255,252,244,0)),radial-gradient(0.6px 0.6px at 426px 580px,rgba(255,252,244,0.37),rgba(255,252,244,0)),radial-gradient(1.4px 1.4px at 652px 677px,rgba(255,252,244,0.19),rgba(255,252,244,0)),radial-gradient(1.6px 1.6px at 542px 481px,rgba(255,252,244,0.20),rgba(255,252,244,0)),radial-gradient(1.1px 1.1px at 186px 242px,rgba(255,252,244,0.42),rgba(255,252,244,0)),radial-gradient(1.1px 1.1px at 14px 830px,rgba(255,252,244,0.32),rgba(255,252,244,0)),radial-gradient(1.1px 1.1px at 173px 250px,rgba(255,252,244,0.43),rgba(255,252,244,0)),radial-gradient(0.9px 0.9px at 523px 311px,rgba(255,252,244,0.39),rgba(255,252,244,0)),radial-gradient(1.6px 1.6px at 75px 284px,rgba(255,252,244,0.28),rgba(255,252,244,0)),radial-gradient(0.8px 0.8px at 804px 65px,rgba(255,252,244,0.26),rgba(255,252,244,0)),radial-gradient(1.7px 1.7px at 128px 669px,rgba(255,252,244,0.40),rgba(255,252,244,0));
+  background-size:880px 880px;
+  animation:sd-twinkle 11s ease-in-out infinite alternate-reverse;
+}
+@keyframes sd-twinkle{ 0%{opacity:.45} 100%{opacity:.92} }
+
+/* ---- glass cards (large surfaces get the real blur) ---- */
+.card,.term,.svc,.kpi,.chain-box,.group,.fig,.hero,.check,.intro,.tblwrap,.tbl-wrap,.tl-item > .card{
+  background:rgba(20,18,40,.55) !important;
+  -webkit-backdrop-filter:blur(12px);
+  backdrop-filter:blur(12px);
+  border:1px solid rgba(255,255,255,.06) !important;
+  border-radius:16px;
+  transition:border-color .3s ease,background .3s ease,transform .3s ease;
+}
+.card:hover,.term:hover,.svc:hover,.kpi:hover,.chain-box:hover,.group:hover,.fig:hover,.hero:hover,.check:hover,.intro:hover,.tblwrap:hover,.tbl-wrap:hover,.tl-item > .card:hover{
+  border-color:rgba(255,255,255,.10) !important;
+}
+/* small repeated elements: translucent, no blur (perf) */
+.node,.box,.chip,.note{
+  background:rgba(20,18,40,.62) !important;
+  border:1px solid rgba(255,255,255,.06) !important;
+  border-radius:12px;
+  transition:border-color .3s ease,transform .25s ease;
+}
+.node:hover,.box:hover,.chip:hover{
+  transform:translateY(-2px);
+  border-color:rgba(255,255,255,.14) !important;
+}
+/* keep callout colour coding on the left edge */
+.note.ok,.note.red{border-left-width:3px !important;border-radius:14px;}
+.intro{border-left:3px solid rgba(139,122,170,.5) !important;}
+
+/* ---- glass chrome bars ---- */
+.topbar,#topbar,.topbar-inner{ background:transparent !important; }
+.topbar,#topbar{
+  -webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);
+  background:rgba(13,13,36,.72) !important;
+  border-bottom:1px solid rgba(255,255,255,.06) !important;
+}
+#bar{
+  -webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);
+  background:rgba(13,13,36,.72) !important;
+  border-top:1px solid rgba(255,255,255,.06) !important;
+}
+button,a.backlink,.backlink{
+  background:rgba(20,18,40,.62) !important;
+  border-color:rgba(255,255,255,.08) !important;
+  border-radius:10px;
+}
+
+/* ---- serif accents, echoing the Star Desk section labels ---- */
+.brand,#brand,.sec-no,.sec-head .no,.hero h1,h2.part,h1#barT,.t h1{
+  font-family:'Georgia','Noto Serif SC','Songti SC',serif;
+  letter-spacing:.03em;
+}
+
+/* ---- slow breathing on hero/kpi surfaces ---- */
+@keyframes sd-float{ 0%,100%{transform:translateY(0)} 50%{transform:translateY(-3px)} }
+.hero,.intro,.kpi{ animation:sd-float 6s ease-in-out infinite; }
+.kpi:nth-child(2n){ animation-duration:7.2s;animation-delay:-1.6s; }
+.kpi:nth-child(3n){ animation-duration:6.6s;animation-delay:-3.1s; }
+
+/* ---- scrollbar ---- */
+::-webkit-scrollbar{width:9px;height:9px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:rgba(139,122,170,.28);border-radius:999px}
+::-webkit-scrollbar-thumb:hover{background:rgba(139,122,170,.45)}
+
+/* ---- mobile: same trade-off Star Desk makes — no blur ---- */
+@media (max-width:767px){
+  .card,.term,.svc,.kpi,.chain-box,.group,.fig,.hero,.check,.intro,.tblwrap,.tbl-wrap,.tl-item > .card{
+    -webkit-backdrop-filter:none;backdrop-filter:none;
+    background:rgba(20,18,40,.72) !important;
+  }
+  .topbar,#topbar,#bar{-webkit-backdrop-filter:none;backdrop-filter:none}
+  body::before,body::after{animation:none;opacity:.6}
+}
+@media (prefers-reduced-motion:reduce){
+  body::before,body::after,.hero,.intro,.kpi{animation:none !important}
+  body::before{opacity:.55}body::after{opacity:.4}
+}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="topbar"><div id="brand">AI 智能客服 + 工单平台<small>微服务架构实时动画</small></div><div id="tabs"></div></div>
+  <div id="stage"><div id="cvbox"><canvas id="cv"></canvas></div></div>
+  <div id="bar"><a class="backlink" href="../路线.html" style="display:inline-flex;align-items:center;min-height:32px;padding:0 10px;border:1px solid #2a2740;border-radius:6px;background:#141230;color:#7f8fb5;text-decoration:none;font-size:13px;white-space:nowrap;touch-action:manipulation;-webkit-tap-highlight-color:transparent">← 回学习路线</a>
+    <button id="btnPlay" type="button">▶ 播放</button>
+    <button id="btnReset" type="button">⟲ 重来</button>
+    <button id="btnZoomOut" type="button" title="缩小">−</button>
+    <button id="btnZoomIn" type="button" title="放大">＋</button>
+    <button id="btnView" type="button">⤢ 完整尺寸</button>
+    <label id="lblAuto" for="chkAuto"><input id="chkAuto" type="checkbox">切换标签自动播放</label>
+    <span id="swipeHint">← 左右滑动查看完整画面 →</span>
+    <span id="st">未播放</span>
+    <span id="hint"></span>
+  </div>
+  <div id="drawer" role="dialog" aria-label="节点详情"></div>
+</div>
+<script>
+(function () {
+'use strict';
+
+/* ==========================================================================
+   0. 基础设施
+   ========================================================================== */
+var ERRORS = [];
+window.addEventListener('error', function (e) {
+  ERRORS.push(String((e && (e.message || (e.error && e.error.message))) || 'unknown error'));
+});
+window.addEventListener('unhandledrejection', function (e) {
+  ERRORS.push('unhandledrejection: ' + String(e && e.reason));
+});
+
+/* ---------------- 视口 / 移动端显示模式状态（全页共享） ---------------- */
+var VIEW = {
+  narrow: false,     /* 视口宽度 <= 860px */
+  portrait: true,    /* 竖屏 */
+  wide: false,       /* “完整尺寸”模式：画布按手机宽 2.4 倍逻辑宽渲染 + 横向滚动 */
+  scrollLeft: 0,     /* 滚动容器当前横向偏移（画布逻辑坐标，等于 CSS px） */
+  clientW: 0, clientH: 0,   /* 滚动容器可视尺寸（CSS px） */
+  tipMaxY: 99999,    /* tooltip 允许的最大 y（被底部抽屉遮挡时收敛） */
+  drawerOpen: false,
+  hintDone: false
+};
+var LOGICAL_MULT = 2.4;    /* 竖屏“完整尺寸”逻辑宽 = 视口宽 × 2.4 */
+var EST_H = 820;           /* 架构世界的大致高度，用于“适配屏幕”时反推画布高度 */
+var CANVAS_TEXT_MIN = 10;  /* 手机上画布文字最小逻辑字号（保证实际显示 ≥10px） */
+
+var C = {
+  bg: '#07060f', cyan: '#8b7aaa', blue: '#7f8fb5', warn: '#c4a970',
+  red: '#b56a6a', ok: '#7fa07a', white: '#d4cee2', dim: '#7d7799', dim2: '#6f6a8b'
+};
+var FONT = '"PingFang SC","Microsoft YaHei","Hiragino Sans GB","Source Han Sans SC","Noto Sans CJK SC","WenQuanYi Micro Hei",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif';
+/* 手机窄屏时给过小的字号托底，保证画布文字实际显示尺寸 ≥ 10px */
+function fontOf(size, weight) {
+  if (VIEW.narrow && size < CANVAS_TEXT_MIN) size = CANVAS_TEXT_MIN;
+  return (weight || 400) + ' ' + size + 'px ' + FONT;
+}
+
+var TAU = Math.PI * 2;
+function clamp(v, a, b) { return v < a ? a : (v > b ? b : v); }
+function lerp(a, b, t) { return a + (b - a) * t; }
+function easeOut(t) { t = clamp(t, 0, 1); return 1 - Math.pow(1 - t, 3); }
+function easeInOut(t) { t = clamp(t, 0, 1); return t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2; }
+function rnd(a, b) { return a + Math.random() * (b - a); }
+
+function hex2rgb(h) {
+  h = h.replace('#', '');
+  if (h.length === 3) h = h[0] + h[0] + h[1] + h[1] + h[2] + h[2];
+  return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)];
+}
+function rgba(hex, a) { var c = hex2rgb(hex); return 'rgba(' + c[0] + ',' + c[1] + ',' + c[2] + ',' + a + ')'; }
+
+/* ---------------- Canvas 2D 封装（全部业务图形走这里） ---------------- */
+function Cv(canvas) {
+  this.el = canvas;
+  this.ctx = canvas.getContext('2d');
+  this.w = 0; this.h = 0; this.dpr = 1; this.k = 1;   /* k = 显示缩放（逻辑坐标 → CSS 像素） */
+}
+Cv.prototype.resize = function (cw, ch, dpr, k) {
+  this.w = Math.max(2, Math.round(cw)); this.h = Math.max(2, Math.round(ch)); this.dpr = dpr;
+  this.k = k || 1;
+  this.el.width = Math.round(this.w * this.k * dpr); this.el.height = Math.round(this.h * this.k * dpr);
+};
+Cv.prototype.reset = function () {
+  var c = this.ctx;
+  c.setTransform(1, 0, 0, 1, 0, 0);
+  c.clearRect(0, 0, this.el.width, this.el.height);
+  c.setTransform(this.dpr * this.k, 0, 0, this.dpr * this.k, 0, 0);
+  c.textBaseline = 'middle'; c.textAlign = 'left';
+  c.lineJoin = 'round'; c.lineCap = 'round';
+  c.globalAlpha = 1; c.shadowColor = 'transparent'; c.shadowBlur = 0;
+  c.setLineDash([]);
+};
+Cv.prototype.save = function () { this.ctx.save(); };
+Cv.prototype.restore = function () { this.ctx.restore(); };
+Cv.prototype.alpha = function (a) { this.ctx.globalAlpha = clamp(a, 0, 1); };
+Cv.prototype.fill = function (s) { this.ctx.fillStyle = s; };
+Cv.prototype.stroke = function (s) { this.ctx.strokeStyle = s; };
+Cv.prototype.lw = function (n) { this.ctx.lineWidth = n; };
+Cv.prototype.font = function (size, weight) { this.ctx.font = fontOf(size, weight); };
+Cv.prototype.shadow = function (color, blur) { this.ctx.shadowColor = color; this.ctx.shadowBlur = blur; };
+Cv.prototype.noshadow = function () { this.ctx.shadowColor = 'transparent'; this.ctx.shadowBlur = 0; };
+Cv.prototype.text = function (s, x, y, align) {
+  var c = this.ctx; c.textAlign = align || 'left'; c.fillText(s, x, y); c.textAlign = 'left';
+};
+Cv.prototype.rr = function (x, y, w, h, r) {
+  var c = this.ctx;
+  r = Math.max(0, Math.min(r, w / 2, h / 2));
+  c.beginPath();
+  c.moveTo(x + r, y);
+  c.lineTo(x + w - r, y); c.arcTo(x + w, y, x + w, y + r, r);
+  c.lineTo(x + w, y + h - r); c.arcTo(x + w, y + h, x + w - r, y + h, r);
+  c.lineTo(x + r, y + h); c.arcTo(x, y + h, x, y + h - r, r);
+  c.lineTo(x, y + r); c.arcTo(x, y, x + r, y, r);
+  c.closePath();
+};
+Cv.prototype.fillRR = function (x, y, w, h, r, style) { this.rr(x, y, w, h, r); this.fill(style); this.ctx.fill(); };
+Cv.prototype.strokeRR = function (x, y, w, h, r, style, lw) {
+  this.rr(x, y, w, h, r); this.stroke(style); this.lw(lw || 1); this.ctx.stroke();
+};
+Cv.prototype.glowRR = function (x, y, w, h, r, style, lw, glow, blur) {
+  this.rr(x, y, w, h, r); this.stroke(style); this.lw(lw);
+  this.shadow(glow, blur || 12); this.ctx.stroke(); this.noshadow();
+};
+Cv.prototype.dot = function (x, y, r, color, blur) {
+  var c = this.ctx;
+  c.beginPath(); c.arc(x, y, r, 0, TAU);
+  if (blur) { this.fill(color); this.shadow(color, blur); c.fill(); this.noshadow(); }
+  else { this.fill(color); c.fill(); }
+};
+Cv.prototype.radial = function (x, y, r, col, a0, a1) {
+  var g = this.ctx.createRadialGradient(x, y, 0, x, y, Math.max(1, r));
+  g.addColorStop(0, rgba(col, a0));
+  g.addColorStop(1, rgba(col, a1 === undefined ? 0 : a1));
+  return g;
+};
+Cv.prototype.lingrad = function (x0, y0, x1, y1, stops) {
+  var g = this.ctx.createLinearGradient(x0, y0, x1, y1);
+  for (var i = 0; i < stops.length; i++) g.addColorStop(stops[i][0], stops[i][1]);
+  return g;
+};
+/* 中文换行 + 缓存 */
+var wrapCache = {};
+Cv.prototype.wrap = function (text, maxW, size, weight) {
+  var key = text + '|' + Math.round(maxW) + '|' + size + '|' + (weight || 400);
+  if (wrapCache[key]) return wrapCache[key];
+  var c = this.ctx; c.font = fontOf(size, weight);
+  var lines = [], cur = '';
+  for (var i = 0; i < text.length; i++) {
+    var ch = text[i];
+    if (ch === '\n') { lines.push(cur); cur = ''; continue; }
+    if (cur && c.measureText(cur + ch).width > maxW) { lines.push(cur); cur = ch; }
+    else cur += ch;
+  }
+  if (cur) lines.push(cur);
+  wrapCache[key] = lines;
+  return lines;
+};
+Cv.prototype.para = function (text, x, y, maxW, lh, size, color, weight, maxLines) {
+  var lines = this.wrap(text, maxW, size, weight);
+  if (maxLines && lines.length > maxLines) {
+    lines = lines.slice(0, maxLines);
+    lines[maxLines - 1] = lines[maxLines - 1].slice(0, -1) + '…';
+  }
+  this.fill(color);
+  for (var i = 0; i < lines.length; i++) this.text(lines[i], x, y + i * lh, 'left');
+  return lines.length * lh;
+};
+Cv.prototype.clip = function (text, maxW, size, weight) {
+  var c = this.ctx; c.font = fontOf(size, weight);
+  if (c.measureText(text).width <= maxW) return text;
+  var s = text;
+  while (s.length > 1 && c.measureText(s + '…').width > maxW) s = s.slice(0, -1);
+  return s + '…';
+};
+Cv.prototype.measure = function (text, size, weight) {
+  this.ctx.font = fontOf(size, weight); return this.ctx.measureText(text).width;
+};
+function pill(c, x, y, w, h, color, text, textSize, solid) {
+  c.rr(x, y, w, h, h / 2);
+  c.fill(solid ? rgba(color, 0.9) : rgba(color, 0.15)); c.ctx.fill();
+  c.stroke(rgba(color, 0.6)); c.lw(1); c.ctx.stroke();
+  c.font(textSize || 10.5, 600); c.fill(solid ? '#100e22' : color);
+  c.text(text, x + w / 2, y + h / 2 + 0.5, 'center');
+}
+
+/* ---------------- 折线 / 箭头 / 曲线 ---------------- */
+function polyLen(pts) {
+  var L = 0;
+  for (var i = 1; i < pts.length; i++) L += Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]);
+  return L;
+}
+function polyPoint(pts, t) {
+  var total = polyLen(pts), d = clamp(t, 0, 1) * total;
+  for (var i = 1; i < pts.length; i++) {
+    var a = pts[i - 1], b = pts[i];
+    var seg = Math.hypot(b[0] - a[0], b[1] - a[1]);
+    if (d <= seg || i === pts.length - 1) {
+      var k = seg === 0 ? 0 : d / seg;
+      return { x: lerp(a[0], b[0], k), y: lerp(a[1], b[1], k), i: i - 1 };
+    }
+    d -= seg;
+  }
+  return { x: pts[0][0], y: pts[0][1], i: 0 };
+}
+function polyPath(c, pts) {
+  c.beginPath(); c.moveTo(pts[0][0], pts[0][1]);
+  for (var i = 1; i < pts.length; i++) c.lineTo(pts[i][0], pts[i][1]);
+}
+function arrowHead(c, x, y, ang, size, color) {
+  c.save(); c.translate(x, y); c.rotate(ang);
+  c.beginPath(); c.moveTo(0, 0); c.lineTo(-size, -size * 0.5); c.lineTo(-size, size * 0.5);
+  c.closePath(); c.fillStyle = color; c.fill(); c.restore();
+}
+function arrowAt(c, pts, color, size, t) {
+  var p = polyPoint(pts, t === undefined ? 0.99 : t);
+  var a = pts[p.i], b = pts[Math.min(pts.length - 1, p.i + 1)];
+  arrowHead(c, p.x, p.y, Math.atan2(b[1] - a[1], b[0] - a[0]), size || 8, color);
+}
+/** 折线 + 流动虚线 + 若干移动光点 */
+function flowLine(c, pts, color, tt, opt) {
+  opt = opt || {};
+  var dashA = opt.dashA === undefined ? 0.55 : opt.dashA;
+  var baseA = opt.baseA === undefined ? 0.16 : opt.baseA;
+  var nDots = opt.dots === undefined ? 2 : opt.dots;
+  var dotR = opt.dotR || 2.4;
+  var glow = opt.glow || 12;
+  var dash = opt.dash || 26;
+  c.save();
+  polyPath(c.ctx, pts);
+  c.stroke(rgba(color, baseA)); c.lw(opt.lw === undefined ? 2.2 : opt.lw); c.ctx.stroke();
+  c.ctx.setLineDash([6, 12]);
+  c.ctx.lineDashOffset = -tt * dash;
+  polyPath(c.ctx, pts);
+  c.stroke(rgba(color, dashA)); c.lw(opt.lw2 === undefined ? 1.5 : opt.lw2);
+  c.shadow(rgba(color, 0.7), 8); c.ctx.stroke(); c.noshadow();
+  c.ctx.setLineDash([]);
+  for (var i = 0; i < nDots; i++) {
+    var t = ((tt * (opt.speed === undefined ? 0.55 : opt.speed) + i / nDots) % 1 + 1) % 1;
+    var p = polyPoint(pts, t);
+    c.ctx.beginPath(); c.ctx.arc(p.x, p.y, dotR * 2.8, 0, TAU);
+    c.fill(rgba(color, 0.14)); c.ctx.fill();
+    c.dot(p.x, p.y, dotR, color, glow);
+  }
+  if (opt.arrow !== false) arrowAt(c.ctx, pts, rgba(color, 0.85), opt.aSize || 8, 0.992);
+  c.restore();
+}
+function curvePath(c, x0, y0, x1, y1, bend) {
+  c.beginPath();
+  c.moveTo(x0, y0);
+  c.quadraticCurveTo(x1, y0 + (bend || 0), x1, y1);
+}
+function curvePoint(x0, y0, x1, y1, bend, t) {
+  var mx = x1, my = y0 + (bend || 0);
+  var a = lerp(x0, mx, t), b = lerp(y0, my, t);
+  var d = lerp(mx, x1, t), e = lerp(my, y1, t);
+  return { x: lerp(a, d, t), y: lerp(b, e, t) };
+}
+function checkMark(c, x, y, r, color, prog) {
+  var g = c.ctx;
+  c.save();
+  c.dot(x, y, r, rgba(color, 0.2), 0);
+  g.beginPath(); g.arc(x, y, r, 0, TAU);
+  c.stroke(rgba(color, 0.75)); c.lw(1.4); g.stroke();
+  c.stroke(color); c.lw(2.2); c.shadow(color, 8);
+  g.beginPath();
+  g.moveTo(x - r * 0.45, y + r * 0.03);
+  var p1 = { x: x - r * 0.06, y: y + r * 0.42 }, p2 = { x: x + r * 0.5, y: y - r * 0.42 };
+  var k = clamp(prog === undefined ? 1 : prog, 0, 1);
+  if (k < 0.5) {
+    g.lineTo(lerp(x - r * 0.45, p1.x, k / 0.5), lerp(y + r * 0.03, p1.y, k / 0.5));
+  } else {
+    g.lineTo(p1.x, p1.y);
+    g.lineTo(lerp(p1.x, p2.x, (k - 0.5) / 0.5), lerp(p1.y, p2.y, (k - 0.5) / 0.5));
+  }
+  g.stroke(); c.noshadow();
+  c.restore();
+}
+
+/* ==========================================================================
+   1. 动态背景（所有场景共用，暂停时也持续流动）
+   ========================================================================== */
+function Background(w, h) {
+  this.w = w; this.h = h; this.step = 54;
+  this.stars = []; this.neb = [];
+  this.scatter(w, h);
+}
+Background.prototype.scatter = function (w, h) {
+  this.stars = []; this.neb = [];
+  var i;
+  for (i = 0; i < 61; i++) {
+    this.stars.push({
+      x: Math.random() * w, y: Math.random() * h,
+      r: rnd(0.7, 2.5), v: rnd(6, 27), a: rnd(0.2, 0.85),
+      tw: rnd(0.5, 2.2), ph: Math.random() * TAU,
+      col: Math.random() < 0.64 ? C.cyan : C.blue
+    });
+  }
+  for (i = 0; i < 6; i++) {
+    this.neb.push({
+      x: Math.random() * w, y: Math.random() * h, r: rnd(130, 320),
+      col: Math.random() < 0.5 ? C.blue : C.cyan, a: rnd(0.014, 0.045), v: rnd(3, 9)
+    });
+  }
+};
+Background.prototype.resize = function (w, h) {
+  if (Math.abs(w - this.w) > 40 || Math.abs(h - this.h) > 40) { this.w = w; this.h = h; this.scatter(w, h); }
+  else { this.w = w; this.h = h; }
+};
+Background.prototype.draw = function (c, t) {
+  var w = this.w, h = this.h, i, s, ctx = c.ctx;
+  c.fill(C.bg); ctx.fillRect(0, 0, w, h);
+
+  for (i = 0; i < this.neb.length; i++) {
+    s = this.neb[i];
+    var nx = (s.x - t * s.v) % (w + 700); if (nx < -350) nx += w + 700;
+    c.fill(c.radial(nx, s.y, s.r, s.col, s.a, 0));
+    ctx.fillRect(nx - s.r, s.y - s.r, s.r * 2, s.r * 2);
+  }
+
+  var step = this.step;
+  var gx = -((t * 15) % step), gy = ((t * 9) % step);
+  c.stroke('rgba(124,116,155,.08)'); c.lw(1);
+  ctx.beginPath();
+  for (var x = gx; x <= w + step; x += step) { ctx.moveTo(x, 0); ctx.lineTo(x, h); }
+  for (var y = gy - step; y <= h + step; y += step) { ctx.moveTo(0, y); ctx.lineTo(w, y); }
+  ctx.stroke();
+
+  var pulse = 0.62 + 0.16 * Math.sin(t * 0.55) + 0.06 * Math.sin(t * 1.9);
+  c.fill(c.radial(w * 0.5, -h * 0.16, h * 0.98, C.cyan, 0.2 * pulse, 0));
+  ctx.fillRect(0, 0, w, h);
+  c.fill(c.radial(w * 0.84, h * 1.06, h * 0.72, C.blue, 0.09, 0));
+  ctx.fillRect(0, h * 0.35, w, h * 0.65);
+
+  for (i = 0; i < this.stars.length; i++) {
+    s = this.stars[i];
+    var sy = s.y - (t * s.v) % (h + 44);
+    if (sy < -22) sy += h + 44;
+    var a = s.a * (0.55 + 0.45 * Math.sin(t * s.tw + s.ph));
+    ctx.beginPath(); ctx.arc(s.x, sy, s.r, 0, TAU);
+    c.fill(rgba(s.col, a * 0.85)); ctx.fill();
+    if (s.r > 1.5) {
+      c.fill(c.radial(s.x, sy, s.r * 6.5, s.col, a * 0.26, 0));
+      ctx.fillRect(s.x - s.r * 6.5, sy - s.r * 6.5, s.r * 13, s.r * 13);
+    }
+  }
+  c.fill(c.radial(w * 0.5, h * 0.46, Math.max(w, h) * 0.78, '#07060f', 0, 0.5));
+  ctx.fillRect(0, 0, w, h);
+};
+
+/* ==========================================================================
+   2. 场景基类：每个场景一个独立实例，只有 active && playing 才推进 time
+   ========================================================================== */
+function Scene(id, name, accent) {
+  this.id = id; this.name = name; this.accent = accent || C.cyan;
+  this.t = 0; this.active = false; this.playing = false;
+  this.rows = []; this.hover = null; this.selected = null;
+  this.scrollY = 0; this.maxScroll = 0;
+  this.narration = ''; this.sub = '';
+  this.w = 0; this.h = 0;
+  this._rowsDirty = true;
+}
+Scene.prototype.reset = function () {
+  this.t = 0; this.scrollY = 0; this.selected = null; this.hover = null; this.rows = [];
+};
+/** 数据/动画推进：只有 active && playing 时才调用 */
+Scene.prototype.update = function (dt) { this.t += dt; };
+/** hover / 面板等交互态推进：只要场景在前台就调用（暂停时也要能点开面板） */
+Scene.prototype.uiUpdate = function (dt) { };
+Scene.prototype.layout = function (w, h) { this.w = w; this.h = h; this.maxScroll = 0; };
+Scene.prototype.draw = function (c, w, h) { };
+Scene.prototype.addHit = function (x, y, w, h, data) {
+  this.rows.push({ x: x, y: y, w: w, h: h, key: data.key, kind: data.kind, data: data.data || data });
+};
+Scene.prototype.hitTest = function (mx, my) {
+  for (var i = this.rows.length - 1; i >= 0; i--) {
+    var o = this.rows[i];
+    if (mx >= o.x && mx <= o.x + o.w && my >= o.y && my <= o.y + o.h) return o;
+  }
+  return null;
+};
+Scene.prototype.onHover = function (mx, my) { this.hover = this.hitTest(mx, my); };
+Scene.prototype.onDown = function (mx, my) { this._down = { x: mx, y: my }; };
+Scene.prototype.onMove = function (mx, my) { };
+Scene.prototype.onUp = function () { return 0; };
+Scene.prototype.onClick = function (mx, my) { };
+/** 触摸“点一下”：桌面端的悬停 → 手机上点一下显示；命中元素时等价于单击 */
+Scene.prototype.onTap = function (mx, my) {
+  this.onHover(mx, my);
+  var h = this.hover || this.hoverApi;
+  if (h) this.onClick(mx, my);
+  else this.onTapEmpty(mx, my);
+};
+/** 点到空白处：收起高亮 / tooltip / 详情面板 */
+Scene.prototype.onTapEmpty = function () { this.hover = null; this.hoverApi = null; this.selected = null; };
+Scene.prototype.onWheel = function (mx, my, d) {
+  if (this.maxScroll > 0.5) this.scrollY = clamp(this.scrollY + d * 0.55, 0, this.maxScroll);
+};
+Scene.prototype.narr = function (text) { this.narration = text; };
+/** 底部解说条（画布内绘制；“完整尺寸”模式下钉在可视窗口内，不随横向滚动跑掉） */
+Scene.prototype.drawNarration = function (c, w, h) {
+  var vx = VIEW.wide ? VIEW.scrollLeft : 0, vw = VIEW.wide ? VIEW.clientW : w;
+  var bh = 50, x = vx + 12, y = h - bh - 8, bw = vw - 24;
+  c.save();
+  c.rr(x, y, bw, bh, 9);
+  c.fill(c.lingrad(x, y, x + bw, y, [
+    [0, 'rgba(12,12,34,.94)'], [0.5, 'rgba(11,10,31,.86)'], [1, 'rgba(12,12,34,.94)']]));
+  c.ctx.fill();
+  c.stroke(rgba(this.accent, 0.32)); c.lw(1); c.ctx.stroke();
+  c.stroke(rgba(this.accent, 0.14)); c.lw(2.5);
+  c.shadow(rgba(this.accent, 0.5), 12); c.ctx.stroke(); c.noshadow();
+  c.fillRR(x + 1.5, y + 8, 3.5, bh - 16, 2, this.accent);
+  c.font(11, 700);
+  var lw = c.measure(this.name, 11, 700);
+  pill(c, x + 14, y + 14.5, lw + 16, 20, this.accent, this.name, 11);
+  c.font(13.5, 500); c.fill('#e0daeb');
+  c.text(c.clip(this.narration, bw - lw - 62, 13.5, 500), x + 30 + lw + 16, y + bh / 2 + 0.5, 'left');
+  c.restore();
+};
+/** 场景标题头（“完整尺寸”模式下钉在可视窗口内） */
+Scene.prototype.drawHead = function (c, w, h, title, subtitle) {
+  var vx = VIEW.wide ? VIEW.scrollLeft : 0, vw = VIEW.wide ? VIEW.clientW : w;
+  c.save();
+  c.font(15, 700); c.fill(rgba(this.accent, 0.95));
+  c.shadow(rgba(this.accent, 0.6), 12);
+  c.text(title, vx + 20, 24, 'left');
+  c.noshadow();
+  c.font(11, 500); c.fill(rgba(C.dim, 0.95));
+  var tw = c.measure(title, 15, 700);
+  var sx = vx + 20 + tw + 14;
+  if (subtitle) c.text(c.clip(subtitle, Math.max(40, vx + vw - 20 - sx), 11, 500), sx, 25, 'left');
+  c.ctx.beginPath(); c.ctx.moveTo(vx + 20, 38); c.ctx.lineTo(vx + vw - 20, 38);
+  c.stroke(rgba(this.accent, 0.16)); c.lw(1); c.ctx.stroke();
+  c.restore();
+};
+
+/* ==========================================================================
+   3. 数据：分层架构（节点只有语义，几何在 resolveArch() 里统一定）
+   ========================================================================== */
+var LAYER_SPEC = [
+  { name: '接入层', sub: 'Ingress', color: C.cyan, h: 110, type: 'one',
+    nodes: [{ key: 'nginx', name: 'Nginx', tech: 'HTTPS 卸载 · 限流 · 灰度', w: 640, h: 80, qps: 30, ms: 2.1,
+      duty: '七层反向代理与统一入口：TLS 卸载、按 IP / 接口维度限流、静态资源缓存；灰度发布按 Header 或权重把流量切到新版本网关，回滚只需改 upstream。',
+      tables: ['—（无状态，不落库）'],
+      apis: ['443 → gateway:8080', '/health 健康检查'] }] },
+  { name: '网关层', sub: 'Gateway', color: C.blue, h: 110, type: 'one',
+    nodes: [{ key: 'gateway', name: 'Spring Cloud Gateway', tech: '路由 · JWT 校验 · 客户上下文注入 · 接口限流', w: 700, h: 80, qps: 30, ms: 4.6,
+      duty: '所有外部流量的唯一入口。断言 + 过滤器链：解析 JWT 拿到 tenantId / userId / roleId，注入客户上下文 Header 往下游透传；Redis + Lua 做接口级原子计数限流；/inner/** 一律不放行。',
+      tables: ['—（限流计数在 Redis）'],
+      apis: ['/api/** → 业务服务', '/api/ai/** → ai-service', '/inner/** ✗ 网关不放行'] }] },
+  { name: '注册配置', sub: 'Nacos', color: C.cyan, h: 100, type: 'one',
+    nodes: [{ key: 'nacos', name: 'Nacos', tech: '服务发现 + 配置中心 + 动态刷新', w: 700, h: 74, qps: 12, ms: 3.2,
+      duty: '服务注册与发现：网关和 OpenFeign 都从这里拿实例列表，临时实例靠心跳摘除；同时是配置中心，SLA 时长、限流阈值这类参数改完 @RefreshScope 动态生效，不用重启。',
+      tables: ['—（配置存在 Nacos 自身存储）'],
+      apis: ['/nacos/v1/ns/** 注册发现', '/nacos/v1/cs/** 配置拉取'] }] },
+  { name: '业务层', sub: '7 Microservices', color: C.blue, h: 190, type: 'biz',
+    nodes: [
+      { key: 'auth', name: 'auth', tech: '认证授权', qps: 6, ms: 12,
+        duty: '坐席登录、JWT 签发与刷新、RBAC 权限模型（角色 / 权限 / 角色权限）；网关只校验签名与过期时间，接口级鉴权在这里完成，顾客侧走匿名访客令牌。',
+        tables: ['sys_user', 'sys_role', 'sys_permission', 'sys_role_permission'],
+        apis: ['POST /api/auth/login', 'GET /api/auth/me', 'POST /api/auth/refresh'] },
+      { key: 'customer', name: 'customer', tech: '客户与坐席', qps: 8, ms: 18,
+        duty: '客户（一个部署实例对应一个客户）与坐席管理、坐席状态机（在线 / 小休 / 忙碌）、技能组与接待分配策略、单坐席并发会话数控制。',
+        tables: ['tenant', 'skill_group', 'agent_status', 'visitor'],
+        apis: ['GET /api/tenant/agents', 'POST /api/tenant/agents', 'PUT /api/tenant/agents/{id}/status'] },
+      { key: 'conversation', name: 'conversation', tech: '会话与消息（WebSocket）', qps: 22, ms: 26,
+        duty: 'WebSocket 长连接网关，消息收发与顺序保证；多实例下用 Redis 路由表定位连接在哪台机，Kafka 按 sessionId 分区保证同一会话消息有序；会话状态机 + 转接。',
+        tables: ['session', 'message（按月分表）', 'session_transfer', 'quick_reply', 'session_evaluation'],
+        apis: ['WS /ws/chat', 'POST /api/session/start', 'POST /api/session/{id}/transfer', 'GET /inner/session/{id}/summary'] },
+      { key: 'ticket', name: 'ticket', tech: '工单 + SLA', qps: 9, ms: 31,
+        duty: '工单模型与自定义字段模板、状态机流转、SLA 引擎（首响 / 解决时限、剩余 20% 预警、超时升级上级且幂等）、事件驱动触发器（Kafka 事件 + 规则表达式匹配）。',
+        tables: ['ticket', 'ticket_template', 'ticket_flow_log', 'ticket_comment', 'ticket_attachment', 'ticket_sla'],
+        apis: ['POST /api/tickets', 'PUT /api/tickets/{id}/status', 'PUT /api/tickets/{id}/assign', 'POST /inner/tickets'] },
+      { key: 'knowledge', name: 'knowledge', tech: '知识库智能（Python · LangChain）', qps: 14, ms: 46,
+        duty: '★Python 侧。文档上传（Java 侧接口）→ MinIO 存原文件 → Kafka 异步向量化（LangChain 的 Loader 解析 / 按标题层级切 chunk / 调 Embedding）→ 写 PGVector + knowledge_chunk；检索端做向量 + BM25 混合召回、RRF 融合后重排取 Top5。',
+        tables: ['knowledge_base', 'knowledge_document', 'knowledge_chunk', 'knowledge_faq'],
+        apis: ['POST /inner/knowledge/search', 'POST /api/knowledge/documents', 'GET /api/knowledge/faq'] },
+      { key: 'ai', name: 'ai-agent', tech: 'AI Agent 编排（Python · LangGraph）', qps: 18, ms: 780,
+        duty: '★Python 侧，双栈的"大脑"。用 LangGraph 把 Agent 建模成状态图（支持循环 / 条件边 / 断点恢复）：意图识别 → RAG 检索 → 判断是否需要业务数据 → Tool Calling（HTTP 回调 Java inner 接口）→ LLM 生成 → 后置校验（★仅知识问答分支：召回为空或重排分不达标就禁止生成，走兜底话术 + 转人工；向量相似度只作参考，不单独触发兜底）；每轮执行写 ai_execution 日志。★状态用 Redis checkpointer 持久化（依赖 RedisJSON + RediSearch，需 Redis Stack），否则多副本会丢。',
+        tables: ['ai_agent', 'ai_agent_tool', 'ai_conversation', 'ai_execution ★', 'ai_unanswered'],
+        apis: ['POST /api/ai/chat（SSE 流式）', 'POST /api/ai/agents', 'POST /api/ai/knowledge/search', 'GET /api/ai/executions'] },
+      { key: 'report', name: 'report', tech: '报表统计', qps: 4, ms: 120,
+        duty: '报表统计：会话量、机器人解决率（robot_resolved / 机器人接待会话数）、转人工率、平均首响、工单超时率、Token 成本。数据来自业务库 + ai_execution，走定时预聚合避免大表实时扫描。',
+        tables: ['session 聚合', 'ticket 聚合', 'ai_execution 聚合'],
+        apis: ['POST /api/report/session/overview', 'POST /api/report/ticket/sla', 'POST /api/report/ai/cost'] }
+    ] },
+  { name: '中间件层', sub: 'Middleware', color: C.cyan, h: 190, type: 'mw',
+    nodes: [
+      { key: 'mysql', name: 'MySQL 8', tech: '每客户独立 schema', col: 0, row: 0, qps: 96, ms: 8.4,
+        duty: '业务主库。每客户独立 schema 物理隔离（表内仍保留 tenant_id 作为二次防护 + 联合索引最左列）。消息表按月分表，ai_execution 独立库避免大字段拖慢业务库。',
+        tables: ['29 张业务表全部在此', 'message_YYYYMM 按月分表'],
+        apis: ['JDBC · MyBatis-Plus', 'TenantLineInnerInterceptor 自动隔离'] },
+      { key: 'redis', name: 'Redis 7', tech: '缓存 · 会话状态 · 分布式锁 · 限流', col: 1, row: 0, color: C.red, qps: 64, ms: 1.2,
+        duty: '三类用途：① 热点缓存与会话上下文（30 分钟 TTL）；② WebSocket 多实例路由表 sessionId → 实例 IP；③ Lua 脚本做原子计数限流 + 分布式锁，保证 SLA 超时升级幂等。',
+        tables: ['ctx:session:{id} TTL 30min', 'ws:route:{sessionId}', 'lock:sla:{ticketNo}'],
+        apis: ['RedisTemplate', 'Lua 原子计数', 'Pub/Sub 广播'] },
+      { key: 'kafka', name: 'Kafka', tech: '消息投递 · 工单事件 · 异步向量化', col: 2, row: 0, qps: 40, ms: 5.5,
+        duty: '三个核心 Topic：消息投递（按 sessionId 分区保序）、工单事件（触发器 + SLA 通知）、文档向量化任务（削峰，把解析这种慢任务异步化）。',
+        tables: ['topic: msg-deliver', 'topic: ticket-event', 'topic: kb-vectorize'],
+        apis: ['KafkaTemplate.send', '@KafkaListener 消费'] },
+      { key: 'es', name: 'Elasticsearch 8', tech: '全文检索 + BM25', col: 0, row: 1, qps: 15, ms: 34,
+        duty: '全文检索与 BM25 关键词召回，补向量检索对「订单号 / 型号 / 退款期限」这类精确词召回不稳的短板。★BM25 分数量纲和余弦相似度完全不同（无上界），所以只参与 RRF 排序，不参与阈值判断。',
+        tables: ['index: knowledge_chunk', 'index: message 历史检索'],
+        apis: ['POST /_search', 'BM25 + 同义词词典'] },
+      { key: 'pgv', name: 'PGVector', tech: '向量库', col: 1, row: 1, color: C.warn, qps: 15, ms: 22,
+        duty: '向量库：chunk 向量与 FAQ 向量按客户独立 collection 物理隔离；ANN 检索返回余弦相似度（0~1，有绝对意义），是唯一能量纲对齐设阈值的那类分数。★但向量分低【不能单独触发兜底】——BM25 可能精确命中而向量分很低，0.60 只能当"要不要调重排"的成本参考。',
+        tables: ['collection: kb_chunk_vec', 'collection: faq_vec'],
+        apis: ['ANN TopK 检索', '换 embedding 模型必须全量重建索引'] },
+      { key: 'minio', name: 'MinIO', tech: '附件 · 知识文档', col: 2, row: 1, qps: 5, ms: 18,
+        duty: '对象存储：工单附件、知识库原始文档（PDF / Word / Markdown）都放这里，业务库里只留 file_url，避免大字段进业务库。',
+        tables: ['bucket: ticket-attach', 'bucket: kb-doc'],
+        apis: ['S3 兼容 API', '预签名 URL 直传'] }
+    ] },
+  { name: 'AI 模型层', sub: 'LLM', color: C.warn, h: 100, type: 'two',
+    nodes: [
+      { key: 'deepseek', name: 'DeepSeek', tech: '主通道 · 便宜 · 长上下文', w: 480, h: 72, qps: 18, ms: 760,
+        duty: '主用生成通道：承接意图识别、工具参数抽取与最终答案生成；长上下文适合把召回片段 + 工具返回值一起塞进 Prompt。',
+        tables: ['—（外部 API）'], apis: ['POST /chat/completions', 'OpenAI 兼容协议'] },
+      { key: 'qwen', name: '通义千问', tech: '备通道 · 双通道可切换', w: 480, h: 72, qps: 4, ms: 820,
+        duty: '备用生成通道：主通道超时 / 限流 / 报错时按配置切过来；实际用的模型编码写进 ai_execution.model_code，方便对比两条通道的耗时与成本。',
+        tables: ['—（外部 API）'], apis: ['POST /chat/completions', '信号量限流 + 超时熔断'] }
+    ] }
+];
+var ARCH = null;   /* resolveArch() 生成：{ layers, pos, flows, w, h } */
+
+function resolveArch() {
+  var M = 40, GAPX = 35, GAPY = 13, PADT = 27;
+  var layers = [], y = 60, i, j, k, n, L;
+  var MW = 1300;
+  for (i = 0; i < LAYER_SPEC.length; i++) {
+    L = LAYER_SPEC[i];
+    var obj = { name: L.name, sub: L.sub, color: L.color, x: M, y: y, w: MW - M * 2, h: L.h, type: L.type, nodes: [] };
+    layers.push(obj);
+    y += L.h + 32;
+  }
+  var worldH = y - 32 + 40;
+  var pos = {};
+  function put(node, layerObj, x, yy, w, h) {
+    var o = {
+      key: node.key, name: node.name, tech: node.tech, duty: node.duty,
+      tables: node.tables, apis: node.apis, qps: node.qps, ms: node.ms,
+      color: node.color || layerObj.color, layer: layerObj.name, layerSub: layerObj.sub,
+      x: x, y: yy, w: w, h: h, cx: x + w / 2, cy: yy + h / 2, hv: 0
+    };
+    layerObj.nodes.push(o);
+    pos[o.key] = o;
+    return o;
+  }
+  for (i = 0; i < layers.length; i++) {
+    L = layers[i]; var S = LAYER_SPEC[i];
+    if (L.type === 'one' || L.type === 'two') {
+      if (L.type === 'one') {
+        n = S.nodes[0];
+        put(n, L, (MW - n.w) / 2, L.y + (L.h - n.h) / 2, n.w, n.h);
+      } else {
+        var tot = 0;
+        for (j = 0; j < S.nodes.length; j++) tot += S.nodes[j].w;
+        var gg = 130;
+        var startX = (MW - (tot + gg * (S.nodes.length - 1))) / 2;
+        for (j = 0; j < S.nodes.length; j++) {
+          n = S.nodes[j];
+          put(n, L, startX, L.y + (L.h - n.h) / 2, n.w, n.h);
+          startX += n.w + gg;
+        }
+      }
+    } else {
+      var per = [3, 4], wsum = MW - M * 2 - 24;
+      var w3 = (wsum - GAPX * 2) / 3, w4 = (wsum - GAPX * 3) / 4;
+      if (L.type === 'biz') per = [3, 4]; else per = [3, 3];
+      var idx = 0;
+      for (j = 0; j < per.length; j++) {
+        var cnt = per[j], cw = (cnt === 3 ? w3 : w4);
+        var rowW = cnt * cw + GAPX * (cnt - 1);
+        var sx = M + 12 + (wsum - rowW) / 2;
+        var rh = (L.h - PADT - 18 - GAPY * (per.length - 1)) / per.length;
+        for (k = 0; k < cnt; k++) {
+          n = S.nodes[idx++];
+          put(n, L, sx + k * (cw + GAPX), L.y + PADT + j * (rh + GAPY), cw, rh);
+        }
+      }
+    }
+  }
+  /* 调用链连线 */
+  function P(key) { return pos[key]; }
+  function link(a, b, color, label) {
+    var A = P(a), B = P(b);
+    if (!A || !B) return null;
+    var pts;
+    if (Math.abs(A.cx - B.cx) < 26) {
+      pts = [[A.cx, A.y + A.h], [B.cx, B.y]];
+    } else if (B.cy > A.y + A.h - 2) {
+      var midY = (A.y + A.h + B.y) / 2;
+      pts = [[A.cx, A.y + A.h], [A.cx, midY], [B.cx, midY], [B.cx, B.y]];
+    } else {
+      var pts = [[A.cx, A.y + A.h], [A.cx, A.y + A.h + 24], [B.cx, A.y + A.h + 24], [B.cx, B.y]];
+    }
+    var clean = [pts[0]];
+    for (var q = 1; q < pts.length; q++) {
+      var pp = pts[q], qq = clean[clean.length - 1];
+      if (Math.abs(pp[0] - qq[0]) > 0.6 || Math.abs(pp[1] - qq[1]) > 0.6) clean.push(pp);
+    }
+    return { pts: clean, color: color, label: label || '', len: polyLen(clean) };
+  }
+  var flows = [
+    link('nginx', 'gateway', C.cyan, 'HTTPS · 灰度'),
+    link('gateway', 'nacos', C.cyan, '服务发现 / 动态配置'),
+    link('nacos', 'conversation', C.cyan, '实例列表 + 配置下发'),
+    link('conversation', 'ai', C.warn, 'OpenFeign（本质是一个 HTTP 请求）'),
+    link('ai', 'knowledge', C.warn, 'RAG /inner/knowledge/search'),
+    link('conversation', 'mysql', C.blue, '消息落库 · 会话状态'),
+    link('conversation', 'redis', C.red, '上下文 30min · 路由表'),
+    link('conversation', 'kafka', C.cyan, '按 sessionId 分区保序'),
+    link('ticket', 'mysql', C.blue, '工单 + SLA'),
+    link('knowledge', 'es', C.blue, 'BM25'),
+    link('knowledge', 'pgv', C.warn, '向量 TopK'),
+    link('ai', 'deepseek', C.warn, '主通道'),
+    link('ai', 'qwen', C.warn, '备通道')
+  ].filter(Boolean);
+  for (i = 0; i < flows.length; i++) flows[i].phase = i * 0.137;
+  return { layers: layers, pos: pos, flows: flows, w: MW, h: worldH };
+}
+
+/* ==========================================================================
+   4. 场景一
+   ========================================================================== */
+function Scene1() {
+  Scene.call(this, 'arch', '场景一 · 分层架构图', C.cyan);
+  this.cam = { x: 0, y: 0, z: 1 };
+  this.camReady = false;
+  this.drag = null;
+  this.panel = 0; this.panelNode = null;
+  this.metrics = null;
+  this.mt = 0;
+}
+Scene1.prototype = Object.create(Scene.prototype);
+Scene1.prototype.constructor = Scene1;
+
+Scene1.prototype.buildRows = function () {
+  this.rows = [];
+  if (!ARCH) return;
+  for (var i = 0; i < ARCH.layers.length; i++) {
+    var ns = ARCH.layers[i].nodes;
+    for (var j = 0; j < ns.length; j++) {
+      var n = ns[j];
+      var sx = n.x * this.cam.z + this.cam.x, sy = n.y * this.cam.z + this.cam.y;
+      this.addHit(sx, sy, n.w * this.cam.z, n.h * this.cam.z, { key: n.key, kind: 'node', data: n });
+    }
+  }
+};
+Scene1.prototype.layout = function (w, h) {
+  Scene.prototype.layout.call(this, w, h);
+  if (!ARCH) ARCH = resolveArch();
+  if (!this.camReady && w > 60) {
+    /* 顶部标题条 46px、底部解说条 60px 不参与取景，zoom 下限 0.5 / 上限 1.2
+       手机“完整尺寸”模式：整图缩小会看不清，改为至少 0.9 倍，超出部分单指拖拽查看 */
+    var availH = Math.max(200, h - 46 - 60), availW = Math.max(240, w - 48);
+    var minZ = VIEW.wide ? 0.9 : 0.5;
+    this.cam.z = clamp(Math.max(Math.min(availW / ARCH.w, availH / ARCH.h), minZ), 0.5, 2.0);
+    this.cam.x = (w - ARCH.w * this.cam.z) / 2;
+    this.cam.y = 46 + Math.max(0, (availH - ARCH.h * this.cam.z) / 2);
+    this.camReady = true;
+  }
+  if (!this.metrics) {
+    this.metrics = { qps: 30, p99: 96, err: 0.42, conn: 1284 };
+  }
+  this.buildRows();
+  this.maxScroll = 0;
+};
+Scene1.prototype.s2w = function (x, y) { return { x: (x - this.cam.x) / this.cam.z, y: (y - this.cam.y) / this.cam.z }; };
+Scene1.prototype.qpsOf = function (n) {
+  if (n._j === undefined) n._j = rnd(0, TAU);
+  return Math.max(0, n.qps * (1 + 0.15 * Math.sin(this.t * 1.05 + n._j) + 0.07 * Math.sin(this.t * 2.7 + n._j * 2)));
+};
+Scene1.prototype.msOf = function (n) {
+  if (n._j === undefined) n._j = rnd(0, TAU);
+  return Math.max(0.1, n.ms * (1 + 0.13 * Math.sin(this.t * 0.9 + n._j + 1.2)));
+};
+Scene1.prototype.update = function (dt) {
+  Scene.prototype.update.call(this, dt);
+  this.mt += dt;
+  if (this.mt >= 0.9) {
+    this.mt -= 0.9;
+    var m = this.metrics;
+    m.qps = clamp(m.qps + rnd(-1.7, 1.7), 22, 38);
+    m.p99 = clamp(m.p99 + rnd(-9, 9), 72, 138);
+    m.err = clamp(m.err + rnd(-0.09, 0.09), 0.08, 1.15);
+    m.conn = clamp(m.conn + rnd(-28, 28), 1080, 1500);
+  }
+  var i, j, n, tgt;
+  if (ARCH) {
+    for (i = 0; i < ARCH.layers.length; i++) {
+      var ns = ARCH.layers[i].nodes;
+      for (j = 0; j < ns.length; j++) {
+        n = ns[j];
+        tgt = (this.hover && this.hover.key === n.key) ? 1 : 0;
+        n.hv = lerp(n.hv, tgt, clamp(dt * 10, 0, 1));
+      }
+    }
+  }
+  var pt = this.panelNode ? 1 : 0;
+  this.panel = lerp(this.panel, pt, clamp(dt * 9, 0, 1));
+  if (Math.abs(this.panel - pt) < 0.003) this.panel = pt;
+  if (this.hover && this.hover.kind === 'node') {
+    var h = this.hover.data;
+    this.narr(h.name + ' —— 当前 ' + this.qpsOf(h).toFixed(1) + ' 次/秒（演示值）· 平均耗时 ' +
+      this.msOf(h).toFixed(h.ms < 10 ? 2 : 0) + ' ms。' +
+      (VIEW.narrow ? '点一下节点看职责 / 关键表 / 暴露接口。' : '单击查看职责 / 关键表 / 暴露接口。'));
+  } else {
+    this.narr('7 个微服务 + 6 类中间件 + 双 LLM 通道，' + ARCH.flows.length +
+      ' 条调用链持续流动。' + (VIEW.narrow
+        ? '单指拖拽平移、双指捏合或 ＋− 按钮缩放（0.5~2.0）；点节点看实时指标与详情。'
+        : '拖拽平移、滚轮缩放（0.5~2.0）；悬停节点看实时指标，单击节点看详情。'));
+  }
+};
+/** 悬停高亮与信息面板的滑动：暂停时也要响应，否则点了节点看不到面板 */
+Scene1.prototype.uiUpdate = function (dt) {
+  var i, j, n, tgt;
+  if (!ARCH) return;
+  for (i = 0; i < ARCH.layers.length; i++) {
+    var ns = ARCH.layers[i].nodes;
+    for (j = 0; j < ns.length; j++) {
+      n = ns[j];
+      tgt = (this.hover && this.hover.key === n.key) ? 1 : 0;
+      n.hv = lerp(n.hv, tgt, clamp(dt * 11, 0, 1));
+    }
+  }
+  var pt = this.panelNode ? 1 : 0;
+  this.panel = lerp(this.panel, pt, clamp(dt * 11, 0, 1));
+  if (Math.abs(this.panel - pt) < 0.002) this.panel = pt;
+};
+Scene1.prototype.draw = function (c, w, h) {
+  var i, j, n, L;
+  if (!ARCH) return;
+  c.save();
+  c.ctx.translate(this.cam.x, this.cam.y);
+  c.ctx.scale(this.cam.z, this.cam.z);
+
+  /* 层分组框 */
+  for (i = 0; i < ARCH.layers.length; i++) {
+    L = ARCH.layers[i];
+    c.rr(L.x, L.y, L.w, L.h, 15);
+    c.fill(c.lingrad(L.x, L.y, L.x + L.w, L.y + L.h, [
+      [0, rgba(L.color, 0.075)], [0.55, rgba(L.color, 0.026)], [1, rgba(L.color, 0.058)]]));
+    c.ctx.fill();
+    c.stroke(rgba(L.color, 0.28)); c.lw(1.2); c.ctx.stroke();
+    c.ctx.beginPath(); c.ctx.moveTo(L.x + 40.5, L.y + 10); c.ctx.lineTo(L.x + 40.5, L.y + L.h - 10);
+    c.stroke(rgba(L.color, 0.3)); c.lw(1); c.ctx.stroke();
+    c.save();
+    c.ctx.translate(L.x + 22, L.y + L.h / 2); c.ctx.rotate(-Math.PI / 2);
+    c.font(16, 700); c.fill(rgba(L.color, 0.95)); c.text(L.name, 0, 0, 'center');
+    c.ctx.restore();
+    c.font(11, 600); c.fill(rgba(L.color, 0.5)); c.text(L.sub, L.x + L.w - 12, L.y + 16, 'right');
+  }
+
+  /* 连线 */
+  for (i = 0; i < ARCH.flows.length; i++) {
+    var fl = ARCH.flows[i];
+    flowLine(c, fl.pts, fl.color, this.t * 0.5 + fl.phase,
+      { dots: 3, dotR: 2.5, speed: Math.max(0.35, 220 / fl.len), lw: 2.2, lw2: 1.5 });
+  }
+  /* 连线标签（★必须画在节点之后，否则会被不透明卡片盖住 —— 见下方 LABELS 段） */
+
+  /* 节点 */
+  for (i = 0; i < ARCH.layers.length; i++) {
+    L = ARCH.layers[i];
+    for (j = 0; j < L.nodes.length; j++) {
+      n = L.nodes[j];
+      var hov = n.hv;
+      var sel = (this.selected && this.selected.key === n.key) ? 1 : 0;
+      var col = n.color;
+      var breath = 0.5 + 0.5 * Math.sin(this.t * 1.4 + i * 0.9 + j * 0.7);
+      var big = n.h >= 70;
+      c.save();
+      c.rr(n.x, n.y, n.w, n.h, 12);
+      c.fill(c.lingrad(n.x, n.y, n.x, n.y + n.h, [[0, 'rgba(14,14,37,.95)'], [1, 'rgba(11,10,31,.95)']]));
+      c.ctx.fill();
+      if (hov > 0.01) {
+        c.fill(c.lingrad(n.x, n.y, n.x + n.w, n.y + n.h, [[0, rgba(col, 0.16 * hov)], [0.65, rgba(col, 0)]]));
+        c.ctx.fill();
+      }
+      c.stroke(rgba(col, clamp(0.30 + 0.36 * hov + 0.42 * sel + 0.10 * breath, 0, 1)));
+      c.lw(1.4 + hov * 0.9 + sel * 0.7);
+      c.shadow(rgba(col, 0.5 + 0.4 * hov), 9 + 20 * hov + 16 * sel);
+      c.ctx.stroke(); c.noshadow();
+      c.fillRR(n.x + 1.2, n.y + 9, 3.2, n.h - 18, 2, rgba(col, 0.85));
+      /* 文字：整体缩放约 0.65x，所以基准字号要放大以保证可读 */
+      var fsz = n.w > 460 ? 19 : 16;
+      c.font(fsz, 700); c.fill(hov > 0.3 ? '#f0ece4' : '#e2dcec');
+      c.text(c.clip(n.name, n.w - 30, fsz, 700), n.x + 15, n.y + (big ? 25 : 22), 'left');
+      c.font(11.5, 500); c.fill(rgba(col, 0.9));
+      c.text(c.clip(n.tech, n.w - 30, 11.5, 500), n.x + 15, n.y + (big ? 46 : 41), 'left');
+      var showM = Math.max(hov, sel);
+      if (showM > 0.02) {
+        c.alpha(showM);
+        c.font(11.5, 700); c.fill(C.ok);
+        c.text('▲ ' + this.qpsOf(n).toFixed(1) + ' 次/秒', n.x + 15, n.y + n.h - 16, 'left');
+        c.fill(C.cyan);
+        c.text('⏱ ' + this.msOf(n).toFixed(n.ms < 10 ? 1 : 0) + ' ms', n.x + 115, n.y + n.h - 16, 'left');
+        c.alpha(1);
+      } else if (big) {
+        c.font(10, 500); c.fill('rgba(125,119,153,.7)');
+        c.text('悬停看实时指标 · 单击看详情', n.x + 15, n.y + n.h - 16, 'left');
+      }
+      c.restore();
+    }
+  }
+  c.restore();
+
+  /* ══ 连线标签（★必须放在节点绘制之后）════════════════════════════════
+     两个要点：
+     1) 顺序：节点卡片是不透明的（fill 用 rgba(...,.95)）。标签若先画、
+        卡片后画，就会被压住 —— 表现就是"OpenFeign（本质是一个 HTTP
+        请求）""RAG /inner/knowledge/search"这类文字被挡掉一半。
+     2) 落位：不再机械取路径中点（中点常常正好落在卡片上）。
+        改为沿路径采样，挑一个"离所有卡片最远 + 尽量靠中点"的位置。
+     ═════════════════════════════════════════════════════════════════ */
+  var allNodes = [];
+  for (i = 0; i < ARCH.layers.length; i++) {
+    for (j = 0; j < ARCH.layers[i].nodes.length; j++) allNodes.push(ARCH.layers[i].nodes[j]);
+  }
+  /* 某点到所有卡片外接矩形的距离（落在卡片内部算负） */
+  function clearOfNodes(x, y) {
+    var best = 1e9;
+    for (var k = 0; k < allNodes.length; k++) {
+      var nn = allNodes[k];
+      var dx = Math.max(nn.x - x, 0, x - (nn.x + nn.w));
+      var dy = Math.max(nn.y - y, 0, y - (nn.y + nn.h));
+      var d = Math.sqrt(dx * dx + dy * dy);
+      if (d < best) best = d;
+    }
+    return best;
+  }
+  for (i = 0; i < ARCH.flows.length; i++) {
+    var f2 = ARCH.flows[i];
+    if (!f2.label) continue;
+    c.font(11, 600);
+    var tw = c.measure(f2.label, 11, 600);
+    var need = tw / 2 + 8;                       /* 标签半宽 + 一点余量 */
+    var bestPt = polyPoint(f2.pts, 0.5), bestScore = -1e9;
+    for (var s = 0.30; s <= 0.701; s += 0.04) {  /* 只在路径中段找，别贴到端点 */
+      var cand = polyPoint(f2.pts, s);
+      var free = clearOfNodes(cand.x, cand.y);
+      /* 够空就优先；同样空的话越靠中点越好 */
+      var score = Math.min(free, need) * 10 - Math.abs(s - 0.5) * 60;
+      if (score > bestScore) { bestScore = score; bestPt = cand; }
+    }
+    var lx = bestPt.x, ly = bestPt.y;
+    /* 还是会被压住（两侧都是卡片、无处可躲）→ 垂直方向再推一点，尽量挤进缝里 */
+    if (clearOfNodes(lx, ly) < 2) {
+      var up = { x: lx, y: ly - 16 }, dn = { x: lx, y: ly + 16 };
+      ly = (clearOfNodes(up.x, up.y) >= clearOfNodes(dn.x, dn.y)) ? up.y : dn.y;
+    }
+    c.fillRR(lx - tw / 2 - 7, ly - 9, tw + 14, 18, 9, 'rgba(9,9,25,.94)');
+    c.strokeRR(lx - tw / 2 - 7, ly - 9, tw + 14, 18, 9, rgba(f2.color, 0.5), 1);
+    c.fill(rgba(f2.color, 0.98));
+    c.text(f2.label, lx, ly + 0.5, 'center');
+  }
+
+  this.drawHud(c, w, h);
+
+  if (this.hover && this.hover.kind === 'node') {
+    var vx0 = VIEW.wide ? VIEW.scrollLeft : 0, vw0 = VIEW.wide ? VIEW.clientW : w;
+    var tpw = 236, tph = 76;
+    var tx = clamp(this.hover.x + this.hover.w + 12, vx0 + 8, vx0 + vw0 - tpw - 8);
+    var maxY = Math.min(h - 8, VIEW.tipMaxY);
+    var ty = clamp(this.hover.y, 8, Math.max(8, maxY - tph));
+    this.drawTip(c, tx, ty, this.hover.data);
+  }
+  /* 手机上详情面板走 DOM 全宽底部抽屉，画布内不再画右侧窄栏 */
+  if (this.panel > 0.01 && this.panelNode && !VIEW.narrow) this.drawPanel(c, w, h);
+
+  c.font(11, 500); c.fill('rgba(125,119,153,.85)');
+  var vx1 = VIEW.wide ? VIEW.scrollLeft : 0;
+  c.text('缩放 ' + this.cam.z.toFixed(2) + '× · 拖拽平移 · ' +
+    (VIEW.narrow ? '双指缩放 / ＋− 按钮' : '滚轮缩放'), vx1 + 16, h - 70, 'left');
+  /* 解说条由 App.draw 统一绘制 */
+};
+Scene1.prototype.drawHud = function (c, w, h) {
+  var vx = VIEW.wide ? VIEW.scrollLeft : 0, vw = VIEW.wide ? VIEW.clientW : w;
+  var pw = 236, ph = 94, x = vx + vw - pw - 14, y = 12, m = this.metrics, i;
+  c.save();
+  c.fillRR(x, y, pw, ph, 11, 'rgba(10,10,27,.9)');
+  c.glowRR(x, y, pw, ph, 11, rgba(C.cyan, 0.32), 1, rgba(C.cyan, 0.35), 12);
+  c.font(10.5, 700); c.fill(rgba(C.cyan, 0.9)); c.text('实时指标', x + 14, y + 17, 'left');
+  c.dot(x + pw - 44, y + 17, 3.4, C.ok, 8);
+  c.font(9.5, 700); c.fill(rgba(C.ok, 0.9)); c.text('LIVE', x + pw - 35, y + 17.5, 'left');
+  var rows = [
+    ['处理速率【估算】', m.qps.toFixed(1), C.cyan],
+    ['P99 时延', m.p99.toFixed(0) + ' ms', C.blue],
+    ['错误率', m.err.toFixed(2) + ' %', m.err > 0.85 ? C.warn : C.ok],
+    ['活跃连接数', m.conn.toFixed(0), C.cyan]
+  ];
+  for (i = 0; i < rows.length; i++) {
+    var ry = y + 34 + i * 15;
+    c.font(10.5, 500); c.fill(rgba(C.dim, 0.95)); c.text(rows[i][0], x + 14, ry, 'left');
+    c.font(11.5, 700); c.fill(rows[i][2]); c.text(rows[i][1], x + pw - 14, ry, 'right');
+  }
+  c.restore();
+};
+Scene1.prototype.drawTip = function (c, x, y, n) {
+  var pw = 236, ph = 76;
+  c.save();
+  c.fillRR(x, y, pw, ph, 10, 'rgba(10,10,26,.95)');
+  c.glowRR(x, y, pw, ph, 10, rgba(n.color, 0.72), 1.2, rgba(n.color, 0.5), 14);
+  c.font(12.5, 700); c.fill('#efe9f5');
+  c.text(c.clip(n.name, pw - 26, 12.5, 700), x + 13, y + 17, 'left');
+  c.font(10, 500); c.fill(rgba(C.dim, 1));
+  c.text(c.clip(n.tech, pw - 26, 10, 500), x + 13, y + 33, 'left');
+  c.font(11.5, 700); c.fill(C.ok);
+  c.text('处理速率  ' + this.qpsOf(n).toFixed(1) + ' 次/秒', x + 13, y + 53, 'left');
+  c.fill(C.cyan);
+  c.text('平均耗时  ' + this.msOf(n).toFixed(n.ms < 10 ? 2 : 0) + ' ms', x + 130, y + 53, 'left');
+  c.font(9.5, 500); c.fill(rgba(C.dim2, 1));
+  c.text('单击查看详情 →', x + 13, y + 67, 'left');
+  c.restore();
+};
+Scene1.prototype.drawPanel = function (c, w, h) {
+  var n = this.panelNode;
+  var pw = Math.min(400, Math.max(300, w * 0.33)), ph = h - 74;
+  var x = w - (pw + 14) * this.panel + (1 - this.panel) * 14;
+  var y = 12, col = n.color, i;
+  c.save();
+  c.alpha(this.panel);
+  c.fillRR(x, y, pw, ph, 13, c.lingrad(x, y, x, y + ph, [[0, 'rgba(13,13,36,.975)'], [1, 'rgba(10,10,26,.975)']]));
+  c.glowRR(x, y, pw, ph, 13, rgba(col, 0.5), 1.4, rgba(col, 0.4), 18);
+  c.fillRR(x + 1.6, y + 12, 4, ph - 24, 2.5, col);
+  var px = x + 24, pwid = pw - 48, cy = y + 44;
+  /* 关闭 */
+  c.fillRR(x + pw - 34, y + 13, 21, 21, 6, 'rgba(181,106,106,.14)');
+  c.strokeRR(x + pw - 34, y + 13, 21, 21, 6, rgba(C.red, 0.5), 1);
+  c.font(13, 700); c.fill(C.red); c.text('×', x + pw - 23.5, y + 23.5, 'center');
+  /* 标题 */
+  var ts = n.name.length > 15 ? 17 : 21;
+  c.font(ts, 700); c.fill('#efe9f5'); c.shadow(rgba(col, 0.5), 14);
+  c.text(c.clip(n.name, pwid - 10, ts, 700), px, cy, 'left'); c.noshadow();
+  cy += 17;
+  c.font(10.5, 700); c.fill(rgba(col, 0.95)); c.text(n.layer + ' · ' + n.layerSub, px, cy, 'left');
+  cy += 17;
+  cy += c.para(n.tech, px, cy, pwid, 15, 11, rgba(C.dim, 1), 500);
+  cy += 8;
+  c.ctx.beginPath(); c.ctx.moveTo(px, cy); c.ctx.lineTo(px + pwid, cy);
+  c.stroke(rgba(col, 0.22)); c.lw(1); c.ctx.stroke();
+  cy += 20;
+  /* 指标小卡 */
+  var bw2 = (pwid - 10) / 2, boxes = [
+    ['处理速率【估算】', this.qpsOf(n).toFixed(1), C.ok],
+    ['平均耗时', this.msOf(n).toFixed(n.ms < 10 ? 2 : 0) + ' ms', C.cyan]
+  ];
+  for (i = 0; i < 2; i++) {
+    var bx = px + i * (bw2 + 10);
+    c.fillRR(bx, cy - 10, bw2, 42, 8, rgba(boxes[i][2], 0.08));
+    c.strokeRR(bx, cy - 10, bw2, 42, 8, rgba(boxes[i][2], 0.32), 1);
+    c.font(9.5, 500); c.fill(rgba(C.dim, 1)); c.text(boxes[i][0], bx + 9, cy + 1, 'left');
+    c.font(14.5, 700); c.fill(boxes[i][2]); c.text(boxes[i][1], bx + 9, cy + 20, 'left');
+  }
+  cy += 48;
+  c.font(11.5, 700); c.fill(rgba(col, 0.95)); c.text('▌ 职责', px, cy, 'left'); cy += 18;
+  cy += c.para(n.duty, px, cy, pwid, 17, 11.5, 'rgba(212,206,226,.92)', 400);
+  cy += 16;
+  c.font(11.5, 700); c.fill(rgba(C.blue, 0.95)); c.text('▌ 关键表', px, cy, 'left'); cy += 18;
+  for (i = 0; i < n.tables.length; i++) {
+    c.fillRR(px, cy - 9, pwid, 20, 5, 'rgba(127,143,181,.09)');
+    c.font(10.5, 500);
+    if (n.tables[i].indexOf('★') >= 0) { c.fill(C.warn); c.shadow(rgba(C.warn, 0.7), 8); }
+    else c.fill('rgba(183,178,201,.95)');
+    c.text(c.clip(n.tables[i], pwid - 16, 10.5, 500), px + 8, cy + 1, 'left');
+    c.noshadow();
+    cy += 22;
+  }
+  cy += 12;
+  c.font(11.5, 700); c.fill(rgba(C.ok, 0.95)); c.text('▌ 暴露接口', px, cy, 'left'); cy += 18;
+  for (i = 0; i < n.apis.length; i++) {
+    c.font(11, 700); c.fill(rgba(C.ok, 0.85)); c.text('›', px + 1, cy, 'left');
+    c.font(10.5, 500); c.fill('rgba(196,190,214,.95)');
+    c.text(c.clip(n.apis[i], pwid - 16, 10.5, 500), px + 14, cy, 'left');
+    cy += 17;
+  }
+  c.restore();
+};
+Scene1.prototype.onHover = function (mx, my) {
+  Scene.prototype.onHover.call(this, mx, my);
+  cv.el.style.cursor = this.hover ? 'pointer' : (this.drag ? 'grabbing' : 'grab');
+};
+Scene1.prototype.onDown = function (mx, my) {
+  /* 桌面：点右上角可关面板；手机上关面板走抽屉的 × 或点空白处 */
+  if (this.panelNode && !VIEW.narrow) {
+    var pw = Math.min(400, Math.max(300, this.w * 0.33));
+    if (mx > this.w - pw - 16 && my < 46) { this.panelNode = null; this.selected = null; return; }
+  }
+  Scene.prototype.onDown.call(this, mx, my);
+  this.drag = { x: mx, y: my, cx: this.cam.x, cy: this.cam.y, moved: 0 };
+  cv.el.style.cursor = 'grabbing';
+};
+Scene1.prototype.onMove = function (mx, my) {
+  if (!this.drag) return;
+  this.cam.x = this.drag.cx + (mx - this.drag.x);
+  this.cam.y = this.drag.cy + (my - this.drag.y);
+  this.drag.moved = Math.abs(mx - this.drag.x) + Math.abs(my - this.drag.y);
+  this.buildRows();
+};
+Scene1.prototype.onUp = function () {
+  var m = this.drag ? this.drag.moved : 0;
+  this.drag = null;
+  cv.el.style.cursor = 'grab';
+  return m;
+};
+/** 以 (mx,my) 为锚点缩放：滚轮、双指捏合、＋/− 按钮共用 */
+Scene1.prototype.zoomBy = function (k, mx, my) {
+  if (mx === undefined || my === undefined) {
+    mx = VIEW.wide ? VIEW.scrollLeft + VIEW.clientW / 2 : this.w / 2;
+    my = this.h / 2;
+  }
+  var nz = clamp(this.cam.z * k, 0.5, 2.0);
+  if (Math.abs(nz - this.cam.z) < 1e-6) return;
+  var wp = this.s2w(mx, my);
+  this.cam.z = nz;
+  this.cam.x = mx - wp.x * nz;
+  this.cam.y = my - wp.y * nz;
+  this.buildRows();
+};
+Scene1.prototype.onClick = function (mx, my) {
+  var h = this.hitTest(mx, my);
+  if (h && h.kind === 'node') {
+    this.panelNode = h.data; this.selected = h.data;
+    openDrawer(h.data);                 /* 手机上滑出全宽底部抽屉 */
+  } else if (!this.panelNode) this.selected = null;
+};
+/** 触摸点到空白：收起 tooltip + 关掉抽屉，再点别处不残留 */
+Scene1.prototype.onTapEmpty = function () {
+  this.panelNode = null; this.panel = 0; this.selected = null; this.hover = null;
+  closeDrawer();
+};
+Scene1.prototype.onWheel = function (mx, my, d) {
+  this.zoomBy(d > 0 ? 0.9 : 1.111, mx, my);
+};
+Scene1.prototype.reset = function () {
+  Scene.prototype.reset.call(this);
+  this.panelNode = null; this.panel = 0; this.drag = null;
+  this.camReady = false;
+  this.metrics = { qps: 30, p99: 96, err: 0.42, conn: 1284 };
+  closeDrawer();
+};
+
+/* ==========================================================================
+   5. 场景二：核心业务流程图（8 步 + 转人工分支 + 光球推进）
+   ========================================================================== */
+var FLOW_STAGES = [
+  { no: '1', title: '顾客进线', tech: '多渠道接入 · WebSocket',
+    d: '顾客从网页 / 小程序 / 公众号发起咨询。会话落库生成 session，会话上下文写 Redis（TTL 30 分钟），消息同时投 Kafka。',
+    tags: ['会话落库', 'Redis 存上下文 30 分钟'],
+    long: '顾客从网页、小程序、公众号任意渠道进线：会话落库建 session，上下文写 Redis 保存 30 分钟，消息投 Kafka 异步落库。' },
+  { no: '2', title: 'AI 机器人接待', tech: '意图识别 + 置信度',
+    d: '意图识别：售前 / 售后 / 物流 / 投诉 四类，同时给出置信度。低置信度直接进入转人工判定。',
+    tags: ['售前 / 售后 / 物流 / 投诉', '输出置信度'],
+    long: 'AI 机器人接待：先做意图识别，分成售前、售后、物流、投诉四类并输出置信度，置信度低就交给下一步判定。' },
+  { no: '3', title: '转人工判定', tech: '三条触发规则',
+    d: '命中任意一条即转人工：意图是投诉 / 连续 2 次未识别 / 命中转人工关键词（转人工、投诉、人工客服）。',
+    tags: ['投诉', '连续 2 次未识别', '命中关键词'],
+    long: '转人工判定有三条规则：意图是投诉、连续两次未识别出意图、或者命中「转人工 / 投诉 / 人工客服」这类关键词，命中任意一条就转人工。' },
+  { no: '4', title: 'RAG 检索', tech: '混合检索 Top5',
+    d: '向量检索 + ES BM25 关键词检索，用 RRF 做倒数排名融合（只出排序）后重排，取 Top5 片段作为生成依据；最终阈值落在重排分上，向量相似度只作参考。',
+    tags: ['向量 + BM25', 'RRF 排序 → 重排 Top5'],
+    long: 'RAG 检索走混合检索：向量召回加 ES 的 BM25 关键词召回，用 RRF 融合出排序再重排，取 Top5 片段当生成依据 —— 纯向量对订单号这类精确词召回不稳。★注意 RRF 的产物是排序不是语义分数：两路召回、k=60 时理论最大值是 2/61 ≈ 0.0328，永远够不到 0.72 这种阈值，所以阈值只能落在重排分上（向量相似度只作参考信号，不单独触发兜底）。' },
+  { no: '5', title: 'Tool Calling', tech: '工具参数抽取',
+    d: '判断这个问题需不需要业务数据：需要就抽参数调工具，把结构化结果回填进 Prompt，再交给大模型。',
+    tags: ['queryOrder', 'queryLogistics', 'createTicket'],
+    long: 'Tool Calling：判断问题是否需要业务数据，需要就抽参数调 queryOrder 查订单、queryLogistics 查物流、createTicket 建工单，结果回填 Prompt。' },
+  { no: '6', title: '人工接待', tech: 'WebSocket 多实例',
+    d: '坐席接入会话。多实例下用 Redis 路由表定位连接落在哪台机；Kafka 按 sessionId 分区，保证同一会话的消息严格有序。',
+    tags: ['Redis 路由表', 'Kafka 按 sessionId 分区保序'],
+    long: '人工接待：坐席在工作台接入会话。多实例下靠 Redis 路由表定位连接在哪台机器，Kafka 按 sessionId 分区保证同一会话消息有序。' },
+  { no: '7', title: '建工单 + SLA', tech: 'SLA 计时 · 超时升级',
+    d: '坐席把会话转成工单，按优先级算 SLA 首响 / 解决时限；剩余 20% 提醒处理人，超时自动升级到上级且保证幂等。',
+    tags: ['SLA 计时', '剩余 20% 提醒', '超时升级上级'],
+    long: '建工单 + SLA：按优先级算首响和解决时限，剩余 20% 就提醒处理人，超时自动升级到上级，靠分布式锁保证升级幂等。' },
+  { no: '8', title: '结束与回流', tech: '质检 + 报表 + 知识回流',
+    d: '会话结束后 AI 质检抽查、报表统计解决率与超时率；未命中的高频问题回流到知识库「待补充问题」列表。',
+    tags: ['AI 质检', '报表统计', '未命中回流知识库'],
+    long: '结束与回流：AI 质检抽查会话，报表出解决率和超时率，没命中的高频问题回流到知识库待补充列表，形成闭环。' }
+];
+var FLOW_TRAVEL = 1.0, FLOW_DWELL = 0.42;
+
+function Scene2() {
+  Scene.call(this, 'flow', '场景二 · 核心业务流程图', C.blue);
+  this.cards = [];
+  this.agentLit = 0;
+  this.arriveT = [];
+  for (var i = 0; i < 8; i++) this.arriveT.push(-1);
+}
+Scene2.prototype = Object.create(Scene.prototype);
+Scene2.prototype.constructor = Scene2;
+Scene2.prototype.seg = function () {
+  var per = FLOW_TRAVEL + FLOW_DWELL;
+  var total = per * FLOW_STAGES.length;
+  var tt = this.t % total;
+  var i = Math.floor(tt / per), local = tt - i * per;
+  var travel = clamp(local / FLOW_TRAVEL, 0, 1);
+  return { i: i, u: travel, done: travel >= 1, per: per, total: total };
+};
+Scene2.prototype.layout = function (w, h) {
+  Scene.prototype.layout.call(this, w, h);
+  var top = 46, bot = h - 66;
+  var cx0 = 22, gx = 30, gy = 34;
+  var cw = Math.max(128, Math.min(158, (w * 0.46 - cx0 - gx * 3) / 4));
+  var ch = Math.max(124, Math.min(148, (bot - top - gy) / 2));
+  this.cards = [];
+  for (var i = 0; i < 8; i++) {
+    var row = i < 4 ? 0 : 1;
+    var col = i < 4 ? i : (7 - i);
+    var x = cx0 + col * (cw + gx);
+    var y = top + row * (ch + gy);
+    this.cards.push({ x: x, y: y, w: cw, h: ch, i: i });
+  }
+  /* 右侧转人工分支面板
+     ★高度必须尽量占满可用空间。面板内所有元素的 Y 偏移都是"相对面板顶部"的固定值，
+       面板若算矮了，"会话转接记录"那一段就会和贴底的"这一步的技术点"框重叠
+       （实测：记录底部 y=338，技术点框从 y=334 开始 → 重叠 4px，表现就是文字被压住看不全）。
+       这里让面板底部对齐 bot - 6，把可用高度用足，并在下面把内容改为"从底部往上排"。 */
+  var px = cx0 + 4 * (cw + gx) + 14;
+  this.agent = { x: px, y: top, w: Math.max(260, w - px - 22),
+                 h: Math.max(ch * 2 + gy, bot - top - 6) };
+  var sp = this.cards[2];
+  var jx = Math.min(px - 30, sp.x + sp.w + 34);
+  this.branch = {
+    pts: [[sp.x + sp.w, sp.y + sp.h * 0.34], [jx, sp.y + sp.h * 0.34],
+          [jx, this.agent.y + 128], [px, this.agent.y + 128]]
+  };
+  /* ★「转人工」标签的位置在这里算好，画的时候直接用 —— 不再在 draw() 里写死偏移。
+     原来写的是 {x: sp.x + 2, y: sp.y + sp.h*0.34 - 24}，落在**卡片 3 的左半边**上：
+     标签高 19px，而卡片标题只占顶部约 19px，于是标签下半截正好压住卡片正文第一行
+     （用户截图反馈：红框「转人工」盖住了卡片文字）。
+     现在改放到**卡片 3 右侧的列间空隙**里（下一列卡片起点减 4px 再右对齐），
+     这块是纯空白区，不可能压到任何文字。 */
+  /* ★「转人工」标签的落点 —— 这里踩过一次坑，记下来：
+     最初放在 {x: sp.x + 2, y: sp.y + 0.34h - 24}，压在**卡片 3 的左半边**上；
+     改成"右对齐到卡片 4 左边缘 - 4"之后，实测仍然压住卡片 3 的**正文首行**
+     （正文首行文字一直排到 x≈542，而标签从 526 开始画）。
+     列间隙只有 30px，而"转人工"标签宽 49.5px —— **塞不进列间隙**。
+     所以最终改放到**分支线的竖直段正中**（pts[1] → pts[2] 那一段）：
+     那块是两列卡片之间的走廊，本身没有任何文字，是唯一真正安全的落点。 */
+  var by1 = sp.y + sp.h * 0.34, by2 = this.agent.y + 128;
+  this.branchLabel = { x: jx, y: (by1 + by2) / 2, centerX: true, text: '转人工' };
+  this.rows = [];
+  for (var j = 0; j < 8; j++) {
+    var cd = this.cards[j];
+    this.addHit(cd.x, cd.y, cd.w, cd.h, { key: 'S' + j, kind: 'stage', data: FLOW_STAGES[j] });
+  }
+};
+Scene2.prototype.update = function (dt) {
+  Scene.prototype.update.call(this, dt);
+  var s = this.seg();
+  for (var i = 0; i < 8; i++) {
+    var reach = this.t - ((i + 1) * (FLOW_TRAVEL + FLOW_DWELL) - FLOW_DWELL);
+    if (reach >= 0 && this.arriveT[i] < 0) this.arriveT[i] = this.t;
+  }
+  this.agentLit = clamp((this.t - (2 * (FLOW_TRAVEL + FLOW_DWELL) + FLOW_TRAVEL * 0.55)) / 0.5, 0, 1);
+  this.narr('第 ' + (s.i + 1) + '/8 步 · ' + FLOW_STAGES[s.i].title + ' —— ' + FLOW_STAGES[s.i].long);
+  this.cur = s;
+};
+Scene2.prototype.draw = function (c, w, h) {
+  var s = this.cur || this.seg(), i, cd, st;
+  this.drawHead(c, w, h, '核心业务流程 · 8 步闭环',
+    '顾客进线 → AI 接待 → 转人工判定 → RAG → Tool Calling → 人工接待 → 工单 SLA → 质检回流');
+
+  /* 步骤之间的箭头 */
+  for (i = 0; i < 7; i++) {
+    var a = this.cards[i], b = this.cards[i + 1];
+    var pts;
+    if (b.y === a.y) pts = [[a.x + a.w, a.y + a.h / 2], [b.x, b.y + b.h / 2]];
+    else pts = [[a.x + a.w / 2, a.y + a.h], [a.x + a.w / 2, a.y + a.h + 20],
+                [b.x + b.w / 2, b.y - 20], [b.x + b.w / 2, b.y]];
+    var done = (i + 1) <= s.i;
+    var col = done ? C.ok : C.blue;
+    flowLine(c, pts, col, this.t * 0.5 + i * 0.2,
+      { dots: done ? 1 : 2, dotR: 2.4, speed: 0.6, lw: 2, lw2: 1.4, dashA: done ? 0.5 : 0.4 });
+  }
+
+  /* 卡片 */
+  for (i = 0; i < 8; i++) {
+    cd = this.cards[i]; st = FLOW_STAGES[i];
+    var lit = i < s.i || (i === s.i && s.done);
+    var active = i === s.i;
+    var arr = this.arriveT[i] >= 0 ? clamp((this.t - this.arriveT[i]) / 0.45, 0, 1) : 0;
+    var pulse = 0.5 + 0.5 * Math.sin(this.t * 2.4);
+    var col = lit ? C.ok : (active ? C.warn : C.blue);
+    c.save();
+    c.rr(cd.x, cd.y, cd.w, cd.h, 12);
+    c.fill(c.lingrad(cd.x, cd.y, cd.x, cd.y + cd.h, [
+      [0, lit ? 'rgba(22,30,22,.95)' : 'rgba(14,14,37,.95)'],
+      [1, 'rgba(11,10,31,.95)']]));
+    c.ctx.fill();
+    if (active && !s.done) {
+      c.stroke(rgba(C.warn, 0.5 + 0.45 * pulse)); c.lw(2.2);
+      c.shadow(rgba(C.warn, 0.7), 14 + 12 * pulse); c.ctx.stroke(); c.noshadow();
+    } else {
+      c.stroke(rgba(col, lit ? 0.6 : 0.32)); c.lw(1.4);
+      c.shadow(rgba(col, lit ? 0.45 : 0.2), lit ? 12 : 6); c.ctx.stroke(); c.noshadow();
+    }
+    c.fillRR(cd.x + 1.2, cd.y + 9, 3.2, cd.h - 18, 2, rgba(col, lit ? 0.95 : 0.5));
+    /* 序号徽标 */
+    c.fillRR(cd.x + 11, cd.y + 10, 21, 19, 5, rgba(col, 0.16));
+    c.strokeRR(cd.x + 11, cd.y + 10, 21, 19, 5, rgba(col, 0.5), 1);
+    c.font(11.5, 700); c.fill(lit ? C.ok : C.warn); c.text(st.no, cd.x + 21.5, cd.y + 20, 'center');
+    /* 标题 */
+    c.font(13.5, 700); c.fill(lit ? '#e4ece2' : '#e8e2f0');
+    c.text(st.title, cd.x + 38, cd.y + 20, 'left');
+    /* 对勾 */
+    if (arr > 0.02) checkMark(c, cd.x + cd.w - 18, cd.y + 20, 9, C.ok, arr);
+    /* 正文 */
+    var descTop = cd.y + 40;
+    var descBottom = cd.y + cd.h - 8 - st.tags.length * 18;
+    var avail = descBottom - descTop;
+    var lh = 14.5, size = 10.5;
+    var lines = c.wrap(st.d, cd.w - 24, size, 400);
+    var maxLines = Math.max(1, Math.floor(avail / lh));
+    if (lines.length > maxLines) {
+      lines = lines.slice(0, maxLines);
+      lines[maxLines - 1] = lines[maxLines - 1].slice(0, -1) + '…';
+    }
+    c.font(size, 400); c.fill(lit ? 'rgba(203,214,200,.95)' : 'rgba(186,181,203,.88)');
+    for (var li = 0; li < lines.length; li++) c.text(lines[li], cd.x + 12, descTop + li * lh, 'left');
+    /* 技术点标签 */
+    var ty = cd.y + cd.h - 8 - st.tags.length * 18;
+    for (var k = 0; k < st.tags.length; k++) {
+      c.fillRR(cd.x + 11, ty + k * 18, cd.w - 22, 16, 4, rgba(lit ? C.ok : C.cyan, 0.09));
+      c.font(9.5, 600); c.fill(rgba(lit ? C.ok : C.cyan, 0.95));
+      c.text(c.clip(st.tags[k], cd.w - 32, 9.5, 600), cd.x + 17, ty + k * 18 + 8.5, 'left');
+    }
+    c.restore();
+  }
+
+  /* 转人工分支 */
+  var bp = this.branch.pts;
+  var active3 = s.i >= 2;
+  flowLine(c, bp, active3 ? C.red : C.warn, this.t * 0.5,
+    { dots: 2, dotR: 2.8, speed: 0.7, lw: 2.4, lw2: 1.6, dashA: 0.62, glow: 14, aSize: 9 });
+  var bl = this.branchLabel;
+  c.font(10.5, 700);
+  var bw2 = c.measure(bl.text || '转人工', 10.5, 700) + 18;
+  /* centerX：以 (bl.x, bl.y) 为中心画标签（放在分支线竖直段的走廊里，四周无文字） */
+  var lx0 = bl.centerX ? (bl.x - bw2 / 2) : (bl.alignRightX != null ? bl.alignRightX - bw2 : bl.x);
+  var ly0 = bl.y - 9;
+  c.fillRR(lx0, ly0, bw2, 19, 9, 'rgba(24,15,22,.94)');
+  c.strokeRR(lx0, ly0, bw2, 19, 9, rgba(C.red, 0.65), 1);
+  c.fill(C.red); c.text(bl.text || '转人工', lx0 + bw2 / 2, ly0 + 10, 'center');
+
+  /* 坐席面板（全部元素按宽度自适应，保证不重叠） */
+  var ag = this.agent, litA = this.agentLit;
+  var pad = 16, iw = ag.w - pad * 2;
+  c.save();
+  c.fillRR(ag.x, ag.y, ag.w, ag.h, 14, 'rgba(11,11,32,.84)');
+  c.strokeRR(ag.x, ag.y, ag.w, ag.h, 14, rgba(litA > 0.4 ? C.red : C.blue, 0.3 + 0.35 * litA), 1.2);
+  c.font(13, 700); c.fill(rgba(C.blue, 0.95));
+  c.text('转人工 / 坐席接待', ag.x + pad, ag.y + 20, 'left');
+
+  /* 坐席图标（左） */
+  var ix = ag.x + 58, iy = ag.y + 74;
+  c.save();
+  c.shadow(rgba(litA > 0.4 ? C.red : C.cyan, 0.7), 14 + 16 * litA);
+  c.stroke(rgba(litA > 0.4 ? C.red : C.cyan, 0.95)); c.lw(2.4);
+  c.ctx.beginPath(); c.ctx.arc(ix, iy - 15, 12, 0, TAU); c.ctx.stroke();
+  c.ctx.beginPath(); c.ctx.arc(ix, iy + 23, 22, Math.PI * 1.12, Math.PI * 1.88); c.ctx.stroke();
+  c.noshadow();
+  c.restore();
+  c.font(11.5, 700); c.fill(litA > 0.4 ? C.red : C.cyan);
+  c.text('人工坐席', ix, iy + 60, 'center');
+  c.font(9.5, 500); c.fill(rgba(C.dim, 1)); c.text('在线 · 空闲', ix, iy + 75, 'center');
+
+  /* 已接入会话数（右） */
+  var tx0 = ag.x + 120;
+  c.font(10.5, 500); c.fill(rgba(C.dim, 1));
+  c.text('已接入会话', tx0, iy - 30, 'left');
+  c.font(23, 700); c.fill(C.cyan);
+  c.text(String(Math.round(3 + 2 * Math.abs(Math.sin(this.t * 0.7)))), tx0, iy - 6, 'left');
+  c.font(10, 500); c.fill(rgba(C.dim, 1));
+  c.text('12 位坐席在线', tx0 + 44, iy - 2, 'left');
+
+  /* 三条触发规则 */
+  var rules = ['意图是投诉', '连续 2 次未识别', '命中转人工关键词'];
+  var ry = ag.y + 138;
+  c.font(11.5, 700); c.fill(rgba(C.warn, 0.95));
+  c.text('转人工三条触发规则（命中任一即转）', ag.x + pad, ry, 'left');
+  for (i = 0; i < rules.length; i++) {
+    var on = litA > (0.2 + i * 0.22);
+    var byy = ry + 14 + i * 26;
+    c.fillRR(ag.x + pad, byy, iw, 23, 6, rgba(on ? C.red : C.blue, on ? 0.12 : 0.06));
+    c.strokeRR(ag.x + pad, byy, iw, 23, 6, rgba(on ? C.red : C.blue, on ? 0.55 : 0.2), 1);
+    c.dot(ag.x + pad + 13, byy + 11.5, 4, on ? C.red : rgba(C.dim, 0.7), on ? 10 : 0);
+    c.font(10.5, on ? 700 : 500); c.fill(on ? '#d6c4c5' : rgba(C.dim, 1));
+    c.text(rules[i], ag.x + pad + 26, byy + 12, 'left');
+  }
+
+  /* 会话转接记录
+     ★改为"从面板底部往上锚定"：技术点框固定贴在面板底部（高 58），
+       记录区就在它上方 10px 处结束。这样无论面板多高都不会互相压住。 */
+  var techH = 58;                                   /* 与下方技术点框高度保持一致 */
+  var lyBase = ag.y + ag.h - techH - 12;            /* 记录区底线 */
+  var ly = lyBase - (3 - 1) * 19 - 16;              /* 记录区标题 Y（3 条记录） */
+  c.font(11.5, 700); c.fill(rgba(C.ok, 0.95)); c.text('会话转接记录', ag.x + pad, ly, 'left');
+  var recs = [
+    ['#S8842', 'AI 机器人 → 坐席 A03', '投诉 · 已接入'],
+    ['#S8839', 'AI 机器人 → 坐席 A07', '连续 2 次未识别'],
+    ['#S8821', '坐席 A03 → 财务组', '转工单 T20260115']
+  ];
+  for (i = 0; i < recs.length; i++) {
+    var yy = ly + 16 + i * 19;
+    c.font(10, 700); c.fill(rgba(C.cyan, 0.9)); c.text(recs[i][0], ag.x + pad, yy, 'left');
+    c.font(10, 500); c.fill('rgba(186,181,203,.9)');
+    c.text(c.clip(recs[i][1], iw - 190, 10, 500), ag.x + pad + 46, yy, 'left');
+    c.font(9.5, 500); c.fill(rgba(C.dim, 1)); c.text(recs[i][2], ag.x + ag.w - pad, yy, 'right');
+  }
+
+  /* 当前步骤技术点详解（贴底，高度固定 58，与上面的 ly 计算对应） */
+  var by = ag.y + ag.h - 58;
+  c.fillRR(ag.x + 12, by, ag.w - 24, 52, 10, 'rgba(14,13,38,.92)');
+  c.strokeRR(ag.x + 12, by, ag.w - 24, 52, 10, rgba(C.warn, 0.4), 1);
+  c.font(10.5, 700); c.fill(rgba(C.warn, 0.95));
+  c.text('这一步的技术点', ag.x + pad + 8, by + 14, 'left');
+  c.para(FLOW_STAGES[s.i].d, ag.x + pad + 8, by + 31, ag.w - pad * 2 - 16, 15, 10.5,
+    'rgba(212,206,226,.94)', 400, 2);
+  c.restore();
+
+  /* 光球 */
+  var from, to, u = s.u;
+  if (s.i === 0) {
+    from = { x: this.cards[0].x - 8, y: this.cards[0].y + this.cards[0].h / 2 };
+    to = { x: this.cards[0].x + this.cards[0].w * 0.5, y: this.cards[0].y + this.cards[0].h / 2 };
+  } else {
+    from = { x: this.cards[s.i - 1].x + this.cards[s.i - 1].w / 2, y: this.cards[s.i - 1].y + this.cards[s.i - 1].h / 2 };
+    to = { x: this.cards[s.i].x + this.cards[s.i].w * 0.5, y: this.cards[s.i].y + this.cards[s.i].h / 2 };
+  }
+  var e = easeInOut(u);
+  var ox = lerp(from.x, to.x, e), oy = lerp(from.y, to.y, e);
+  c.save();
+  c.fill(c.radial(ox, oy, 26, C.warn, 0.5, 0));
+  c.ctx.fillRect(ox - 26, oy - 26, 52, 52);
+  c.dot(ox, oy, 6, '#ece5d8', 20);
+  c.dot(ox, oy, 3.2, C.warn, 26);
+  c.restore();
+
+  /* 解说条由 App.draw 统一绘制 */
+};
+Scene2.prototype.reset = function () {
+  Scene.prototype.reset.call(this);
+  this.agentLit = 0;
+  for (var i = 0; i < 8; i++) this.arriveT[i] = -1;
+};
+/** 暂停时也能看到"当前走到第几步"的解说与高亮 */
+Scene2.prototype.uiUpdate = function (dt) {
+  var s = this.seg();
+  this.cur = s;
+  if (this.hover && this.hover.kind === 'stage') {
+    this.narr('第 ' + (this.hover.data.no) + '/8 步 · ' + this.hover.data.title + ' —— ' + this.hover.data.long);
+  } else {
+    this.narr('第 ' + (s.i + 1) + '/8 步 · ' + FLOW_STAGES[s.i].title + ' —— ' + FLOW_STAGES[s.i].long);
+  }
+};
+
+/* ==========================================================================
+   6. 场景三：AI Agent 链路
+   ========================================================================== */
+var A3_NODES = [
+  { k: 'msg', name: '顾客消息', sub: '网页 / 小程序 / 公众号', stack: [], col: C.cyan, duty: '顾客在任意渠道发来一句话，这就是整条 Agent 链路的输入。' },
+  { k: 'conv', name: 'conversation 服务', sub: 'WebSocket · 上下文存 Redis 30min', stack: ['session', 'message'], col: C.cyan, duty: '会话服务负责长连接、消息顺序和上下文；上一条上下文从 Redis 取出来一起带进 ai 服务。' },
+  { k: 'feign', name: 'OpenFeign 调用', sub: '★ 本质是一个 HTTP 请求', stack: ['/inner/ai/chat'], col: C.warn, duty: 'Feign 只是把 HTTP 调用包装成接口方法：注册中心拿实例列表、挑一台、发 POST JSON。没有黑魔法。' },
+  { k: 'svc', name: 'ai-agent 服务 · Agent 编排（Python）', sub: 'LangGraph · 意图→RAG→工具→LLM→校验', stack: ['ai_agent'], col: C.warn, duty: '★Python 侧，双栈的"大脑"。用 LangGraph 把 Agent 建模成状态图（支持循环 / 条件边 / 断点恢复），把下面 5 步串起来，每轮把结果写 ai_execution 日志。工具用 LangChain 的 @tool 装饰器声明，框架从函数签名 + docstring 自动生成 JSON Schema 并处理多轮往返；跨语言调用走 HTTP 回调 Java 的 inner 接口。' },
+  { k: 'n1', num: '①', name: '意图识别', sub: '售前 / 售后 / 物流 / 投诉 + 置信度', stack: ['intent', 'confidence'], col: C.blue, duty: '先判意图再决定要不要检索：置信度低于阈值直接进兜底，不浪费一次 LLM 调用。' },
+  { k: 'n2', num: '②', name: '★意图路由（先分支）', sub: '知识问答→RAG ｜ 业务查询→Tool ｜ 组合→两者', stack: ['route'], col: C.ok, duty: '★顺序很关键：先按意图路由，再谈阈值。常见写法是把 RAG 阈值判断放在 Tool Calling 之前 —— 那样「我的快递到哪了」会因为知识库没资料被直接兜底、物流工具根本没机会调。正确做法是知识问答类才走 RAG、才受阈值约束；实时业务查询类（订单/物流）直接走 Tool Calling，跟 RAG 分数无关；组合类先查数据再补政策。' },
+  { k: 'n3', num: '③', name: 'RAG 分支 / Tool 分支', sub: 'RAG：向量+BM25→RRF→重排 ｜ Tool：直接调业务接口', stack: ['rerank ≥ 0.72', 'tool_calls_json'], col: C.blue, duty: '★两条分支的判据不同：RAG 分支受阈值约束（RRF 只出排序，阈值比重排分；向量相似度 0.60 只作参考信号，不单独触发兜底）；Tool 分支只看工具调用成功与否，不看 RAG 分数。' },
+  { k: 'n4', num: '④', name: 'LLM 生成', sub: 'DeepSeek / 通义 双通道', stack: ['model_code', 'prompt_tokens'], col: C.warn, duty: '召回片段 + 工具返回值一起塞进 Prompt 生成答案，主通道超时 / 限流就切备通道。' },
+  { k: 'n5', num: '⑤', name: '后置校验', sub: '仅 RAG 分支：召回空 / 重排分不达标 → 禁止生成', stack: ['is_transferred'], col: C.red, duty: '上线后发现机器人会编政策：查 ai_execution 发现召回是空的却仍然生成了。加这道校验后误答投诉消失，机器人解决率【目标】41% → 63%（★项目设定的目标区间，不是已验证的生产成果）。' }
+];
+var A3_TOOLS = [
+  { code: 'queryOrder', d: '订单号 / 手机号 → 订单状态、金额', api: '/inner/order/query' },
+  { code: 'queryLogistics', d: '订单号 → 物流轨迹、预计送达', api: '/inner/logistics/track' },
+  { code: 'queryRefundRule', d: '商品类目 → 退款 / 退货规则', api: '/inner/kb/refund-rule' },
+  { code: 'queryProduct', d: '关键词 → 商品详情、库存、价格', api: '/inner/product/search' },
+  { code: 'queryActivity', d: '商品 / 门店 → 在跑的营销活动', api: '/inner/market/activity' },
+  { code: 'queryTicket', d: '工单号 → 状态、处理人、SLA 剩余', api: 'ticket-service /inner/tickets' },
+  { code: 'createTicket', d: '摘要 + 分类 → 建工单并起 SLA', api: 'POST /inner/tickets' },
+  { code: 'createCallback', d: '手机号 + 时段 → 预约回电', api: '/inner/callback/create' }
+];
+var A3_LOG = [
+  { it: '物流', chunk: '3', tool: 'queryLogistics', tok: '1180', ms: '742', tr: 0 },
+  { it: '售后', chunk: '5', tool: 'queryRefundRule', tok: '1640', ms: '968', tr: 0 },
+  { it: '售前', chunk: '5', tool: '—', tok: '1420', ms: '613', tr: 0 },
+  { it: '投诉', chunk: '0', tool: 'createTicket', tok: '980', ms: '1204', tr: 1 },
+  { it: '物流', chunk: '2', tool: 'queryOrder', tok: '1330', ms: '820', tr: 0 },
+  { it: '其他', chunk: '0', tool: '—', tok: '420', ms: '180', tr: 1 },
+  { it: '售前', chunk: '5', tool: 'queryProduct', tok: '1510', ms: '702', tr: 0 },
+  { it: '售后', chunk: '4', tool: 'queryTicket', tok: '1260', ms: '886', tr: 0 },
+  { it: '物流', chunk: '1', tool: 'queryActivity', tok: '890', ms: '655', tr: 0 },
+  { it: '投诉', chunk: '0', tool: 'createCallback', tok: '760', ms: '412', tr: 1 }
+];
+A3_LOG = A3_LOG.slice().reverse();   /* 最新在最上面 */
+
+function Scene3() {
+  Scene.call(this, 'agent', '场景三 · AI Agent 链路', C.warn);
+  this.toolsLit = null;
+  this.toolPulse = [];
+  for (var i = 0; i < 8; i++) this.toolPulse.push(0);
+  this.logFlash = 0;
+  this.logIdx = 0;
+}
+Scene3.prototype = Object.create(Scene.prototype);
+Scene3.prototype.constructor = Scene3;
+
+Scene3.prototype.timeline = function () {
+  var tl = [], t = 0, i;
+  for (i = 0; i < A3_NODES.length; i++) {
+    var d = (i === 7 ? 1.4 : (i === 8 ? 1.7 : (i < 4 ? 0.9 : 1.05)));
+    tl.push({ s: t, d: d, i: i });
+    t += d;
+  }
+  var tBranch = t + 0.2;
+  var dHit = 1.5, dMiss = 3.0;
+  tl.push({ s: tBranch, d: dHit, i: 100 });      /* 命中分支 */
+  tl.push({ s: tBranch, d: dMiss, i: 101 });     /* 未命中分支 */
+  tl.push({ s: tBranch + 0.7, d: 1.5, i: 102 }); /* 返回答案 */
+  tl.push({ s: tBranch + 1.7, d: 1.6, i: 103 }); /* 兜底话术 */
+  tl.push({ s: tBranch + 2.9, d: 1.3, i: 104 }); /* 转人工 */
+  var end = tBranch + 4.2, dLog = 1.5;
+  tl.push({ s: end, d: dLog, i: 200 });          /* 写 ai_execution */
+  return { tl: tl, total: end + dLog + 0.7 };
+};
+Scene3.prototype.layout = function (w, h) {
+  Scene.prototype.layout.call(this, w, h);
+  if (!this._T) this._T = this.timeline();
+  var top = 48, LX = 22;
+  var LW = clamp(w * 0.30, 250, 320);          /* 左：主链路 */
+  var RX = LX + LW + 22;                        /* 中：双分支 + 结论 */
+  var TX = RX + 296;                            /* 右：Agent Tools */
+  var RW = Math.max(360, w - TX - 22);
+  var NH = 36, NG = 6;                          /* 链节点高度 / 间隔 */
+
+  this.nodes = [];
+  var y = top;
+  for (var i = 0; i < A3_NODES.length; i++) {
+    this.nodes.push({ x: LX, y: y, w: LW, h: NH, i: i, def: A3_NODES[i] });
+    y += NH + NG;
+  }
+  this.chainBottom = y - NG;
+  /* 分支（后置校验的两条出口） */
+  var by = this.chainBottom + 20;
+  this.brHead = { x: LX, y: by };
+  this.hitCard = { x: LX, y: by + 20, w: LX + LW - LX, h: 46 };
+  this.missCard = { x: LX, y: by + 20 + 54, w: LW, h: 46 };
+  /* 结论卡 */
+  var ch = 62, cw = 276;
+  this.ansCard = { x: RX, y: by + 14, w: cw, h: 62 };
+  this.fbCard = { x: RX, y: by + 92, w: cw, h: 40 };
+  this.trCard = { x: RX, y: by + 142, w: cw, h: 52 };
+  /* Agent Tools 2×4 */
+  this.toolHead = { x: TX, y: top };
+  var tw = Math.floor((RW - 3 * 12) / 4);
+  this.toolCards = [];
+  for (var j = 0; j < 8; j++) {
+    var col = j % 4, row = (j / 4) | 0;
+    this.toolCards.push({ x: TX + col * (tw + 12), y: top + 24 + row * 68, w: tw, h: 58, i: j });
+  }
+  var lgy = top + 24 + 2 * 68 + 12;
+  this.logPane = { x: TX, y: lgy, w: RW, h: Math.max(120, h - 74 - lgy) };
+  this.rows = [];
+  this.maxScroll = 0;
+  this.contentH = Math.max(by + 200, lgy + this.logPane.h);
+};
+Scene3.prototype.update = function (dt) {
+  Scene.prototype.update.call(this, dt);
+  if (!this._T) this._T = this.timeline();
+  var T = this._T;
+  var tt = this.t % T.total, i, e;
+  /* 工具高亮 */
+  var lit = {};
+  var n5 = T.tl[8], n4 = T.tl[7];
+  if (tt >= n4.s && tt < n4.s + n4.d) {
+    var k4 = (tt - n4.s) / n4.d;
+    if (k4 < 0.68) {
+      lit.queryLogistics = 1; lit.queryOrder = 1;
+      this.toolPulse[1] = 1; this.toolPulse[0] = 1;
+    } else { lit.queryOrder = 1; this.toolPulse[0] = 1; }
+  }
+  if (tt >= n5.s && tt < n5.s + n5.d) {
+    var k5 = (tt - n5.s) / n5.d;
+    if (k5 > 0.55) { lit.queryRefundRule = 1; this.toolPulse[2] = 1; }
+  }
+  var br = T.tl[9];
+  if (tt >= br.s && tt < br.s + 3.0) {
+    if (tt > br.s + 1.4) { lit.createTicket = 1; this.toolPulse[6] = 1; }
+  }
+  this.toolsLit = lit;
+  for (i = 0; i < 8; i++) this.toolPulse[i] = Math.max(0, this.toolPulse[i] - dt * 1.5);
+  /* 日志写入闪光 */
+  var lg = T.tl[T.tl.length - 1];
+  if (tt >= lg.s && tt < lg.s + lg.d) {
+    this.logFlash = 1 - (tt - lg.s) / lg.d;
+    if (this._lastLogFlash === undefined || this._lastLogFlash <= 0) this.logIdx = (this.logIdx + 1) % A3_LOG.length;
+    this._lastLogFlash = 1;
+  } else { this.logFlash = 0; this._lastLogFlash = 0; }
+  /* 解说 */
+  var cur = null;
+  for (i = 0; i < T.tl.length; i++) { var o = T.tl[i]; if (tt >= o.s && tt < o.s + o.d) { cur = o; break; } }
+  if (cur) {
+    if (cur.i < 100) {
+      var nd = A3_NODES[cur.i];
+      this.narr((nd.num ? nd.num + ' ' : '') + nd.name + ' —— ' + nd.duty);
+    } else if (cur.i === 100) this.narr('后置校验【命中】—— 有召回候选（向量或 BM25 命中都算）且重排分 ≥ 0.72，允许生成，绿色通道路由到「返回答案（带引用）」。');
+    else if (cur.i === 101) this.narr('后置校验【未命中】—— 召回为空、或重排分 < 0.72，红色通道：禁止生成 → 兜底话术 → 转人工。★注意：向量相似度低【不单独触发兜底】，否则会误杀 BM25 精确命中的正确结果。');
+    else if (cur.i === 102) this.narr('返回答案并带上引用来源（answer_source = KB / TOOL），顾客能看到依据，客服也能复核。');
+    else if (cur.i === 103) this.narr('兜底话术：「我帮您转人工确认一下」—— 主动引导转人工，不让顾客再打字要求，避免被踢皮球的感觉。');
+    else if (cur.i === 104) this.narr('写入 ai_unanswered 并把会话转人工；运营补充知识后，这类问题的命中率会回升。');
+    else this.narr('最后写 ai_execution 执行明细日志：意图 / 召回片段 / 工具调用 / prompt_tokens / latency_ms / 是否转人工 —— 这张表就是「AI 答得准不准」的唯一数据源，也是 0.72 阈值调参的数据源。');
+  }
+  this.cur = { tt: tt, cur: cur };
+};
+Scene3.prototype.draw = function (c, w, h) {
+  if (!this._T) this._T = this.timeline();
+  var T = this._T, st = this.cur || { tt: 0, cur: null }, i, nd, o;
+  this.drawHead(c, w, h, 'AI Agent 链路 · 从顾客一句话到 ai_execution 日志',
+    'conversation → OpenFeign（本质是 HTTP 请求）→ ai 服务 5 步 → 后置校验双分支');
+
+  /* 竖向链路连线 */
+  for (i = 1; i < this.nodes.length; i++) {
+    var a = this.nodes[i - 1], b = this.nodes[i];
+    var pts = [[a.x + a.w * 0.5, a.y + a.h], [b.x + b.w * 0.5, b.y]];
+    var passed = st.tt >= (T.tl[i].s + T.tl[i].d * 0.5);
+    flowLine(c, pts, passed ? C.ok : C.cyan, this.t * 0.6 + i * 0.15,
+      { dots: 1, dotR: 2.2, speed: 0.7, lw: 1.8, lw2: 1.2, dashA: 0.45, glow: 10 });
+  }
+  /* 节点 */
+  for (i = 0; i < this.nodes.length; i++) {
+    nd = A3_NODES[i]; o = this.nodes[i];
+    var isCur = st.cur && st.cur.i === i;
+    var done = st.tt >= T.tl[i].s + T.tl[i].d;
+    var pulse = 0.5 + 0.5 * Math.sin(this.t * 3);
+    var col = isCur ? nd.col : (done ? C.ok : nd.col);
+    c.save();
+    c.rr(o.x, o.y, o.w, o.h, 9);
+    c.fill(c.lingrad(o.x, o.y, o.x + o.w, o.y, [
+      [0, rgba(col, isCur ? 0.22 : (done ? 0.1 : 0.05))],
+      [0.7, 'rgba(11,10,31,.92)']]));
+    c.ctx.fill();
+    c.stroke(rgba(col, isCur ? (0.6 + 0.4 * pulse) : (done ? 0.4 : 0.24)));
+    c.lw(isCur ? 2 : 1.2);
+    if (isCur) { c.shadow(rgba(col, 0.75), 12 + 10 * pulse); }
+    c.ctx.stroke(); c.noshadow();
+    c.fillRR(o.x + 1.2, o.y + 7, 3, o.h - 14, 2, rgba(col, isCur ? 1 : 0.5));
+    var hasNum = !!nd.num;
+    var titleX = o.x + 13;
+    if (hasNum) { c.font(12, 700); c.fill(rgba(col, 1)); c.text(nd.num, titleX, o.y + o.h / 2, 'left'); titleX += 19; }
+    c.font(hasNum ? 12 : 13, 700); c.fill(isCur ? '#f0ece4' : '#e2dcec');
+    c.text(c.clip(nd.name, o.x + o.w - titleX - 26, hasNum ? 12 : 13, 700), titleX, o.y + o.h / 2 - 8, 'left');
+    if (nd.sub) {
+      c.font(9.5, 500); c.fill(rgba(isCur ? C.white : C.dim, isCur ? 0.95 : 1));
+      c.text(c.clip(nd.sub, o.w - 26, 9.5, 500), o.x + 13, o.y + o.h / 2 + 9, 'left');
+    }
+    if (done && !isCur) checkMark(c, o.x + o.w - 14, o.y + o.h / 2, 7.5, C.ok, 1);
+    c.restore();
+  }
+  /* 后置校验的两条出口（命中 / 未命中） */
+  var b = this.nodes[8];
+  var hc = this.hitCard, mc = this.missCard;
+  var hitOn = st.tt >= T.tl[9].s, missOn = st.tt >= T.tl[10].s;
+  c.font(11, 700); c.fill(rgba(C.red, 0.9));
+  c.text('⑤ 后置校验的两条出口', this.brHead.x, this.brHead.y, 'left');
+  /* 从 ⑤ 底部向右下引到两张卡 */
+  var hb = [[b.x + b.w * 0.5, b.y + b.h], [b.x + b.w * 0.5, hc.y + hc.h / 2], [hc.x, hc.y + hc.h / 2]];
+  var mb = [[b.x + b.w * 0.62, b.y + b.h], [b.x + b.w * 0.62, mc.y + mc.h / 2], [mc.x, mc.y + mc.h / 2]];
+  flowLine(c, hb, C.ok, this.t * 0.6, { dots: hitOn ? 1 : 0, dotR: 2.4, lw: 1.8, lw2: 1.3, dashA: hitOn ? 0.7 : 0.28, glow: 12, aSize: 7 });
+  flowLine(c, mb, C.red, this.t * 0.6 + 0.5, { dots: missOn ? 1 : 0, dotR: 2.4, lw: 1.8, lw2: 1.3, dashA: missOn ? 0.7 : 0.28, glow: 12, aSize: 7 });
+  /* 分支卡片 */
+  this.drawBranchCard(c, hc, C.ok, '命中', '有候选 且 rerank ≥ 0.72', hitOn);
+  this.drawBranchCard(c, mc, C.red, '未命中', '召回空 / rerank<0.72', missOn);
+  /* 结论卡 */
+  this.drawConcl(c, this.ansCard, C.ok, '返回答案（带引用）', ['answer_source = KB / TOOL', '引用可追溯，客服可复核'], hitOn);
+  this.drawConcl(c, this.fbCard, C.warn, '禁止生成 → 兜底话术', ['「我帮您转人工确认一下」'], missOn);
+  this.drawConcl(c, this.trCard, C.red, '转人工', ['写 ai_unanswered · 运营补知识'], missOn);
+  /* 分支 → 结论 箭头 */
+  flowLine(c, [[hc.x + hc.w, hc.y + hc.h / 2], [this.ansCard.x, this.ansCard.y + this.ansCard.h / 2]],
+    C.ok, this.t * 0.7, { dots: hitOn ? 1 : 0, dotR: 2, lw: 1.6, lw2: 1.2, dashA: 0.5, glow: 8, aSize: 7 });
+  flowLine(c, [[mc.x + mc.w, mc.y + mc.h / 2], [this.fbCard.x, this.fbCard.y + this.fbCard.h / 2]],
+    C.red, this.t * 0.7, { dots: missOn ? 1 : 0, dotR: 2, lw: 1.6, lw2: 1.2, dashA: 0.5, glow: 8, aSize: 7 });
+  flowLine(c, [[this.fbCard.x + this.fbCard.w / 2, this.fbCard.y + this.fbCard.h], [this.trCard.x + this.trCard.w / 2, this.trCard.y]],
+    C.red, this.t * 0.7, { dots: missOn ? 1 : 0, dotR: 2, lw: 1.6, lw2: 1.2, dashA: 0.5, glow: 8, aSize: 7 });
+
+  /* Agent Tools 面板 */
+  c.font(12.5, 700); c.fill(rgba(C.warn, 0.95));
+  c.text('Agent Tools（8 个，被调用时高亮发光）', this.toolHead.x, this.toolHead.y + 4, 'left');
+  for (i = 0; i < 8; i++) {
+    var tc = this.toolCards[i], tool = A3_TOOLS[i];
+    var on = this.toolsLit && this.toolsLit[tool.code];
+    var pl = this.toolPulse[i];
+    var breathe = 0.5 + 0.5 * Math.sin(this.t * 2 + i);
+    c.save();
+    c.fillRR(tc.x, tc.y, tc.w, tc.h, 8, c.lingrad(tc.x, tc.y, tc.x, tc.y + tc.h,
+      [[0, on ? 'rgba(52,44,26,.95)' : 'rgba(14,13,37,.92)'], [1, 'rgba(10,10,27,.92)']]));
+    var acol = on ? C.warn : C.blue;
+    c.strokeRR(tc.x, tc.y, tc.w, tc.h, 8, rgba(acol, on ? (0.65 + 0.35 * breathe) : 0.26), on ? 2 : 1);
+    if (on || pl > 0.02) {
+      c.rr(tc.x, tc.y, tc.w, tc.h, 8);
+      c.stroke(rgba(C.warn, 0.8)); c.lw(2);
+      c.shadow(rgba(C.warn, 0.9), 16 + 14 * Math.max(pl, breathe)); c.ctx.stroke(); c.noshadow();
+    }
+    c.font(10.5, 700); c.fill(on ? '#dfd0ad' : 'rgba(203,198,220,.95)');
+    c.text(c.clip(tool.code, tc.w - 16, 10.5, 700), tc.x + 9, tc.y + 17, 'left');
+    c.font(9, 500); c.fill(on ? 'rgba(215,196,152,.95)' : rgba(C.dim, 1));
+    c.text(c.clip(tool.d, tc.w - 16, 9, 500), tc.x + 9, tc.y + 33, 'left');
+    c.font(8.5, 500); c.fill(rgba(C.dim2, 1));
+    c.text(c.clip(tool.api, tc.w - 16, 8.5, 500), tc.x + 9, tc.y + 46, 'left');
+    if (on) c.dot(tc.x + tc.w - 11, tc.y + 12, 3.2, C.warn, 10);
+    c.restore();
+  }
+  /* ai_execution 日志 */
+  var lg = this.logPane;
+  c.save();
+  c.font(12.5, 700); c.fill(rgba(C.cyan, 0.95));
+  c.text('ai_execution 执行明细（最新一条在最上面）', lg.x, lg.y - 12, 'left');
+  c.fillRR(lg.x, lg.y, lg.w, lg.h, 9, 'rgba(10,10,26,.86)');
+  c.strokeRR(lg.x, lg.y, lg.w, lg.h, 9, rgba(C.cyan, 0.28), 1);
+  var cols = [
+    ['intent', 0.14], ['retrieved_chunk_ids', 0.20], ['tool_calls', 0.18],
+    ['prompt_tokens', 0.15], ['latency_ms', 0.13], ['is_transferred', 0.14]
+  ];
+  var innerW = lg.w - 20, cxp = lg.x + 10, i2;
+  /* 表头 */
+  c.font(9.5, 700); c.fill(rgba(C.dim, 1));
+  var off = 0;
+  for (i2 = 0; i2 < cols.length; i2++) {
+    c.text(cols[i2][0], cxp + off * innerW + 5, lg.y + 16, 'left');
+    off += cols[i2][1];
+  }
+  c.ctx.beginPath(); c.ctx.moveTo(lg.x + 6, lg.y + 26); c.ctx.lineTo(lg.x + lg.w - 6, lg.y + 26);
+  c.stroke(rgba(C.cyan, 0.2)); c.lw(1); c.ctx.stroke();
+  var rowH = clamp((lg.h - 54) / (A3_LOG.length + 0.6), 15, 22);
+  for (i2 = 0; i2 < A3_LOG.length; i2++) {
+    var r = A3_LOG[i2], ry = lg.y + 36 + i2 * rowH;
+    if (ry + rowH / 2 > lg.y + lg.h - 18) break;
+    var flash = (i2 === 0) ? Math.max(this.logFlash, 0.25) : 0;
+    if (flash > 0.02) {
+      c.fillRR(lg.x + 5, ry - rowH / 2 + 1, lg.w - 10, rowH - 2, 4, rgba(C.warn, 0.10 + 0.22 * flash));
+      c.strokeRR(lg.x + 5, ry - rowH / 2 + 1, lg.w - 10, rowH - 2, 4, rgba(C.warn, 0.5 * flash), 1);
+      c.dot(lg.x + 9, ry, 3, C.warn, 10 * flash);
+    } else if (i2 % 2 === 0) {
+      c.fillRR(lg.x + 5, ry - rowH / 2 + 1, lg.w - 10, rowH - 2, 4, 'rgba(255,255,255,.022)');
+    }
+    var vals = [
+      [r.it, C.blue], [r.chunk + ' 条', r.chunk === '0' ? C.red : C.cyan], [r.tool, r.tool === '—' ? C.dim : C.warn],
+      [r.tok, C.dim], [r.ms + ' ms', +r.ms > 1000 ? C.red : C.ok],
+      [r.tr ? '是 → 转人工' : '否', r.tr ? C.red : C.ok]
+    ];
+    var off2 = 0;
+    for (var j2 = 0; j2 < cols.length; j2++) {
+      c.font(9.5, i2 === 0 ? 700 : 500);
+      c.fill(rgba(vals[j2][1], i2 === 0 ? 1 : 0.72));
+      c.text(c.clip(vals[j2][0], cols[j2][1] * innerW - 8, 9.5, 500), cxp + off2 * innerW + 5, ry, 'left');
+      off2 += cols[j2][1];
+    }
+  }
+  /* 汇总 */
+  var sy = lg.y + lg.h - 12;
+  c.font(9.5, 500); c.fill(rgba(C.dim, 1));
+  c.text('今日 ' + (1284 + Math.round(6 * Math.abs(Math.sin(this.t * 0.5)))) + ' 次执行 · 平均 812 ms · 兜底率 12.4% · 机器人解决率【目标】63%（上线初 41%）',
+    lg.x + 10, sy, 'left');
+  if (this.logFlash > 0.02) {
+    c.font(9.5, 700); c.fill(rgba(C.warn, this.logFlash));
+    c.text('● 正在写入 ai_execution …', lg.x + lg.w - 10, sy, 'right');
+  }
+  c.restore();
+
+  /* 解说条由 App.draw 统一绘制 */
+};
+Scene3.prototype.drawBranchCard = function (c, r, col, title, sub, on) {
+  var pulse = 0.5 + 0.5 * Math.sin(this.t * 3.2);
+  c.save();
+  c.fillRR(r.x, r.y, r.w, r.h, 8, c.lingrad(r.x, r.y, r.x + r.w, r.y,
+    [[0, rgba(col, on ? 0.2 : 0.06)], [0.8, 'rgba(11,10,31,.9)']]));
+  c.strokeRR(r.x, r.y, r.w, r.h, 8, rgba(col, on ? (0.55 + 0.4 * pulse) : 0.24), on ? 1.8 : 1);
+  if (on) { c.rr(r.x, r.y, r.w, r.h, 8); c.stroke(rgba(col, 0.7)); c.lw(1.8); c.shadow(rgba(col, 0.8), 16); c.ctx.stroke(); c.noshadow(); }
+  c.font(12, 700); c.fill(on ? '#f0ece4' : rgba(col, 0.75));
+  c.text(title, r.x + 26, r.y + r.h / 2 - 8, 'left');
+  c.font(9.5, 500); c.fill(rgba(C.dim, 1));
+  c.text(c.clip(sub, r.w - 40, 9.5, 500), r.x + 26, r.y + r.h / 2 + 9, 'left');
+  c.dot(r.x + 15, r.y + r.h / 2, 4.2, on ? col : rgba(C.dim, 0.6), on ? 12 : 0);
+  c.restore();
+};
+Scene3.prototype.drawConcl = function (c, r, col, title, lines, on) {
+  c.save();
+  c.fillRR(r.x, r.y, r.w, r.h, 8, rgba(col, on ? 0.13 : 0.05));
+  c.strokeRR(r.x, r.y, r.w, r.h, 8, rgba(col, on ? 0.6 : 0.22), on ? 1.6 : 1);
+  if (on) { c.rr(r.x, r.y, r.w, r.h, 8); c.stroke(rgba(col, 0.6)); c.lw(1.6); c.shadow(rgba(col, 0.65), 14); c.ctx.stroke(); c.noshadow(); }
+  c.font(11.5, 700); c.fill(on ? '#f0ece4' : rgba(col, 0.8));
+  c.text(c.clip(title, r.w - 20, 11.5, 700), r.x + 11, r.y + 15, 'left');
+  c.font(9.5, 500); c.fill(rgba(C.dim, on ? 1 : 0.8));
+  for (var i = 0; i < lines.length; i++) {
+    if (r.y + 29 + i * 14 > r.y + r.h - 4) break;
+    c.text(c.clip(lines[i], r.w - 20, 9.5, 500), r.x + 11, r.y + 29 + i * 14, 'left');
+  }
+  if (on) checkMark(c, r.x + r.w - 16, r.y + 16, 8, col, 1);
+  c.restore();
+};
+Scene3.prototype.reset = function () { Scene.prototype.reset.call(this); this.logFlash = 0; this.logIdx = 0; };
+/** 暂停时也显示当前节点/分支的解说 */
+Scene3.prototype.uiUpdate = function (dt) {
+  if (!this._T) this._T = this.timeline();
+  var T = this._T, tt = this.t % T.total, i, cur = null;
+  for (i = 0; i < T.tl.length; i++) {
+    var o = T.tl[i];
+    if (tt >= o.s && tt < o.s + o.d) { cur = o; break; }
+  }
+  this.cur = { tt: tt, cur: cur };
+  if (cur) {
+    if (cur.i < 100) {
+      var nd = A3_NODES[cur.i];
+      this.narr((nd.num ? nd.num + ' ' : '') + nd.name + ' —— ' + nd.duty);
+    } else if (cur.i === 100) this.narr('后置校验【命中】—— 有召回候选（向量或 BM25 命中都算）且重排分 ≥ 0.72，允许生成，绿色通道路由到「返回答案（带引用）」。');
+    else if (cur.i === 101) this.narr('后置校验【未命中】—— 召回为空、或重排分 < 0.72，红色通道：禁止生成 → 兜底话术 → 转人工。★注意：向量相似度低【不单独触发兜底】，否则会误杀 BM25 精确命中的正确结果。');
+    else if (cur.i === 102) this.narr('返回答案并带上引用来源（answer_source = KB / TOOL），顾客能看到依据，客服也能复核。');
+    else if (cur.i === 103) this.narr('兜底话术：「我帮您转人工确认一下」—— 主动引导转人工，不让顾客再打字要求，避免被踢皮球的感觉。');
+    else if (cur.i === 104) this.narr('写入 ai_unanswered 并把会话转人工；运营补充知识后，这类问题的命中率会回升。');
+    else this.narr('最后写 ai_execution 执行明细日志：意图 / 召回片段 / 工具调用 / prompt_tokens / latency_ms / 是否转人工 —— 这张表就是「AI 答得准不准」的唯一数据源，也是 0.72 阈值调参的数据源。');
+  }
+};
+
+/* ==========================================================================
+   7. 场景四：数据与接口总览
+   ========================================================================== */
+var T4_GROUPS = [
+  { name: '客户与权限', n: 6, color: C.cyan, tables: [
+    ['tenant', '客户 / 租户：一个部署实例一个客户，套餐、坐席数上限'],
+    ['sys_user', '企业用户与坐席：登录名、角色、技能组、最大并发会话'],
+    ['sys_role', '角色：角色编码与数据权限范围'],
+    ['sys_permission', '权限点：菜单 / 按钮 / 接口三级'],
+    ['sys_role_permission', '角色权限关联表'],
+    ['skill_group', '技能组（售前 / 售后 / 财务）与分配策略']
+  ] },
+  { name: '会话与消息', n: 7, color: C.blue, tables: [
+    ['visitor', '顾客（访客）：渠道、外部 ID、昵称、手机号、标签'],
+    ['session', '会话主表：状态机（机器人 / 排队 / 人工 / 已结束）、首响、满意度'],
+    ['message', '消息表：★ 增长最快，按 session_id 哈希分表或按月分表'],
+    ['session_transfer', '会话转接记录：从哪个坐席转到哪个、转接原因'],
+    ['agent_status', '坐席实时状态：在线 / 小休 / 忙碌 + 当前会话数'],
+    ['quick_reply', '常用语（快捷回复）：按技能组维护 + 使用次数'],
+    ['session_evaluation', '会话评价：评分、评论、标签']
+  ] },
+  { name: '工单', n: 6, color: C.ok, tables: [
+    ['ticket', '工单主表：ticket_no、优先级、状态、SLA 双截止时间、暂停计时'],
+    ['ticket_template', '工单模板：自定义字段 field_json + 流程 flow_json + SLA』'],
+    ['ticket_flow_log', '流转日志：节点、操作人、动作、前后状态'],
+    ['ticket_comment', '工单回复：区分内部备注 is_internal 和对外回复'],
+    ['ticket_attachment', '工单附件：文件名、URL、大小（文件存 MinIO）'],
+    ['ticket_sla', 'SLA 规则：首响 / 解决时限、预警百分比 20%、升级角色']
+  ] },
+  { name: '知识库', n: 4, color: C.blue, tables: [
+    ['knowledge_base', '知识库：FAQ / 文档 / 混合三类，绑定 embedding 模型'],
+    ['knowledge_document', '知识文档：原文件存 MinIO，解析状态、chunk 数、版本'],
+    ['knowledge_chunk', '文档分段：chunk 内容 + token 数 + vector_id 指向向量库'],
+    ['knowledge_faq', 'FAQ 问答对：相似问法、答案、命中次数、提问次数']
+  ] },
+  { name: 'AI', n: 5, color: C.warn, star: true, tables: [
+    ['ai_agent', '机器人配置：模型、temperature、top_k、重排阈值 0.72（向量 0.60 只作成本参考）、兜底策略'],
+    ['ai_agent_tool', 'Agent 工具配置：tool_code、参数 JSON Schema、api_path'],
+    ['ai_conversation', 'AI 会话：一个会话可有多轮 Agent 执行'],
+    ['ai_execution', '★ 最重要：每轮执行明细（意图 / 召回 / 工具 / token / 耗时 / 是否转人工）'],
+    ['ai_unanswered', '未命中问题：知识库优化的输入，按提问次数排序补充']
+  ] }
+];
+var T4_APIS = [
+  { name: '传统业务接口', color: C.blue, items: [
+    ['POST /api/auth/login', '坐席登录，返回 JWT'],
+    ['POST /api/session/start', '顾客发起会话（渠道回调）'],
+    ['GET /api/session/{id}/messages', '拉历史消息'],
+    ['POST /api/session/{id}/transfer', '转人工 / 转接坐席'],
+    ['POST /api/tickets', '创建工单'],
+    ['PUT /api/tickets/{id}/status', '状态流转（含 SLA 校验）'],
+    ['POST /api/knowledge/documents', '上传文档（异步向量化）'],
+    ['POST /api/report/session/overview', '会话概览报表']
+  ] },
+  { name: 'AI 接口', color: C.warn, items: [
+    ['POST /api/ai/chat', '顾客提问，SSE 流式返回'],
+    ['POST /api/ai/agents', '创建 / 配置机器人'],
+    ['POST /api/ai/knowledge/search', '纯检索调试，返回 Top-K 与分数']
+  ] },
+  { name: '内部调用（OpenFeign）', color: C.red, inner: true, items: [
+    ['POST /inner/knowledge/search', 'ai → knowledge：RAG 检索'],
+    ['POST /inner/tickets', 'ai → ticket：createTicket 工具'],
+    ['GET /inner/session/{id}/summary', 'ticket → conversation：工单带入上下文']
+  ] }
+];
+function Scene4() {
+  Scene.call(this, 'data', '场景四 · 数据与接口总览', C.cyan);
+  this.hoverTable = null;
+  this.pane = 'L';
+  this.scrollR = 0;
+}
+Scene4.prototype = Object.create(Scene.prototype);
+Scene4.prototype.constructor = Scene4;
+Scene4.prototype.layout = function (w, h) {
+  Scene.prototype.layout.call(this, w, h);
+  var top = 48, H = h - top - 68;
+  var LX = 22, LW = Math.min(620, w * 0.44);
+  var RX = LX + LW + 26, RW = w - RX - 22;
+  this.left = { x: LX, y: top, w: LW, h: H };
+  this.right = { x: RX, y: top, w: RW, h: H };
+  /* 左：5 组 */
+  var gap = 12, gy = top + 14;
+  var avail = H - 26 - gap * (T4_GROUPS.length - 1);
+  var starH = 74;
+  var normalH = (avail - starH) / (T4_GROUPS.length - 1);
+  this.t4cards = [];
+  var self = this;
+  T4_GROUPS.forEach(function (G, gi) {
+    var gh = G.star ? starH : normalH;
+    var box = { x: LX + 12, y: gy, w: LW - 24, h: gh, G: G };
+    G.box = box;
+    var cols = G.n > 4 ? 3 : 2;
+    var rows = Math.ceil(G.n / cols);
+    var pad = 10, cgx = 8, cgy = 8;
+    var cw = (box.w - pad * 2 - cgx * (cols - 1)) / cols;
+    var ch = (gh - 26 - pad - cgy * (rows - 1)) / rows;
+    G.cards = [];
+    for (var i = 0; i < G.n; i++) {
+      var r = (i / cols) | 0, cc = i % cols;
+      var cr = {
+        x: box.x + pad + cc * (cw + cgx), y: box.y + 26 + r * (ch + cgy),
+        w: cw, h: ch, name: G.tables[i][0], duty: G.tables[i][1],
+        star: G.tables[i][0] === 'ai_execution', group: G.name, col: G.color
+      };
+      G.cards.push(cr);
+      self.t4cards.push(cr);
+    }
+    gy += gh + gap;
+  });
+  this.leftContentH = gy - gap - top + 14;
+  /* 右：3 组 API */
+  var ay = top + 14, pad2 = 10, iy = 25;
+  this.apiGroups = [];
+  for (var k = 0; k < T4_APIS.length; k++) {
+    var A = T4_APIS[k];
+    var gh2 = 30 + A.items.length * iy + 12;
+    var box2 = { x: RX, y: ay, w: RW, h: gh2, A: A };
+    A.box = box2;
+    A.items2 = [];
+    for (var j = 0; j < A.items.length; j++) {
+      A.items2.push({
+        x: RX + pad2, y: ay + 30 + j * iy, w: RW - pad2 * 2, h: iy - 3,
+        path: A.items[j][0], desc: A.items[j][1]
+      });
+    }
+    ay += gh2 + gap;
+    this.apiGroups.push(box2);
+  }
+  this.rightContentH = ay - gap - top + 14;
+  this.maxScroll = Math.max(0, this.rightContentH - H);
+  this.rows = [];
+  for (var q = 0; q < this.t4cards.length; q++) {
+    var c4 = this.t4cards[q];
+    this.addHit(c4.x, c4.y, c4.w, c4.h, { key: c4.name, kind: 'table', data: c4 });
+  }
+  this.scrollR = clamp(this.scrollR, 0, this.maxScroll);
+};
+Scene4.prototype.update = function (dt) {
+  Scene.prototype.update.call(this, dt);
+  var total = 0, ai = 0, i;
+  for (i = 0; i < T4_GROUPS.length; i++) {
+    total += T4_GROUPS[i].n;
+    if (T4_GROUPS[i].name === 'AI') ai = T4_GROUPS[i].n;
+  }
+  this.tableCount = total;
+  if (this.hover && this.hover.kind === 'table') {
+    var d = this.hover.data;
+    this.narr(d.name + '（' + d.group + '）—— ' + d.duty);
+  } else {
+    this.narr('共 ' + total + ' 张表，分 5 大类（客户与权限 6 / 会话与消息 7 / 工单 6 / 知识库 4 / AI ' + ai +
+      '）；右侧为核心 API 三组，每条右侧流动光点代表有流量；内部接口 /inner/* 网关不放行。');
+  }
+};
+Scene4.prototype.draw = function (c, w, h) {
+  var i, j, k, G, cr, A;
+  this.drawHead(c, w, h, '数据与接口总览 · 29 张表 + 核心 API',
+    '左：5 大类表结构（AI 5 张高亮，ai_execution 最重要）　右：三组核心 API');
+
+  /* ---- 左半屏 ---- */
+  c.save();
+  c.ctx.beginPath(); c.ctx.rect(this.left.x - 6, this.left.y, this.left.w + 12, this.left.h);
+  c.ctx.clip();
+  for (i = 0; i < T4_GROUPS.length; i++) {
+    G = T4_GROUPS[i];
+    var box = G.box;
+    var pulse = 0.5 + 0.5 * Math.sin(this.t * 2.2);
+    c.fillRR(box.x, box.y, box.w, box.h, 12, c.lingrad(box.x, box.y, box.x + box.w, box.y + box.h,
+      [[0, rgba(G.color, G.star ? 0.16 : 0.07)], [1, rgba(G.color, 0.03)]]));
+    c.strokeRR(box.x, box.y, box.w, box.h, 12, rgba(G.color, G.star ? (0.55 + 0.35 * pulse) : 0.3), G.star ? 1.8 : 1.2);
+    if (G.star) {
+      c.rr(box.x, box.y, box.w, box.h, 12);
+      c.stroke(rgba(G.color, 0.6)); c.lw(1.8);
+      c.shadow(rgba(G.color, 0.75), 14 + 10 * pulse); c.ctx.stroke(); c.noshadow();
+    }
+    c.font(12.5, 700); c.fill(rgba(G.color, 0.98));
+    c.text(G.name + '（' + G.n + ' 张）', box.x + 13, box.y + 15, 'left');
+    if (G.star) {
+      c.font(9.5, 700); c.fill(rgba(C.warn, 0.95));
+      c.text('★ AI 5 张表 · 面试最容易被追问', box.x + box.w - 13, box.y + 15, 'right');
+    }
+    for (j = 0; j < G.cards.length; j++) {
+      cr = G.cards[j];
+      var hov = (this.hover && this.hover.key === cr.name) ? 1 : 0;
+      if (cr.star) {
+        var sp = 0.5 + 0.5 * Math.sin(this.t * 3.4);
+        c.rr(cr.x - 4, cr.y - 4, cr.w + 8, cr.h + 8, 12);
+        c.stroke(rgba(C.warn, 0.25 + 0.35 * sp)); c.lw(2);
+        c.shadow(rgba(C.warn, 0.8), 12 + 12 * sp); c.ctx.stroke(); c.noshadow();
+      }
+      c.fillRR(cr.x, cr.y, cr.w, cr.h, 7, hov ? rgba(G.color, 0.22) : 'rgba(14,13,37,.92)');
+      c.strokeRR(cr.x, cr.y, cr.w, cr.h, 7,
+        rgba(cr.star ? C.warn : G.color, cr.star ? 0.95 : (hov ? 0.8 : 0.32)), cr.star ? 1.8 : 1);
+      c.font(cr.w < 130 ? 10 : 11, cr.star ? 700 : 600);
+      c.fill(cr.star ? '#ddcda9' : (hov ? '#f0ece4' : 'rgba(210,204,225,.96)'));
+      c.text(c.clip(cr.name, cr.w - 14, cr.w < 130 ? 10 : 11, 600), cr.x + 7, cr.y + cr.h / 2, 'left');
+      if (cr.star) {
+        c.font(8.5, 700); c.fill(rgba(C.warn, 0.9));
+        c.text('最重要', cr.x + cr.w - 7, cr.y + cr.h / 2, 'right');
+      }
+    }
+  }
+  c.restore();
+
+  /* 表名悬停浮层 */
+  if (this.hover && this.hover.kind === 'table') this.drawTableTip(c, w, h, this.hover.data);
+
+  /* ---- 右半屏 ---- */
+  var R = this.right;
+  c.save();
+  c.ctx.beginPath(); c.ctx.rect(R.x - 4, R.y, R.w + 8, R.h);
+  c.ctx.clip();
+  c.ctx.translate(0, -this.scrollR);
+  for (k = 0; k < this.apiGroups.length; k++) {
+    var box3 = this.apiGroups[k];
+    A = T4_APIS[k];
+    c.fillRR(box3.x, box3.y, box3.w, box3.h, 12, c.lingrad(box3.x, box3.y, box3.x + box3.w, box3.y + box3.h,
+      [[0, rgba(A.color, 0.075)], [1, rgba(A.color, 0.025)]]));
+    c.strokeRR(box3.x, box3.y, box3.w, box3.h, 12, rgba(A.color, 0.32), 1.2);
+    c.font(12.5, 700); c.fill(rgba(A.color, 0.98));
+    c.text(A.name + '（' + A.items.length + ' 个）', box3.x + 13, box3.y + 16, 'left');
+    if (A.inner) {
+      c.font(9.5, 700); c.fill(rgba(C.red, 0.95));
+      c.text('✗ 网关不放行 · 只允许服务间 OpenFeign 调用', box3.x + box3.w - 13, box3.y + 16, 'right');
+    }
+    for (j = 0; j < A.items2.length; j++) {
+      var it = A.items2[j];
+      var hovA = (this.hoverApi === it.path) ? 1 : 0;
+      c.fillRR(it.x, it.y, it.w, it.h, 6, hovA ? rgba(A.color, 0.2) : 'rgba(13,12,35,.85)');
+      c.strokeRR(it.x, it.y, it.w, it.h, 6, rgba(A.color, hovA ? 0.6 : 0.18), 1);
+      /* 流量指示：每秒一个小光点从左流到右 */
+      var seg = 26, span = it.w - seg - 24;
+      var px = it.x + 11, py = it.y + it.h / 2;
+      c.ctx.beginPath(); c.ctx.moveTo(px, py); c.ctx.lineTo(it.x + it.w - 12, py);
+      c.stroke(rgba(A.color, 0.16)); c.lw(1); c.ctx.stroke();
+      var speed = 0.85;
+      var tp = ((this.t * speed + (j * 0.31 + k * 0.17)) % 1 + 1) % 1;
+      var dotx = px + tp * (it.w - 24);
+      c.ctx.beginPath(); c.ctx.arc(dotx, py, 6, 0, TAU);
+      c.fill(rgba(A.color, 0.14)); c.ctx.fill();
+      c.dot(dotx, py, 2.2, A.color, 10);
+      c.font(10.5, 700); c.fill(hovA ? '#f0ece4' : 'rgba(216,210,228,.96)');
+      var pathW = Math.min(it.w * 0.56, c.measure(it.path, 10.5, 700));
+      c.text(c.clip(it.path, it.w * 0.56, 10.5, 700), it.x + 18, py - 0.5, 'left');
+      c.font(9.5, 500); c.fill(rgba(A.inner ? C.red : C.dim, A.inner ? 0.95 : 1));
+      c.text(c.clip(it.desc, it.w * 0.42 - 20, 9.5, 500), it.x + it.w - 12, py - 0.5, 'right');
+    }
+  }
+  c.ctx.translate(0, this.scrollR);
+  c.restore();
+  /* 右滚动条 */
+  if (this.maxScroll > 1) {
+    var trackH = R.h - 8, th = Math.max(28, trackH * (R.h / this.rightContentH));
+    var ty2 = R.y + 4 + (trackH - th) * (this.scrollR / this.maxScroll);
+    c.fillRR(R.x + R.w + 3, R.y + 4, 3, trackH, 2, 'rgba(124,116,155,.15)');
+    c.fillRR(R.x + R.w + 3, ty2, 3, th, 2, rgba(C.cyan, 0.55));
+  }
+  /* 右侧小结 */
+  c.font(10, 500); c.fill('rgba(125,119,153,.9)');
+  c.text('滚轮在右半屏可滚动 · 左半屏悬停表名看职责', R.x, h - 70, 'left');
+
+  /* 解说条由 App.draw 统一绘制 */
+};
+Scene4.prototype.drawTableTip = function (c, w, h, d) {
+  var pw = 340, ph = 76;
+  var x = clamp(this.hover.x + this.hover.w / 2 - pw / 2, 8, w - pw - 8);
+  var y = this.hover.y - ph - 8;
+  if (y < 46) y = this.hover.y + this.hover.h + 8;
+  c.save();
+  c.fillRR(x, y, pw, ph, 9, 'rgba(10,10,26,.96)');
+  c.glowRR(x, y, pw, ph, 9, rgba(d.star ? C.warn : d.col, 0.7), 1.2, rgba(d.star ? C.warn : d.col, 0.5), 14);
+  c.font(12, 700); c.fill(d.star ? '#ddcda9' : '#efe9f5');
+  c.text(d.name, x + 12, y + 17, 'left');
+  c.font(9.5, 600); c.fill(rgba(d.col, 0.9));
+  c.text(d.group + (d.star ? ' · 最重要' : ''), x + 12 + c.measure(d.name, 12, 700) + 10, y + 17.5, 'left');
+  c.font(10.5, 500); c.fill('rgba(198,192,215,.94)');
+  c.para(d.duty, x + 12, y + 38, pw - 24, 15, 10.5, 'rgba(198,192,215,.94)', 400, 2);
+  c.restore();
+};
+Scene4.prototype.onHover = function (mx, my) {
+  this.pane = (mx > this.right.x - 12) ? 'R' : 'L';
+  if (this.pane === 'L') { Scene.prototype.onHover.call(this, mx, my); this.hoverApi = null; }
+  else {
+    this.hover = null;
+    this.hoverApi = null;
+    var R = this.right;
+    for (var k = 0; k < T4_APIS.length; k++) {
+      var A = T4_APIS[k];
+      for (var j = 0; j < A.items2.length; j++) {
+        var it = A.items2[j], sy = it.y - this.scrollR;
+        if (mx >= it.x && mx <= it.x + it.w && my >= sy && my <= sy + it.h) { this.hoverApi = it.path; break; }
+      }
+    }
+  }
+  cv.el.style.cursor = (this.hover || this.hoverApi) ? 'pointer' : 'default';
+};
+Scene4.prototype.onWheel = function (mx, my, d) {
+  if (mx > this.right.x - 12) this.scrollR = clamp(this.scrollR + d * 0.55, 0, this.maxScroll);
+};
+Scene4.prototype.onClick = function (mx, my) {
+  Scene.prototype.onClick.call(this, mx, my);
+  var h = this.hitTest(mx, my);
+  if (h) this.selected = h.data;
+};
+Scene4.prototype.reset = function () { Scene.prototype.reset.call(this); this.scrollR = 0; this.hoverApi = null; };
+
+/* ==========================================================================
+   8. App：主循环 / 标签页 / 控制条 / 探针
+   ========================================================================== */
+var canvasEl = document.getElementById('cv');
+var stageEl = document.getElementById('stage');
+var cv = new Cv(canvasEl);
+var bg = new Background(1280, 720);
+var scenes = [new Scene1(), new Scene2(), new Scene3(), new Scene4()];
+
+var app = {
+  idx: 0, playing: false, bgT: 0, autoPlay: false,
+  w: 1280, h: 720, k: 1, lastT: 0, rafId: 0, frame: 0
+};
+
+/* ---- 显示模式（适配屏幕 / 完整尺寸）与移动端 DOM ---- */
+var cvboxEl = document.getElementById('cvbox');
+var drawerEl = document.getElementById('drawer');
+var hintEl = document.getElementById('swipeHint');
+var btnView = document.getElementById('btnView');
+var btnZin = document.getElementById('btnZoomIn');
+var btnZout = document.getElementById('btnZoomOut');
+var viewMode = 'auto';            /* auto：竖屏自动“完整尺寸”，横屏/桌面“适配屏幕” */
+
+function viewInfo() {
+  var narrow = window.innerWidth <= 860;
+  var portrait = window.innerHeight >= window.innerWidth;
+  return {
+    narrow: narrow, portrait: portrait,
+    wide: narrow && (viewMode === 'auto' ? portrait : viewMode === 'wide')
+  };
+}
+function syncViewUI() {
+  btnView.textContent = VIEW.wide ? '⤢ 适配屏幕' : '⤢ 完整尺寸';
+  var showZoom = (app.idx === 0);
+  btnZin.style.display = showZoom ? '' : 'none';
+  btnZout.style.display = showZoom ? '' : 'none';
+  if (VIEW.wide) hintEl.style.removeProperty('display');
+  else hintEl.style.display = 'none';
+}
+/* ---- 节点详情：手机 = 全宽底部抽屉 ---- */
+function escHTML(s) {
+  return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+function drawerHTML(n) {
+  var s1 = scenes[0], h = '';
+  h += '<div class="dw-hd"><span class="dw-name">' + escHTML(n.name) + '</span>' +
+       '<button class="dw-x" id="dwClose" type="button" aria-label="关闭">×</button></div>';
+  h += '<div class="dw-layer">' + escHTML(n.layer) + ' · ' + escHTML(n.layerSub) + '</div>';
+  h += '<div class="dw-tech">' + escHTML(n.tech) + '</div>';
+  h += '<div class="dw-m"><div><span>处理速率【估算】</span><b data-m="qps">' + s1.qpsOf(n).toFixed(1) + '</b></div>' +
+       '<div><span>平均耗时</span><b data-m="ms">' + s1.msOf(n).toFixed(n.ms < 10 ? 2 : 0) + ' ms</b></div></div>';
+  h += '<h4>▌ 职责</h4><p>' + escHTML(n.duty) + '</p>';
+  h += '<h4>▌ 关键表</h4><ul>' + n.tables.map(function (t) {
+    return '<li' + (t.indexOf('★') >= 0 ? ' class="star"' : '') + '>' + escHTML(t) + '</li>';
+  }).join('') + '</ul>';
+  h += '<h4>▌ 暴露接口</h4><ul class="api">' + n.apis.map(function (t) {
+    return '<li>' + escHTML(t) + '</li>';
+  }).join('') + '</ul>';
+  return h;
+}
+function openDrawer(n) {
+  if (!VIEW.narrow || !n) return;
+  drawerEl.innerHTML = drawerHTML(n);
+  drawerEl.classList.add('show');
+  VIEW.drawerOpen = true;
+  updateTipLimit();
+}
+function closeDrawer() {
+  if (!VIEW.drawerOpen && !drawerEl.innerHTML) return;
+  drawerEl.classList.remove('show');
+  drawerEl.innerHTML = '';
+  VIEW.drawerOpen = false;
+  updateTipLimit();
+}
+function refreshDrawerMetrics() {
+  if (!VIEW.drawerOpen) return;
+  var n = scenes[0].panelNode;
+  if (!n) return;
+  var q = drawerEl.querySelector('[data-m="qps"]'), m = drawerEl.querySelector('[data-m="ms"]');
+  if (q) q.textContent = scenes[0].qpsOf(n).toFixed(1);
+  if (m) m.textContent = scenes[0].msOf(n).toFixed(n.ms < 10 ? 2 : 0) + ' ms';
+}
+/* 抽屉占了下半屏时，画布 tooltip 只能在上方可见区域里显示 */
+function updateTipLimit() {
+  if (VIEW.drawerOpen && drawerEl.classList.contains('show')) {
+    var sr = stageEl.getBoundingClientRect(), dr = drawerEl.getBoundingClientRect();
+    VIEW.tipMaxY = Math.max(96, (dr.top - sr.top) / (app.k || 1));
+  } else {
+    VIEW.tipMaxY = app.h;
+  }
+}
+function zoomScene(k) {
+  var s = scenes[app.idx];
+  if (s && s.zoomBy) { s.zoomBy(k); updateStatus(); }
+}
+
+/* ---- 标签页 ---- */
+var tabsEl = document.getElementById('tabs');
+var TAB_LABELS = ['分层架构', '业务流程', 'AI Agent 链路', '数据与接口'];
+var tabEls = [];
+for (var ti = 0; ti < 4; ti++) {
+  (function (i) {
+    var b = document.createElement('div');
+    b.className = 'tab' + (i === 0 ? ' on' : '');
+    b.setAttribute('role', 'button');
+    b.setAttribute('tabindex', '0');
+    b.setAttribute('data-scene', String(i));
+    b.innerHTML = '<i>' + (i + 1) + '</i>' + TAB_LABELS[i];
+    b.addEventListener('click', function () { setScene(i, 'tab'); });
+    tabsEl.appendChild(b);
+    tabEls.push(b);
+  })(ti);
+}
+function setScene(i, src) {
+  i = clamp(i | 0, 0, 3);
+  var cur = scenes[app.idx];
+  cur.active = false; cur.playing = false;
+  app.idx = i;
+  var nx = scenes[i];
+  nx.active = true;
+  nx.playing = app.playing;
+  for (var k = 0; k < tabEls.length; k++) tabEls[k].className = 'tab' + (k === i ? ' on' : '');
+  closeDrawer();
+  if (VIEW.narrow && tabEls[i] && tabEls[i].scrollIntoView) {
+    try { tabEls[i].scrollIntoView({ block: 'nearest', inline: 'center' }); } catch (e0) { }
+  }
+  nx.layout(app.w, app.h);
+  syncViewUI();
+  /* 手机上控制条会因 ＋/− 按钮显隐而换行，重新量一次舞台 */
+  if (VIEW.narrow) fit();
+  try {
+    if (typeof window.__onScene === 'function') window.__onScene(i);
+  } catch (e) { ERRORS.push(String(e)); }
+}
+function setPlaying(b) {
+  app.playing = !!b;
+  for (var i = 0; i < scenes.length; i++) scenes[i].playing = app.playing && scenes[i].active;
+  var btn = document.getElementById('btnPlay');
+  btn.textContent = app.playing ? '⏸ 暂停' : '▶ 播放';
+  btn.className = app.playing ? 'on' : '';
+  updateStatus();
+}
+function resetScene() {
+  var s = scenes[app.idx];
+  s.reset();
+  s.layout(app.w, app.h);
+  updateStatus();
+}
+function updateStatus() {
+  var cur = scenes[app.idx];
+  document.getElementById('st').textContent =
+    (app.playing ? '播放中' : (cur.t > 0.01 ? '已暂停' : '未播放')) +
+    ' · 场景 ' + (app.idx + 1) + '/4 · t=' + cur.t.toFixed(1) + 's';
+}
+document.getElementById('btnPlay').addEventListener('click', function () { setPlaying(!app.playing); });
+document.getElementById('btnReset').addEventListener('click', resetScene);
+var chkAuto = document.getElementById('chkAuto');
+chkAuto.checked = false;
+chkAuto.addEventListener('change', function () {
+  app.autoPlay = !!chkAuto.checked;
+  if (app.autoPlay) setPlaying(true);
+});
+document.getElementById('hint').innerHTML = '空格 <b>播放/暂停</b> · <b>1-4</b> 切场景 · 场景一可滚轮缩放 / 拖拽平移';
+btnView.addEventListener('click', function () {
+  viewMode = VIEW.wide ? 'fit' : 'wide';
+  fit();
+  draw();
+});
+btnZin.addEventListener('click', function () { zoomScene(1.25); });
+btnZout.addEventListener('click', function () { zoomScene(0.8); });
+drawerEl.addEventListener('click', function (e) {
+  if (e.target && e.target.id === 'dwClose') closeDrawer();
+});
+
+/* ---- 尺寸 / 显示模式 ---- */
+function fit() {
+  var info = viewInfo();
+  var wasWide = VIEW.wide, wasW = app.w;
+  VIEW.narrow = info.narrow; VIEW.portrait = info.portrait; VIEW.wide = info.wide;
+  syncViewUI();                       /* 先按模式显隐控件（会改变控制条行数，进而影响舞台高度） */
+  var r = stageEl.getBoundingClientRect();
+  var dpr = Math.min(window.devicePixelRatio || 1, 2);
+  var sw = Math.max(280, Math.round(r.width));
+  var sh = Math.max(240, Math.round(r.height));
+  VIEW.clientW = sw; VIEW.clientH = sh;
+  var LOGW = Math.min(1400, Math.max(880, Math.round(sw * LOGICAL_MULT)));
+  if (VIEW.wide) {
+    /* 竖屏“完整尺寸”：画布逻辑宽 = 手机宽 × 2.4，靠横向滑动看全 */
+    app.w = LOGW; app.h = sh; app.k = 1;
+  } else if (info.portrait || sw < 1180) {
+    /* ★“适配屏幕”：整幅画面等比缩小铺满可视区。
+       原来是 (info.narrow && info.portrait) 才走这里 —— 结果**桌面窄窗口走的是 1:1 逻辑像素**，
+       架构图本身比窗口宽（约 1288px 逻辑宽），于是右边被裁掉、还得横向拖才能看全
+       （用户反馈：“这个怎么随着我的窗口缩小而动的”）。
+       现在改成：只要不是竖屏“完整尺寸”，一律把逻辑宽拉到 LOGW、
+       再把**画布高度按缩放比例反推**，这样整张图必然完整落在可视区内。
+
+       注意逻辑宽为什么必须是 LOGW 而不是 sw：
+       场景一的摄像机在 layout() 里会做一次自适应缩放
+       （min(可用宽/ARCH.w, 可用高/ARCH.h)，且下限 0.5），
+       如果 canvas 逻辑宽只有 sw（比如 900），缩放会被顶到下限 0.5 或算出的值偏小，
+       画面反而更小、四周留白。给足 LOGW 让摄像机有空间，结果最稳。 */
+    app.w = LOGW;
+    app.k = Math.min(sw / LOGW, sh / Math.max(1, EST_H));
+    app.h = Math.round(sh / app.k);
+  } else {
+    app.w = Math.max(360, sw); app.h = sh; app.k = 1;
+  }
+  cv.resize(app.w, app.h, dpr, app.k);
+  cv.el.style.width = Math.round(app.w * app.k) + 'px';
+  cv.el.style.height = Math.round(app.h * app.k) + 'px';
+  cvboxEl.style.width = Math.round(app.w * app.k) + 'px';
+  cvboxEl.style.height = Math.round(app.h * app.k) + 'px';
+  document.body.classList.toggle('m-wide', VIEW.wide);
+  bg.resize(app.w, app.h);
+  wrapCache = {};
+  var refit = (wasWide !== VIEW.wide) || (wasW !== app.w);
+  for (var i = 0; i < scenes.length; i++) {
+    if (refit && scenes[i].camReady !== undefined) scenes[i].camReady = false;
+    scenes[i].layout(app.w, app.h);
+  }
+  VIEW.scrollLeft = stageEl.scrollLeft || 0;
+  updateTipLimit();
+}
+window.addEventListener('resize', fit);
+window.addEventListener('orientationchange', function () { setTimeout(fit, 220); });
+stageEl.addEventListener('scroll', function () {
+  VIEW.scrollLeft = stageEl.scrollLeft || 0;
+  if (stageEl.scrollLeft > 24 && !VIEW.hintDone) { VIEW.hintDone = true; }
+  if (stageEl.scrollLeft > 24) hintEl.classList.add('dim');
+}, { passive: true });
+setTimeout(function () { hintEl.classList.add('dim'); }, 3000);
+
+/* ---- 输入：鼠标 ---- */
+function evPos(e) {
+  var r = canvasEl.getBoundingClientRect();
+  var k = app.k || 1;
+  return { x: (e.clientX - r.left) / k, y: (e.clientY - r.top) / k };
+}
+canvasEl.addEventListener('mousemove', function (e) {
+  if (touchGesture) return;
+  var p = evPos(e), s = scenes[app.idx];
+  s.onMove(p.x, p.y);
+  s.onHover(p.x, p.y);
+});
+canvasEl.addEventListener('mousedown', function (e) {
+  var p = evPos(e), s = scenes[app.idx];
+  s.down = { x: p.x, y: p.y };
+  s.onDown(p.x, p.y);
+});
+window.addEventListener('mouseup', function (e) {
+  var s = scenes[app.idx];
+  if (!s.down) return;
+  var r = canvasEl.getBoundingClientRect();
+  var k = app.k || 1;
+  var mx = (e.clientX - r.left) / k, my = (e.clientY - r.top) / k;
+  var moved = s.onUp ? s.onUp(mx, my) : 0;
+  if ((moved || 0) < 5) s.onClick(mx, my);
+  s.down = null;
+});
+canvasEl.addEventListener('mouseleave', function () { scenes[app.idx].hover = null; });
+canvasEl.addEventListener('wheel', function (e) {
+  e.preventDefault();
+  var p = evPos(e), s = scenes[app.idx];
+  s.onWheel(p.x, p.y, e.deltaY);
+  s.onHover(p.x, p.y);
+}, { passive: false });
+
+/* ---- 输入：触摸（单指拖拽平移 / 双指捏合缩放 / 点一下看指标与详情） ---- */
+var touchGesture = null;
+function tPos(t) {
+  var r = canvasEl.getBoundingClientRect();
+  var k = app.k || 1;
+  return { x: (t.clientX - r.left) / k, y: (t.clientY - r.top) / k };
+}
+function tDist(a, b) { return Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY); }
+function tMid(a, b) { return { clientX: (a.clientX + b.clientX) / 2, clientY: (a.clientY + b.clientY) / 2 }; }
+
+canvasEl.addEventListener('touchstart', function (e) {
+  var s = scenes[app.idx];
+  hintEl.classList.add('dim');
+  if (e.touches.length >= 2) {
+    /* 双指：捏合缩放（场景一），并取消已经开始的平移/单击 */
+    if (s.drag) s.drag = null;
+    s.down = null;
+    touchGesture = {
+      pinch: tDist(e.touches[0], e.touches[1]), moved: 999, multi: true,
+      x: 0, y: 0, cx0: 0, scroll0: stageEl.scrollLeft
+    };
+    e.preventDefault();
+    return;
+  }
+  var t = e.touches[0], p = tPos(t);
+  touchGesture = {
+    pinch: 0, multi: false, moved: 0, x: p.x, y: p.y,
+    cx0: t.clientX, cy0: t.clientY, scroll0: stageEl.scrollLeft
+  };
+  s.down = { x: p.x, y: p.y };
+  s.onDown(p.x, p.y);
+  e.preventDefault();
+}, { passive: false });
+
+canvasEl.addEventListener('touchmove', function (e) {
+  var s = scenes[app.idx];
+  if (!touchGesture) return;
+  if (e.touches.length >= 2) {
+    var d = tDist(e.touches[0], e.touches[1]);
+    var mid = tMid(e.touches[0], e.touches[1]);
+    var pm = tPos(mid);
+    if (touchGesture.pinch > 0 && d > 0 && s.zoomBy) s.zoomBy(d / touchGesture.pinch, pm.x, pm.y);
+    touchGesture.pinch = d;
+    touchGesture.multi = true;
+    touchGesture.moved = 999;
+    e.preventDefault();
+    return;
+  }
+  if (touchGesture.multi) return;
+  var t = e.touches[0], p = tPos(t);
+  touchGesture.moved = Math.max(touchGesture.moved,
+    Math.abs(t.clientX - touchGesture.cx0) + Math.abs(t.clientY - touchGesture.cy0));
+  if (s.cam) {
+    /* 场景一：单指拖动 = 画布平移（拖到哪看到哪，不跟着页面滚） */
+    s.onMove(p.x, p.y);
+  } else {
+    /* 其他场景：单指拖动 = 横向滑动查看完整画面；右半屏可纵向滚动内部面板 */
+    stageEl.scrollLeft = Math.max(0, touchGesture.scroll0 - (t.clientX - touchGesture.cx0));
+    VIEW.scrollLeft = stageEl.scrollLeft;
+    if (s.maxScroll > 0.5) s.onWheel(p.x, p.y, -(p.y - touchGesture.y));
+  }
+  touchGesture.x = p.x; touchGesture.y = p.y;
+  e.preventDefault();
+}, { passive: false });
+
+canvasEl.addEventListener('touchend', function (e) {
+  var s = scenes[app.idx];
+  if (!touchGesture) return;
+  if (e.touches.length > 0) return;          /* 还有手指在屏幕上 */
+  var g = touchGesture;
+  touchGesture = null;
+  if (!g.multi && g.moved < 8) {
+    var p = tPos(e.changedTouches[0]);
+    if (s.onUp) s.onUp(p.x, p.y);
+    if (s.onTap) s.onTap(p.x, p.y); else s.onClick(p.x, p.y);
+  } else if (s.down) {
+    if (s.onUp) s.onUp();
+  }
+  s.down = null;
+  updateStatus();
+  e.preventDefault();
+}, { passive: false });
+canvasEl.addEventListener('touchcancel', function () {
+  if (touchGesture) { scenes[app.idx].down = null; touchGesture = null; }
+}, { passive: true });
+
+window.addEventListener('keydown', function (e) {
+  if (e.code === 'Space' || e.key === ' ') { e.preventDefault(); setPlaying(!app.playing); }
+  else if (e.key >= '1' && e.key <= '4') setScene(parseInt(e.key, 10) - 1, 'key');
+});
+
+/* ---- 主循环：背景永远流动，场景只在 active && playing 时推进 ---- */
+function tick(now) {
+  app.rafId = window.requestAnimationFrame(tick);
+  if (!app.lastT) app.lastT = now;
+  var dt = (now - app.lastT) / 1000;
+  app.lastT = now;
+  if (!isFinite(dt) || dt < 0) dt = 0;
+  if (dt > 0.06) dt = 0.06;
+  app.bgT += dt;
+  app.frame++;
+  for (var i = 0; i < scenes.length; i++) {
+    var s = scenes[i];
+    if (!s.active) continue;
+    if (app.playing) s.update(dt);   /* 数据/动画推进：只有播放时才走 */
+    s.uiUpdate(dt);                  /* 悬停 / 面板等交互态：前台就响应 */
+  }
+  draw();
+  if (app.frame % 12 === 0) updateStatus();
+  if (app.frame % 18 === 0) refreshDrawerMetrics();
+}
+function draw() {
+  cv.reset();
+  VIEW.scrollLeft = stageEl.scrollLeft || 0;
+  bg.draw(cv, app.bgT);
+  var s = scenes[app.idx];
+  if (s) {
+    s.layout(app.w, app.h);
+    /* 场景自己负责画内容；底部解说条由这里统一绘制在屏幕坐标下（不随滚动移动） */
+    s.draw(cv, app.w, app.h);
+    Scene.prototype.drawNarration.call(s, cv, app.w, app.h);
+  }
+  /* 注意：这里不能再调用 cv.reset()，否则会把刚画好的整帧清空 */
+  if (typeof window.__drawHook === 'function') {
+    try { window.__drawHook(cv, app); } catch (e2) { ERRORS.push(String(e2)); }
+  }
+}
+
+/* ---- 探针 ---- */
+window.__probe = function () {
+  var cur = scenes[app.idx];
+  var needSwipe = stageEl.scrollWidth > stageEl.clientWidth + 4;
+  return {
+    scene: cur ? cur.id : 'none',
+    playing: !!app.playing,
+    canvas: { w: cv.w, h: cv.h },
+    bgT: app.bgT,
+    sceneT: cur ? cur.t : 0,
+    tabs: tabEls.length,
+    errors: ERRORS.length,
+    sceneIndex: app.idx,
+    autoPlay: !!app.autoPlay,
+    DPR: cv.dpr,
+    sceneTimes: [scenes[0].t, scenes[1].t, scenes[2].t, scenes[3].t],
+    view: {
+      mode: VIEW.wide ? '完整尺寸' : '适配屏幕',
+      narrow: !!VIEW.narrow, portrait: !!VIEW.portrait, wide: !!VIEW.wide,
+      logical: { w: app.w, h: app.h },
+      css: { w: Math.round(app.w * app.k), h: Math.round(app.h * app.k) },
+      k: +app.k.toFixed(4),
+      viewport: { w: window.innerWidth, h: window.innerHeight },
+      scrollLeft: Math.round(VIEW.scrollLeft || 0),
+      maxScroll: Math.max(0, stageEl.scrollWidth - stageEl.clientWidth),
+      needSwipe: needSwipe,
+      hintShown: VIEW.wide,
+      drawer: !!VIEW.drawerOpen,
+      camZ: +scenes[0].cam.z.toFixed(3)
+    }
+  };
+};
+window.__zoom = function (k) { zoomScene(k); };
+window.__view = function (m) { viewMode = m; fit(); draw(); };
+window.__tap = function (x, y) { scenes[app.idx].onTap(x, y); };
+window.__touchOK = function () {
+  return {
+    touchstart: true,
+    canvasTouchAction: getComputedStyle(canvasEl).touchAction,
+    stageOverflowX: getComputedStyle(stageEl).overflowX,
+    drawerMaxH: getComputedStyle(drawerEl).maxHeight
+  };
+};
+window.__scene = function (i) { setScene(i, 'probe'); };
+window.__setPlaying = function (b) { setPlaying(b); };
+window.__errors = function () { return ERRORS.slice(); };
+
+/* ---- 启动（默认不自动播放） ---- */
+fit();
+scenes[0].active = true;
+setPlaying(false);
+app.lastT = 0;
+/* 立刻同步画一帧：即使 RAF 还没触发/被无头环境节流，画布也不会是空白 */
+draw();
+updateStatus();
+app.rafId = window.requestAnimationFrame(tick);
+/* 便于自动化截图 / 分享链接：?scene=2&play=1 可直接定位并自动播放 */
+try {
+  var qs = String(window.location.search || '');
+  var mScene = /[?&]scene=(\d)/.exec(qs);
+  if (mScene) setScene(parseInt(mScene[1], 10), 'url');
+  if (/[?&]play=1/.test(qs)) {
+    var mAuto = /[?&]auto=1/.test(qs);
+    if (mAuto) { chkAuto.checked = true; app.autoPlay = true; }
+    setPlaying(true);
+  }
+  draw();
+} catch (e) { ERRORS.push(String(e)); }
+window.__ready = true;
+})();
+</script>
+</body>
+</html>
