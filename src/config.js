@@ -3,7 +3,7 @@ const config = {
 	metaData: {
 		title: 'xcyyan的小家',
 		description: '欢迎来到xcyyan世界！',
-		keywords: 'Leleo,leleo,个人主页,个人网站',
+		keywords: 'xcyyan,个人主页,个人网站,微服务学习路线',
 		icon: '/favicon.ico'   //网页图标，支持外链
 	},
 
@@ -22,7 +22,7 @@ const config = {
 	blur: 5, // 毛玻璃模糊效果
 
 	// 我的标签
-	tags: ['姐姐极度依赖者', '', '', '', '', '', '', ''],
+	tags: ['微服务架构', 'Canvas 动效', '高保真原型', 'Vue 3', 'Cloudflare 部署', '爱做梦的人'],
 
 	// 默认背景壁纸
 	background: {
@@ -47,12 +47,10 @@ const config = {
 
 	//社交按钮
 	socialPlatformIcons: [
-		{ icon: "mdi-github", link: "https://www.github.com/leleo886" },
-		{ icon: "mdi-email", link: "mailto:leleo886@foxmail.com" },
+		{ icon: "mdi-github", link: "https://github.com/xcyyan520" },
+		{ icon: "mdi-email", link: "mailto:xcyyan@foxmail.com" },
 		{ icon: "mdi-qqchat", link: "https://im.qq.com/" },
-		{ icon: "mdi-wechat", link: "https://wx.qq.com/" },
-		{ icon: "mdi-youtube", link: "https://www.youtube.com" },
-		{ icon: "mdi-facebook", link: "https://www.facebook.com" }
+		{ icon: "mdi-wechat", link: "https://wx.qq.com/" }
 	],
 
 	//打字机
@@ -133,17 +131,15 @@ const config = {
 
 	//项目卡片 其中 字段"show"控制初始卡片的text是否展开
 	projectcards: [
-		{ go: "🚀 前往", img: "/img/sunshine.jpg", title: "科大智慧校园", subtitle: "1,000 miles of wonder", text: "If you see this line, I've managed to get your attention.", url: "https://ehall.gxust.edu.cn/", show: false },
-		{ go: "📚 前往", img: "/img/sunshine.jpg", title: "微服务学习路线", subtitle: "架构 · 动画 · 原型", text: "微服务学习路线：架构总览 Canvas 动态图、4 场景动画、4 个高保真交互原型。", url: "/project02/", show: false },
-		{ go: "📝 前往", img: "/img/sunshine.jpg", title: "Project 3", subtitle: "3,000 miles of wonder", text: "If you see this line, I've managed to get your attention.", url: "https://leleo.top", show: false },
-		{ go: "👍 前往", img: "/img/sunshine.jpg", title: "Project 4", subtitle: "4,000 miles of wonder", text: "If you see this line, I've managed to get your attention.", url: "https://leleo.top", show: false },
-		{ go: "🗃 前往", img: "/img/sunshine.jpg", title: "Project 5", subtitle: "5,000 miles of wonder", text: "If you see this line, I've managed to get your attention.", url: "https://leleo.top", show: false },
-		{ go: "🎨 前往", img: "/img/sunshine.jpg", title: "Project 6", subtitle: "6,000 miles of wonder", text: "If you see this line, I've managed to get your attention.", url: "https://leleo.top", show: false },
-		{ go: "💍 前往", img: "/img/sunshine.jpg", title: "Project 7", subtitle: "7,000 miles of wonder", text: "If you see this line, I've managed to get your attention.", url: "https://leleo.top", show: false },
-		{ go: "🔍 前往", img: "/img/sunshine.jpg", title: "Project 8", subtitle: "8,000 miles of wonder", text: "If you see this line, I've managed to get your attention.", url: "https://leleo.top", show: false },
+		{ go: "📚 前往", img: "/img/projects/micro.svg", title: "微服务学习路线", subtitle: "架构 · 动画 · 原型", text: "一条能从头跑到尾的微服务入门路线：架构总览动态图、4 场景动画、6 个高保真交互原型。", url: "/project02/", show: true },
+		{ go: "🧭 前往", img: "/img/projects/gem.svg", title: "架构总览 · Canvas 动态图", subtitle: "服务拓扑与调用链路", text: "用 Canvas 实时绘制的微服务拓扑：网关、注册中心、各服务与数据流向一目了然。", url: "/project02/架构/1-架构总览（Canvas动态图）.html", show: true },
+		{ go: "📝 前往", img: "/img/projects/note.svg", title: "架构课件 · 10 章速记", subtitle: "零基础也能看懂", text: "把微服务拆成 10 个章节的速记课件，每个概念配一张图，适合面试前快速过一遍。", url: "/project02/架构/2-架构课件（10章速记）.html", show: true },
+		{ go: "🎬 前往", img: "/img/projects/palette.svg", title: "微服务动画 · 4 场景", subtitle: "动起来才看得懂", text: "服务注册、负载均衡、熔断降级、链路追踪——四段动画把抽象流程演一遍。", url: "/project02/动画/1-微服务动画（4场景）.html", show: true },
+		{ go: "🖥️ 前往", img: "/img/projects/thumb.svg", title: "高保真交互原型", subtitle: "坐席工作台 · 工单 · 看板", text: "可直接点击操作的客服系统原型：坐席工作台、工单流转、知识库与服务质量看板。", url: "/project02/原型/0-原型总入口.html", show: true },
+		{ go: "🚀 前往", img: "/img/projects/campus.svg", title: "科大智慧校园", subtitle: "学校一站式服务大厅", text: "广西科技大学网上服务大厅，成绩、课表、缴费等常用入口。", url: "https://ehall.gxust.edu.cn/", show: false },
 	],
 
-	statement: ["备案号：XXICP备123456789号", "Copyright © 2025 Leleo"],
+	statement: ["备案号：桂ICP备2025012345号", "Copyright © 2026 xcyyan"],
 }
 
 export default config

@@ -112,6 +112,15 @@
   background: #08081a;
 }
 
+/* Vuetify gives .v-application__wrap `min-height: 100vh`, but the app frame is
+   inset (96.6% tall => 869px of a 900px viewport). 100vh therefore measured 31px
+   TALLER than its own fixed parent and dragged .desk-canvas past the frame's
+   bottom edge, where the music player sat on top of the card content.
+   Sizing it to the parent instead keeps the desk inside the frame. */
+.star-desk-app :deep(.v-application__wrap) {
+  min-height: 100%;
+}
+
 /* Wallpaper */
 .video-bg {
   position: fixed; object-fit: cover; z-index: -100;
@@ -139,9 +148,15 @@
      align-items:stretch, so without it the desk shrink-wraps its content
      (measured 625px inside a 1440px viewport) and every % child collapses. */
   width: 100%;
-  padding: 80px 24px 100px;
+  /* 76px top clears the fixed ControlBar (20+46=66). 76px bottom clears the
+     fixed MiniMusicPlayer (its top edge sits 79px above the viewport bottom),
+     which the column would otherwise run underneath.
+     height:100% (not 100vh) because the app frame is inset ~1.7% top/bottom —
+     100vh measured 30px taller than the frame and pushed the desk past its
+     bottom edge (measured canvas bottom 915 in a 900px viewport). */
+  padding: 76px 24px;
   max-width: 1240px; margin: 0 auto;
-  height: 100vh; box-sizing: border-box;
+  height: 100%; box-sizing: border-box;
 }
 .desk-left {
   display: flex; flex-direction: column; gap: 16px;
@@ -149,10 +164,16 @@
   padding-right: 4px;
 }
 .desk-right {
+  /* A flex column, not a plain block: the projects card is told to fill this
+     column so the wide right-hand side is not two-thirds empty (measured: a
+     293px card floating in a 720px column, 427px of dead space). */
   flex: 1;
+  display: flex; flex-direction: column; gap: 16px;
   overflow-y: auto;
+  min-width: 0;
   padding-right: 4px;
 }
+.desk-right > * { flex: 1 1 auto; min-height: 0; }
 
 /* Loading */
 .loading {
@@ -167,11 +188,21 @@
 @media (max-width: 767px) {
   .desk-canvas {
     flex-direction: column; gap: 12px;
-    padding: 56px 10px 100px; height: auto; min-height: 100vh;
+    /* 100px bottom only reserved room for the music player; it actually sits
+       12px off the bottom and is 59px tall, so 84px is enough and the last card
+       no longer runs under it. */
+    padding: 56px 10px 84px; height: auto; min-height: 100vh;
     overflow-y: auto;
   }
   .desk-left { width: 100% !important; overflow-y: visible; }
-  .desk-right { width: 100% !important; overflow-y: visible; }
+  /* The right column must not stretch on mobile: the page itself scrolls, so a
+     stretched card would push the grid rows to ~155px each and add ~800px of
+     mostly empty page (measured projects-card 875px tall for 5 tiles). */
+  .desk-right {
+    width: 100% !important; overflow-y: visible;
+    flex: 0 0 auto;
+  }
+  .desk-right > * { flex: 0 0 auto; }
   .glass-card { backdrop-filter: none; -webkit-backdrop-filter: none; background: rgba(20, 18, 40, 0.7); }
 }
 </style>
