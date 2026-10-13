@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>2026年10月13日 · 老师模拟面（六问 + 一条建议）</title>
+<style>
+/* ============ 面试问答页 · 页面级样式 ============ */
+:root{
+  --bg:#07060f; --card:#171430; --card2:#12102a; --line:#2a2740;
+  --cy:#8b7aaa; --blue:#7f8fb5; --amber:#c4a970; --green:#7fa07a;
+  --red:#b56a6a; --txt:#d8d2c8; --dim:#a09a90; --faint:#7a7468;
+  --radius:14px;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0; background:var(--bg); color:var(--txt);
+  font-size:15px; line-height:1.8;
+  -webkit-font-smoothing:antialiased;
+}
+a{color:var(--cy)}
+
+/* ---- 顶部导航（与 架构/2 同款）---- */
+.topbar{
+  position:sticky; top:0; z-index:900;
+  background:rgba(9,9,25,.93);
+  border-bottom:1px solid var(--line);
+}
+.topbar-inner{
+  max-width:820px; margin:0 auto; padding:10px 20px;
+  display:flex; align-items:center; gap:14px; flex-wrap:wrap;
+}
+.brand{display:flex; align-items:center; gap:8px; font-size:15px; color:#e8e2d8; white-space:nowrap}
+.brand .dot{width:7px;height:7px;border-radius:50%;background:var(--cy);flex:0 0 auto}
+.brand small{color:var(--faint); font-size:12.5px}
+.nav{display:flex; gap:4px; flex-wrap:wrap; margin-left:auto}
+.nav a{
+  font-size:13px; color:var(--dim); text-decoration:none;
+  padding:5px 9px; border-radius:7px; border:1px solid transparent;
+  white-space:nowrap;
+}
+.nav a:hover{color:#e8e2d8; background:rgba(139,122,170,.12); border-color:var(--line)}
+.backlink{
+  display:inline-flex; align-items:center; min-height:32px; padding:0 10px;
+  border:1px solid var(--line); border-radius:6px; background:var(--card2);
+  color:var(--blue); text-decoration:none; font-size:13px; white-space:nowrap;
+}
+
+/* ---- 正文容器 ---- */
+.wrap{max-width:820px; margin:0 auto; padding:20px 20px 90px}
+
+/* ---- 页首 ---- */
+.hero{padding:26px 0 6px; border-bottom:1px solid var(--line); margin-bottom:26px}
+.hero h1{
+  margin:0 0 8px; font-size:23px; line-height:1.45; color:#ece7f3;
+  font-family:'Georgia','Noto Serif SC','Songti SC',serif; letter-spacing:.02em;
+}
+.hero .meta{color:var(--faint); font-size:13px}
+
+/* ---- 每题一张卡 ---- */
+.q{
+  background:var(--card2); border:1px solid var(--line); border-radius:var(--radius);
+  padding:22px 20px; margin:0 0 22px;
+}
+.q-head{display:flex; align-items:baseline; gap:11px; margin:0 0 16px}
+.q-no{
+  flex:0 0 auto; min-width:30px; height:30px; padding:0 8px;
+  display:inline-flex; align-items:center; justify-content:center;
+  border-radius:9px; background:rgba(139,122,170,.16);
+  border:1px solid rgba(139,122,170,.34); color:#cbbde8;
+  font-size:14px; line-height:1;
+}
+.q-head h2{
+  margin:0; font-size:21px; line-height:1.45; color:#ece7f3;
+  font-family:'Georgia','Noto Serif SC','Songti SC',serif; letter-spacing:.02em;
+}
+
+/* ---- 正文元素 ---- */
+.q h3{
+  margin:26px 0 10px; padding:2px 0 2px 12px; font-size:15px;
+  border-left:3px solid rgba(139,122,170,.6); color:#ded8cf;
+}
+.q h4{margin:20px 0 8px; font-size:14.5px; color:#cfc7de}
+.q p{margin:0 0 13px}
+.q ul,.q ol{margin:0 0 13px; padding-left:22px}
+.q li{margin:0 0 6px}
+.q li>ul,.q li>ol{margin-top:6px}
+
+blockquote{
+  margin:0 0 15px; padding:13px 16px;
+  background:rgba(139,122,170,.07);
+  border-left:3px solid rgba(139,122,170,.5); border-radius:0 9px 9px 0;
+  color:#ded8cf;
+}
+blockquote p:last-child{margin-bottom:0}
+blockquote ul,blockquote ol{margin-bottom:0}
+blockquote code{background:rgba(0,0,0,.3)}
+
+code{
+  font-family:ui-monospace,"Cascadia Mono",Consolas,Menlo,monospace;
+  font-size:13px; padding:1px 5px; border-radius:5px;
+  background:#1c1936; border:1px solid var(--line); color:#cbbde8;
+}
+pre.code{
+  margin:0 0 15px; padding:13px 15px; overflow-x:auto;
+  background:#0d0b1c; border:1px solid var(--line); border-radius:10px;
+  line-height:1.7;
+}
+pre.code code{background:none; border:none; padding:0; font-size:12.5px; color:#c9c2b8}
+
+.tblwrap{
+  margin:0 0 15px; border:1px solid var(--line); border-radius:10px;
+  overflow-x:auto; -webkit-overflow-scrolling:touch; background:var(--card);
+}
+table{border-collapse:collapse; width:100%; min-width:520px; font-size:13px}
+th,td{padding:9px 12px; text-align:left; border-bottom:1px solid var(--line); vertical-align:top}
+th{background:rgba(139,122,170,.1); color:#ded8cf; font-weight:600; white-space:nowrap}
+tbody tr:last-child td{border-bottom:none}
+
+.totop{
+  position:fixed; right:18px; bottom:18px; z-index:800;
+  width:42px; height:42px; border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  background:rgba(23,20,48,.92); border:1px solid var(--line); color:var(--dim);
+  font-size:17px; cursor:pointer; opacity:0; pointer-events:none;
+  transition:opacity .22s;
+}
+.totop.on{opacity:1; pointer-events:auto}
+.totop:hover{color:#e8e2d8; border-color:rgba(139,122,170,.5)}
+
+@media (max-width:767px){
+  .topbar-inner{padding:9px 14px; gap:10px}
+  .nav{order:3; width:100%; margin-left:0; overflow-x:auto; flex-wrap:nowrap; padding-bottom:2px}
+  .wrap{padding:14px 14px 80px}
+  .q{padding:17px 15px; border-radius:12px}
+  .hero h1{font-size:20px}
+  .q-head h2{font-size:18px}
+  .q-head{gap:9px}
+  .q-no{min-width:27px; height:27px; font-size:13px}
+}
+</style>
+<style id="sd-skin">
+/* ==================================================================
+   Star Desk skin v2 — 星空桌面 (generated · performance-first)
+   bg #07060f/#0a0a1a · 柔紫 #8b7aaa · 淡金 #c4a970 · 无霓虹
+   NOTE: no backdrop-filter and no starfield animation anywhere —
+         both were measured as the dominant frame costs.
+   ================================================================== */
+
+/* ---- flat root; all atmosphere lives on ONE fixed layer ---- */
+html{ background-color:#07060f; }
+body{
+  background-color:transparent !important;
+  background-image:none !important;
+}
+/* single fixed layer: 3 nebula glows (no-repeat) + 2 star tiles (repeat).
+   One paint, no animation, no per-frame cost while scrolling. */
+body::before{
+  content:'';position:fixed;inset:0;z-index:-1;pointer-events:none;
+  background-image:
+    radial-gradient(1200px 680px at 6% -10%,rgba(139,122,170,.16),transparent 62%),
+    radial-gradient(980px 600px at 98% 2%,rgba(127,143,181,.11),transparent 64%),
+    radial-gradient(1300px 860px at 50% 120%,rgba(196,169,112,.06),transparent 68%),
+    radial-gradient(1.1px 1.1px at 166px 391px,rgba(255,252,244,0.48),rgba(255,252,244,0)),radial-gradient(1.0px 1.0px at 23px 428px,rgba(255,252,244,0.72),rgba(255,252,244,0)),radial-gradient(0.7px 0.7px at 352px 209px,rgba(255,252,244,0.73),rgba(255,252,244,0)),radial-gradient(0.9px 0.9px at 28px 469px,rgba(255,252,244,0.72),rgba(255,252,244,0)),radial-gradient(1.0px 1.0px at 337px 166px,rgba(255,252,244,0.80),rgba(255,252,244,0)),radial-gradient(1.3px 1.3px at 363px 287px,rgba(255,252,244,0.80),rgba(255,252,244,0)),radial-gradient(1.3px 1.3px at 50px 13px,rgba(255,252,244,0.76),rgba(255,252,244,0)),radial-gradient(1.1px 1.1px at 249px 165px,rgba(255,252,244,0.64),rgba(255,252,244,0)),radial-gradient(0.8px 0.8px at 24px 110px,rgba(255,252,244,0.65),rgba(255,252,244,0)),radial-gradient(0.7px 0.7px at 390px 181px,rgba(255,252,244,0.88),rgba(255,252,244,0)),radial-gradient(0.9px 0.9px at 36px 135px,rgba(255,252,244,0.82),rgba(255,252,244,0)),radial-gradient(1.1px 1.1px at 460px 286px,rgba(255,252,244,0.33),rgba(255,252,244,0)),radial-gradient(1.1px 1.1px at 217px 29px,rgba(255,252,244,0.36),rgba(255,252,244,0)),radial-gradient(0.6px 0.6px at 385px 236px,rgba(255,252,244,0.38),rgba(255,252,244,0)),radial-gradient(1.3px 1.3px at 97px 283px,rgba(255,252,244,0.38),rgba(255,252,244,0)),radial-gradient(1.3px 1.3px at 150px 108px,rgba(255,252,244,0.51),rgba(255,252,244,0)),radial-gradient(0.8px 0.8px at 14px 13px,rgba(255,252,244,0.49),rgba(255,252,244,0)),radial-gradient(1.4px 1.4px at 54px 407px,rgba(255,252,244,0.55),rgba(255,252,244,0)),radial-gradient(1.0px 1.0px at 217px 283px,rgba(255,252,244,0.44),rgba(255,252,244,0)),radial-gradient(1.0px 1.0px at 182px 421px,rgba(255,252,244,0.64),rgba(255,252,244,0)),radial-gradient(1.0px 1.0px at 146px 365px,rgba(255,252,244,0.60),rgba(255,252,244,0)),radial-gradient(1.2px 1.2px at 3px 464px,rgba(255,252,244,0.58),rgba(255,252,244,0)),radial-gradient(1.3px 1.3px at 41px 64px,rgba(255,252,244,0.62),rgba(255,252,244,0)),radial-gradient(1.3px 1.3px at 49px 122px,rgba(255,252,244,0.83),rgba(255,252,244,0)),radial-gradient(1.2px 1.2px at 364px 245px,rgba(255,252,244,0.41),rgba(255,252,244,0)),radial-gradient(1.3px 1.3px at 451px 396px,rgba(255,252,244,0.36),rgba(255,252,244,0)),radial-gradient(0.8px 0.8px at 141px 370px,rgba(255,252,244,0.80),rgba(255,252,244,0)),radial-gradient(0.7px 0.7px at 234px 52px,rgba(255,252,244,0.88),rgba(255,252,244,0)),radial-gradient(0.7px 0.7px at 243px 135px,rgba(255,252,244,0.52),rgba(255,252,244,0)),radial-gradient(1.0px 1.0px at 201px 325px,rgba(255,252,244,0.66),rgba(255,252,244,0)),radial-gradient(1.2px 1.2px at 206px 382px,rgba(255,252,244,0.55),rgba(255,252,244,0)),radial-gradient(1.2px 1.2px at 9px 170px,rgba(255,252,244,0.46),rgba(255,252,244,0)),radial-gradient(0.6px 0.6px at 105px 250px,rgba(255,252,244,0.35),rgba(255,252,244,0)),radial-gradient(1.0px 1.0px at 242px 16px,rgba(255,252,244,0.51),rgba(255,252,244,0)),
+    radial-gradient(1.8px 1.8px at 491px 761px,rgba(255,252,244,0.35),rgba(255,252,244,0)),radial-gradient(0.9px 0.9px at 346px 725px,rgba(255,252,244,0.29),rgba(255,252,244,0)),radial-gradient(1.7px 1.7px at 805px 163px,rgba(255,252,244,0.18),rgba(255,252,244,0)),radial-gradient(0.9px 0.9px at 109px 249px,rgba(255,252,244,0.38),rgba(255,252,244,0)),radial-gradient(1.8px 1.8px at 451px 568px,rgba(255,252,244,0.46),rgba(255,252,244,0)),radial-gradient(1.4px 1.4px at 468px 155px,rgba(255,252,244,0.44),rgba(255,252,244,0)),radial-gradient(1.3px 1.3px at 331px 649px,rgba(255,252,244,0.31),rgba(255,252,244,0)),radial-gradient(1.6px 1.6px at 489px 563px,rgba(255,252,244,0.27),rgba(255,252,244,0)),radial-gradient(0.6px 0.6px at 85px 177px,rgba(255,252,244,0.48),rgba(255,252,244,0)),radial-gradient(1.7px 1.7px at 504px 678px,rgba(255,252,244,0.33),rgba(255,252,244,0)),radial-gradient(0.8px 0.8px at 741px 281px,rgba(255,252,244,0.20),rgba(255,252,244,0)),radial-gradient(1.0px 1.0px at 30px 499px,rgba(255,252,244,0.49),rgba(255,252,244,0)),radial-gradient(0.6px 0.6px at 426px 580px,rgba(255,252,244,0.37),rgba(255,252,244,0)),radial-gradient(1.4px 1.4px at 652px 677px,rgba(255,252,244,0.19),rgba(255,252,244,0)),radial-gradient(1.6px 1.6px at 542px 481px,rgba(255,252,244,0.20),rgba(255,252,244,0)),radial-gradient(1.1px 1.1px at 186px 242px,rgba(255,252,244,0.42),rgba(255,252,244,0)),radial-gradient(1.1px 1.1px at 14px 830px,rgba(255,252,244,0.32),rgba(255,252,244,0)),radial-gradient(1.1px 1.1px at 173px 250px,rgba(255,252,244,0.43),rgba(255,252,244,0)),radial-gradient(0.9px 0.9px at 523px 311px,rgba(255,252,244,0.39),rgba(255,252,244,0)),radial-gradient(1.6px 1.6px at 75px 284px,rgba(255,252,244,0.28),rgba(255,252,244,0)),radial-gradient(0.8px 0.8px at 804px 65px,rgba(255,252,244,0.26),rgba(255,252,244,0)),radial-gradient(1.7px 1.7px at 128px 669px,rgba(255,252,244,0.40),rgba(255,252,244,0));
+  background-repeat:no-repeat,no-repeat,no-repeat,repeat,repeat;
+  background-size:auto,auto,auto,480px 480px,880px 880px;
+  background-position:center,center,center,0 0,0 0;
+}
+
+/* ---- tier 1: raised surfaces (the real "cards") ---- */
+.card,.kpi,.hero,.chain-box,.tl-item > .card{
+  background-color:rgba(24,21,48,.72) !important;
+  background-image:linear-gradient(180deg,rgba(255,255,255,.045),rgba(255,255,255,0) 140px) !important;
+  border:1px solid rgba(255,255,255,.075) !important;
+  border-radius:14px !important;
+  box-shadow:0 10px 30px -22px rgba(0,0,0,.95);
+  transition:border-color .25s ease,transform .25s ease;
+}
+.card:hover,.kpi:hover,.hero:hover,.chain-box:hover,.tl-item > .card:hover{
+  border-color:rgba(255,255,255,.14) !important;
+}
+
+/* ---- tier 2: recessed wells (structure, not chrome) ---- */
+.group,.fig,.tblwrap,.tbl-wrap,.check,.term,.svc{
+  background-color:rgba(255,255,255,.02) !important;
+  background-image:none !important;
+  border:1px solid rgba(255,255,255,.055) !important;
+  border-radius:12px !important;
+}
+
+/* ---- tier 3: small repeated bits ---- */
+.box,.node,.chip{
+  background-color:rgba(255,255,255,.025) !important;
+  background-image:none !important;
+  border:1px solid rgba(255,255,255,.06) !important;
+  border-radius:10px !important;
+  transition:border-color .2s ease,background-color .2s ease;
+}
+.box:hover,.node:hover,.chip:hover{
+  border-color:rgba(255,255,255,.14) !important;
+  background-color:rgba(255,255,255,.045) !important;
+}
+.badge{border-radius:999px !important;}
+
+/* ---- accents keep their colour coding ---- */
+.note.ok,.note.red{border-left-width:3px !important;}
+.intro{border-left:3px solid rgba(139,122,170,.55) !important;}
+
+/* ---- chrome bars: solid, never blurred ---- */
+.topbar,#topbar,.topbar-inner{ background:transparent !important; }
+.topbar,#topbar{
+  background:rgba(9,9,24,.92) !important;
+  border-bottom:1px solid rgba(255,255,255,.07) !important;
+  box-shadow:none !important;
+}
+#bar{
+  background:rgba(9,9,24,.94) !important;
+  border-top:1px solid rgba(255,255,255,.07) !important;
+}
+button,a.backlink,.backlink{
+  background:rgba(24,21,48,.8) !important;
+  border-color:rgba(255,255,255,.09) !important;
+  border-radius:10px !important;
+  transition:border-color .2s ease,color .2s ease,background-color .2s ease;
+}
+button:hover,a.backlink:hover,.backlink:hover{
+  border-color:rgba(139,122,170,.55) !important;
+  background:rgba(34,30,64,.9) !important;
+}
+
+/* ---- typography & rhythm ---- */
+.brand,#brand,.sec-no,.hero h1,h2.part,h1#barT,.t h1{
+  font-family:'Georgia','Noto Serif SC','Songti SC',serif;
+  letter-spacing:.03em;
+}
+h2.part{
+  background:none !important;
+  border:none !important;
+  border-left:3px solid rgba(139,122,170,.6) !important;
+  border-radius:0 !important;
+  box-shadow:none !important;
+  padding:2px 0 2px 14px !important;
+  margin:44px 0 18px !important;
+  color:#ece7f3 !important;
+  font-size:18px !important;
+  letter-spacing:.02em;
+}
+.sec-head{margin:0 0 12px !important;}
+.sec-no{color:rgba(196,169,112,.75) !important;}
+
+/* tables read as data, not as boxes */
+.tbl-wrap table,.tblwrap table{width:100%;border-collapse:collapse;}
+.tbl-wrap th,.tblwrap th{
+  position:sticky;top:0;z-index:2;
+  background:rgba(14,13,32,.96) !important;
+  color:#e8e2d8 !important;font-weight:600;text-align:left;
+}
+.tbl-wrap tr:nth-child(even) td,.tblwrap tr:nth-child(even) td{
+  background:rgba(255,255,255,.016);
+}
+
+/* long-form reading comfort */
+p,li{line-height:1.85;}
+.wrap{padding-left:20px !important;padding-right:20px !important;}
+
+/* ---- scrollbar ---- */
+::-webkit-scrollbar{width:9px;height:9px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:rgba(139,122,170,.28);border-radius:999px}
+::-webkit-scrollbar-thumb:hover{background:rgba(139,122,170,.45)}
+
+/* ---- mobile: drop the far star layer (half the raster area) ---- */
+@media (max-width:767px){
+  body::before{
+    background-image:
+      radial-gradient(900px 520px at 10% -8%,rgba(139,122,170,.14),transparent 64%),
+      radial-gradient(1.1px 1.1px at 166px 391px,rgba(255,252,244,0.48),rgba(255,252,244,0)),radial-gradient(1.0px 1.0px at 23px 428px,rgba(255,252,244,0.72),rgba(255,252,244,0)),radial-gradient(0.7px 0.7px at 352px 209px,rgba(255,252,244,0.73),rgba(255,252,244,0)),radial-gradient(0.9px 0.9px at 28px 469px,rgba(255,252,244,0.72),rgba(255,252,244,0)),radial-gradient(1.0px 1.0px at 337px 166px,rgba(255,252,244,0.80),rgba(255,252,244,0)),radial-gradient(1.3px 1.3px at 363px 287px,rgba(255,252,244,0.80),rgba(255,252,244,0)),radial-gradient(1.3px 1.3px at 50px 13px,rgba(255,252,244,0.76),rgba(255,252,244,0)),radial-gradient(1.1px 1.1px at 249px 165px,rgba(255,252,244,0.64),rgba(255,252,244,0)),radial-gradient(0.8px 0.8px at 24px 110px,rgba(255,252,244,0.65),rgba(255,252,244,0)),radial-gradient(0.7px 0.7px at 390px 181px,rgba(255,252,244,0.88),rgba(255,252,244,0)),radial-gradient(0.9px 0.9px at 36px 135px,rgba(255,252,244,0.82),rgba(255,252,244,0)),radial-gradient(1.1px 1.1px at 460px 286px,rgba(255,252,244,0.33),rgba(255,252,244,0)),radial-gradient(1.1px 1.1px at 217px 29px,rgba(255,252,244,0.36),rgba(255,252,244,0)),radial-gradient(0.6px 0.6px at 385px 236px,rgba(255,252,244,0.38),rgba(255,252,244,0)),radial-gradient(1.3px 1.3px at 97px 283px,rgba(255,252,244,0.38),rgba(255,252,244,0)),radial-gradient(1.3px 1.3px at 150px 108px,rgba(255,252,244,0.51),rgba(255,252,244,0)),radial-gradient(0.8px 0.8px at 14px 13px,rgba(255,252,244,0.49),rgba(255,252,244,0)),radial-gradient(1.4px 1.4px at 54px 407px,rgba(255,252,244,0.55),rgba(255,252,244,0)),radial-gradient(1.0px 1.0px at 217px 283px,rgba(255,252,244,0.44),rgba(255,252,244,0)),radial-gradient(1.0px 1.0px at 182px 421px,rgba(255,252,244,0.64),rgba(255,252,244,0)),radial-gradient(1.0px 1.0px at 146px 365px,rgba(255,252,244,0.60),rgba(255,252,244,0)),radial-gradient(1.2px 1.2px at 3px 464px,rgba(255,252,244,0.58),rgba(255,252,244,0)),radial-gradient(1.3px 1.3px at 41px 64px,rgba(255,252,244,0.62),rgba(255,252,244,0)),radial-gradient(1.3px 1.3px at 49px 122px,rgba(255,252,244,0.83),rgba(255,252,244,0)),radial-gradient(1.2px 1.2px at 364px 245px,rgba(255,252,244,0.41),rgba(255,252,244,0)),radial-gradient(1.3px 1.3px at 451px 396px,rgba(255,252,244,0.36),rgba(255,252,244,0)),radial-gradient(0.8px 0.8px at 141px 370px,rgba(255,252,244,0.80),rgba(255,252,244,0)),radial-gradient(0.7px 0.7px at 234px 52px,rgba(255,252,244,0.88),rgba(255,252,244,0)),radial-gradient(0.7px 0.7px at 243px 135px,rgba(255,252,244,0.52),rgba(255,252,244,0)),radial-gradient(1.0px 1.0px at 201px 325px,rgba(255,252,244,0.66),rgba(255,252,244,0)),radial-gradient(1.2px 1.2px at 206px 382px,rgba(255,252,244,0.55),rgba(255,252,244,0)),radial-gradient(1.2px 1.2px at 9px 170px,rgba(255,252,244,0.46),rgba(255,252,244,0)),radial-gradient(0.6px 0.6px at 105px 250px,rgba(255,252,244,0.35),rgba(255,252,244,0)),radial-gradient(1.0px 1.0px at 242px 16px,rgba(255,252,244,0.51),rgba(255,252,244,0));
+    background-repeat:no-repeat,repeat;
+    background-size:auto,480px 480px;
+    background-position:center,0 0;
+  }
+  .wrap{padding-left:14px !important;padding-right:14px !important;}
+}
+@media (prefers-reduced-motion:reduce){
+  *{animation-duration:.01ms !important;animation-iteration-count:1 !important;}
+  *{transition-duration:.01ms !important;}
+}
+</style>
+
+
+<style id="sd-type">
+/* Star Desk skin v3 — typography (generated by .dsh-tmp/gen-type.mjs — do not hand-edit)
+   Measured defects fixed here: h3 was the same size as body text (14.5 vs 14);
+   56–107 CJK characters per line; secondary text at 4.6–5.6:1 contrast;
+   8–15 competing font sizes per page; monospace body copy on the courseware page. */
+:root{
+  --txt:#ded8cf; --dim:#a9a396; --faint:#8b8578;
+}
+html{ -webkit-text-size-adjust:100%; }
+body{
+  font-family:system-ui,-apple-system,"Segoe UI","PingFang SC","Microsoft YaHei","Hiragino Sans GB","Source Han Sans SC","Noto Sans SC",sans-serif !important;
+  font-size:15.5px !important;
+  line-height:1.85 !important;
+  color:#ded8cf;
+}
+code,pre,kbd,samp,var,.mono{ font-family:var(--mono,ui-monospace,Consolas,"Cascadia Mono",Menlo,monospace) !important; }
+p,li,dd,td,th,blockquote,summary{ line-height:1.85 !important; }
+h1,h2,h3,h4,h5,h6{ color:#ece7f3 !important; font-weight:600; letter-spacing:.01em; }
+h5,h6{ color:#a9a396 !important; }
+main,.wrap{max-width:700px !important;margin-left:auto !important;margin-right:auto !important}
+/* Dense reference blocks stay legible without competing with prose. */
+.tblwrap,.tbl-wrap,table{ font-size:13.5px !important; }
+table{ line-height:1.7 !important; }
+.brand{font-size:15.5px !important}
+.brand small{font-size:13.5px !important}
+.nav a{font-size:14px !important}
+.backlink{font-size:14px !important}
+.hero h1{font-size:23.5px !important}
+.hero .meta{font-size:14px !important}
+.q-no{font-size:14.5px !important}
+.q h3{font-size:17.5px !important}
+.q h4{font-size:16.5px !important}
+code{font-size:14px !important}
+pre.code code{font-size:13.5px !important}
+table{font-size:14px !important}
+.totop{font-size:16.5px !important}
+.hero h1{font-size:23.5px !important}
+.q-head h2{font-size:21px !important}
+.q-no{font-size:14px !important}
+h2.part{font-size:21px !important}
+@media (max-width:767px){
+  body{ font-size:15.5px !important; }
+  /* A bare `1fr` track has an automatic minimum of min-content, so one long
+     unbreakable token (an IP, a hostname, a code span) makes the column WIDER
+     than the viewport. Measured on 动画/2 at 390px: .term-body's single column
+     computed to 413px and pushed .mini out to right=444, i.e. real horizontal
+     overflow the user sees as a cut-off layout. minmax(0,1fr) removes that
+     automatic floor, and min-width:0 lets the flex children shrink with it. */
+  .term-body,.grid2,.grid3,.svc .kv{ grid-template-columns:minmax(0,1fr) !important; }
+  .mini,.term-body>*,.row>*,.col>*{ min-width:0; }
+  h1{ font-size:23.5px !important; }
+  h2,h2.part{ font-size:21px !important; }
+  h3{ font-size:17.5px !important; }
+}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <div class="brand"><span class="dot"></span>2026年10月13日 · 老师模拟面（六问 + 一条建议）</div>
+    <nav class="nav">
+      <a href="#q1">你说下你项目的亮点</a>
+      <a href="#q2">LangGraph 的意图识别是怎么做的</a>
+      <a href="#q3">Tool Calling 用了哪些工具、参数、返回、解决什么问题</a>
+      <a href="#q4">AI 边界</a>
+      <a href="#q5">老师的建议——&quot;零售商品推荐 → 用户意图识别基于推荐&quot;</a>
+      <a href="#q6">会话记忆管理，10 轮对话的存储大小</a>
+      <a href="#q7">会话记忆存储——明文还是密文</a>
+      <a href="#q8">本场七问的红线自查</a>
+      <a class="backlink" href="../路线.html">← 回学习路线</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+  <div class="hero">
+    <h1>2026年10月13日 · 老师模拟面（六问 + 一条建议）</h1>
+    <div class="meta">云联客服工单平台 · 面试准备材料</div>
+  </div>
+<blockquote><p>这一场的重点是深入追问：不只看是否知道概念，还要看能否结合项目解释实现细节。 「意图识别怎么做的」「工具的参数和返回是什么」「记忆存多大」「明文还是密文」——这几个问题，<b>没做过的人答不出来，做过的人不用想</b>。 所以这一份的每一题都按「<b>30 秒版 → 展开讲 → 结合项目 → 追问预案</b>」写，答题时<b>先给能落地的结论，再往下加细节</b>。</p>
+<p><b>术语统一</b>：下文的「生成前检索门控」指召回为空或重排分不达标时，代码直接阻止生成模型调用；「生成后输出校验」指模型返回后检查引用、违规词或其他输出规则。两者不是同一步。</p></blockquote>
+
+<section class="q" id="q1">
+  <div class="q-head"><span class="q-no">一</span><h2>你说下你项目的亮点</h2></div>
+<h3>30 秒版</h3>
+<blockquote><p>&quot;一句话概括：<b>这套系统的 AI 不是个聊天窗口，它和工单、知识库是闭环的</b>。 具体三个亮点：<b>第一，AI 接待不了会自动建工单，工单超时自动升级，没答上来的问题回流知识库</b>——三个环节互相喂数据； <b>第二，检索不是单路向量</b>，是向量 + BM25 双路召回、RRF 融合、再重排； <b>第三，全链路可观测</b>，每次 AI 调用都落一条执行日志，意图、召回了什么、调了什么工具、花了多少 token、有没有转人工，全都能查。 如果只让我说一个，我选第一个——<b>闭环是这个项目和'接个大模型 API'最大的区别</b>。&quot;</p></blockquote>
+<h3>展开讲：五个亮点，按&quot;业务价值&quot;排序</h3>
+<div class="tblwrap"><table><thead><tr><th>#</th><th>亮点</th><th>一句话展开</th><th>面试官会记住什么</th></tr></thead><tbody><tr><td>1</td><td><b>会话 - 工单 - AI 三者闭环</b></td><td>AI 答不了 → 自动建工单（带上意图和摘要）→ 工单 SLA 超时自动升级 → 未命中的问题回流 <code>ai_unanswered</code> → 运营补知识 → 命中率回升</td><td>这是<b>业务闭环</b>，别人讲不出来</td></tr><tr><td>2</td><td><b>客户数据隔离四层防护</b></td><td>独立 schema 物理隔离 + 表内标识字段二次防护 + 向量库 collection 隔离 + Redis key 前缀</td><td>交付型项目的<b>刚需</b>，一问就能展开</td></tr><tr><td>3</td><td><b>RAG 的工程化而不是&quot;接个向量库&quot;</b></td><td>混合检索（向量 + BM25）+ RRF 融合 + 重排取 Top5 + 阈值兜底 + 引用可追溯 + 未命中回流</td><td><b>不是 demo 级 RAG</b></td></tr><tr><td>4</td><td><b>Tool Calling 真的打通了业务系统</b></td><td>Agent 能真查订单、物流、退款规则、商品、活动、工单，还能建单、留资</td><td>从&quot;会说话&quot;到&quot;能办事&quot;</td></tr><tr><td>5</td><td><b>可观测的 AI</b></td><td><code>ai_execution</code> 一张表记全：意图 / 路由结果 / 召回片段 / 工具调用 / token / 耗时 / 是否转人工</td><td>AI 效果<b>可量化、可回归</b></td></tr></tbody></table></div>
+<h3>结合项目怎么讲</h3>
+<p>把亮点<b>挂到具体模块上</b>，别空谈：</p>
+<blockquote><p>&quot;我负责的是会话消息、工单 SLA、知识库和 AI 编排这四块，亮点基本都是这四块里长出来的。 <b>会话模块</b>的亮点是多实例 WebSocket 的消息路由——坐席可能在 A 机器、顾客连在 B 机器，我们把 Redis 路由表 + 实例间定向转发 + ACK 补拉做成了三层兜底； <b>工单模块</b>是 SLA 的暂停计时，等客户回复的时间不算超时，靠 <code>paused_at</code> + <code>paused_total</code> 两个字段算真实剩余； <b>知识库模块</b>是刚才说的混合检索； <b>AI 编排模块</b>是意图路由 + 生成前检索门控 + 生成后输出校验 + 全链路日志。 这四个是串起来的：AI 判断要转人工，走的就是工单模块的建单接口。&quot;</p></blockquote>
+<h3>追问预案</h3>
+<div class="tblwrap"><table><thead><tr><th>追问</th><th>答法</th></tr></thead><tbody><tr><td>&quot;这些亮点里哪个是你自己做的？&quot;</td><td>★<b>必须分清</b>。团队后端 6 个人，我负责 4 个模块，&quot;AI 编排那一块是我主导的，检索重排的具体参数是和另一位同事一起调的&quot;。<b>别说全是我一个人做的</b>。</td></tr><tr><td>&quot;有什么是你没做好的？&quot;</td><td>主动交代一条：<b>没有人工标注的评测集</b>，我们只有&quot;机器人解决率&quot;这个代理指标。&quot;更严谨的做法是建评测集做 A/B——这是我们下一步要补的。&quot;（<b>主动说局限 = 加分</b>）</td></tr><tr><td>&quot;最大的技术难点是什么？&quot;</td><td>挑&quot;多实例 WebSocket 消息路由&quot;讲，按 <b>现象 → 定位 → 方案 → 结果</b> 四步走。（这个难点的完整讲法在《模块技术手册》里）</td></tr></tbody></table></div>
+</section>
+
+<section class="q" id="q2">
+  <div class="q-head"><span class="q-no">二</span><h2>LangGraph 的意图识别是怎么做的</h2></div>
+<h3>★先纠正一个前提（这题的关键）</h3>
+<p><b>意图识别不是 LangGraph 做的</b>——LangGraph 是<b>编排框架</b>，它自己不识别意图。</p>
+<blockquote><p>&quot;这里要分开说：<b>意图识别本身是一次大模型调用</b>，让模型输出结构化的 <code>intent + confidence</code>； <b>LangGraph 负责的是把这一步放进状态图里，根据识别结果决定下一步走哪条分支</b>，以及支持循环、状态持久化和人工中断。 换句话说，<b>模型负责分类，LangGraph 负责路由和编排</b>。&quot;</p></blockquote>
+<p><b>说出这句话，面试官就知道你真的用过，不是背的。</b></p>
+<h3>30 秒版</h3>
+<blockquote><p>&quot;整个 Agent 是一个 <code>StateGraph</code>。<b>入口是分类节点</b>：拿最近几轮对话 + 当前问题，调一次轻量的大模型，用<b>结构化输出</b>让它返回意图和置信度，分五类——售前咨询、售后、物流、投诉、知识咨询。 拿到结果后走<b>条件边</b>：置信度太低或识别不出来，直接兜底；意图是投诉，直接转人工；是实时业务查询，走工具调用分支；是知识问答，走 RAG 分支；两者都要，就先调工具再检索。 <b>一个要点是：置信度不够的时候不浪费后面那次生成调用</b>，直接进兜底。&quot;</p></blockquote>
+<h3>展开讲：三层结构</h3>
+<h4>第一层：State 定义（状态是本条链路的&quot;总线&quot;）</h4>
+<pre class="code"><code>class AgentState(TypedDict):
+    messages: list          # 会话历史（最近几轮）
+    question: str           # 当前问题
+    intent: str             # 分类结果
+    confidence: float       # 置信度
+    need_business_data: bool
+    retrieved: list         # RAG 召回的片段
+    rerank_score: float
+    tool_result: dict       # 工具返回
+    answer: str
+    transfer: bool          # 是否转人工
+    fallback_reason: str</code></pre>
+<p><b>为什么要有显式的 State</b>：整条链路是<b>多步、有分支、有循环</b>的，每一步都要读上一步的结果、写自己的结果。用函数套函数做不了持久化和断点恢复。</p>
+<h4>第二层：分类节点（真正&quot;识别意图&quot;的地方）</h4>
+<pre class="code"><code>def classify_intent(state: AgentState) -&gt; dict:
+    prompt = build_classify_prompt(state[&quot;question&quot;], state[&quot;messages&quot;])
+    res = classifier_llm.with_structured_output(IntentResult).invoke(prompt)
+    return {&quot;intent&quot;: res.intent, &quot;confidence&quot;: res.confidence,
+            &quot;need_business_data&quot;: res.need_business_data}</code></pre>
+<p>四个关键设计：</p>
+<ol><li><b>用的是轻量模型，不是主力模型</b>。分类只有五类，不需要强推理能力，用便宜快的那一档（我们走的是 DeepSeek 的那条通道）。<b>意图识别的延迟要压到几百毫秒</b>，因为它在整个链路的最前面，后面还有检索和生成。</li><li><b>结构化输出</b>（<code>with_structured_output</code> / JSON mode），让模型直接返回 <code>{&quot;intent&quot;: &quot;...&quot;, &quot;confidence&quot;: 0.9}</code>，<b>不要让它自由发挥写一段话再解析</b>——那样解析失败率高。</li><li><b>温度设成 0</b>。分类是确定性问题，不需要创造性。</li><li><b>少样本 + 类目表，类目是配置化的</b>。五个意图里&quot;售前/售后/物流/投诉&quot;是通用的，但<b>每个客户能自己加子类目</b>（零售客户加了&quot;门店咨询&quot;，电商客户加了&quot;发票问题&quot;）。所以 prompt 是拼出来的，不是写死的。</li></ol>
+<h4>第三层：条件边（路由）</h4>
+<pre class="code"><code>def route_by_intent(state: AgentState) -&gt; str:
+    if state[&quot;confidence&quot;] &lt; 0.5:              return &quot;fallback&quot;
+    if state[&quot;intent&quot;] == &quot;投诉&quot;:               return &quot;transfer&quot;
+    if state[&quot;intent&quot;] in (&quot;物流&quot;, &quot;订单&quot;, &quot;退款进度&quot;): return &quot;tool_call&quot;
+    if state[&quot;intent&quot;] == &quot;知识咨询&quot;:            return &quot;rag&quot;
+    if state[&quot;intent&quot;] == &quot;售前&quot;:                return &quot;rag&quot;   # 售前走知识库（商品资料）
+    return &quot;fallback&quot;
+
+graph.add_conditional_edges(&quot;classify&quot;, route_by_intent, {...})</code></pre>
+<p><b>★这里有一个必须主动讲的修正</b>：</p>
+<blockquote><p>&quot;我们一开始的顺序是<b>先做 RAG 检索，再看分数决定要不要调工具</b>。上线前压测发现一个问题：顾客问'我的快递到哪了'，知识库里当然没有这条物流信息，召回是空的，程序就直接走兜底转人工了——<b>查物流的工具永远没机会被调用</b>。 后来改成<b>先意图路由再谈阈值</b>：实时的业务数据查询走工具分支，<b>完全不看知识库的分数</b>；只有知识问答这条分支才受阈值约束。 一句话：<b>不能让知识库的低分，无条件拦掉本该查业务数据的请求。</b>&quot;</p></blockquote>
+<p><b>这条是全场最能证明&quot;真做过&quot;的一段</b>，因为它是一个<b>顺序错误</b>引发的真实缺陷。</p>
+<h3>结合项目怎么讲</h3>
+<blockquote><p>&quot;落到我们的链路里：顾客消息从 <code>conversation</code> 服务经 HTTP 调给 <code>ai-agent-service</code>，进来第一个节点就是分类。 分类结果会<b>落进 <code>ai_execution</code> 表</b>，字段是 <code>intent</code> 和 <code>confidence</code>——这一点后面很有用，因为出了问题要定位'是识别错了还是检索错了'，看这张表就知道。 另外<b>关键词规则是分类的前置和第二道保险</b>：像'人工''投诉''找客服'这种关键词，在进模型之前就先命中一次，<b>命中直接转人工，不等模型判断</b>。模型也会出错，规则兜一层成本几乎为零。 反过来模型识别成投诉、关键词没命中的，也按转人工处理——<b>两个条件是或的关系</b>。&quot;</p></blockquote>
+<h3>追问预案</h3>
+<div class="tblwrap"><table><thead><tr><th>追问</th><th>答法</th></tr></thead><tbody><tr><td>&quot;为什么不用小模型/BERT 做分类？&quot;</td><td>&quot;五类、且类目会变（客户自己加），<b>训一个小模型的维护成本比省下的那点调用费高</b>。一次轻量调用的成本和延迟都能接受。<b>如果分类量再大一个量级、成本敏感了，才值得蒸馏成小模型</b>——这是个量的问题，不是技术优劣的问题。&quot;</td></tr><tr><td>&quot;多意图怎么办？比如'我的订单没到，顺便问下怎么开发票'&quot;</td><td>&quot;这是真实场景。我们的处理是<b>主意图 + 次要意图</b>：让模型输出一个主意图和可选的一个次要意图，主意图决定路由，次要意图在生成阶段补充召回。<b>没做得很复杂</b>——再往下就是意图拆解成子任务，那要更大的改造。&quot;</td></tr><tr><td>&quot;置信度 0.5 这个阈值怎么定的？&quot;</td><td>&quot;是<b>设计中的经验值</b>，不是跑评测跑出来的。真实做法是拿一批标注过的问题，看不同阈值下'正确分类率'和'兜底率'的平衡点——<b>这一步我们没做透</b>，是看着线上兜底率手工调的。&quot;（★<b>别把经验值说成调出来的科学值</b>）</td></tr><tr><td>&quot;LangGraph 的 checkpointer 你们用了吗？&quot;</td><td>&quot;用了，<b>用 Redis 做持久化</b>——不然多副本部署的时候，同一个会话的两次请求落到不同实例，状态就断了。注意它依赖 RedisJSON 和 RediSearch 这两个模块，<b>需要 Redis Stack</b>，普通 Redis 起不来。&quot;</td></tr><tr><td>&quot;为什么非要 LangGraph，if-else 不行吗？&quot;</td><td>&quot;简单场景 if-else 完全够。我们要它是因为三点：<b>一是有环</b>——工具调用返回后要回到判断节点再决定下一步；<b>二是状态要跨请求持久化</b>——顾客分两条消息发，第二次还得接着上次的状态；<b>三是要支持中断恢复</b>——人工介入的时候流程要停在那儿等人。这三点用 if-else 自己写，等于自己实现一个状态机。&quot;</td></tr></tbody></table></div>
+</section>
+
+<section class="q" id="q3">
+  <div class="q-head"><span class="q-no">三</span><h2>Tool Calling 用了哪些工具、参数、返回、解决什么问题</h2></div>
+<h3>30 秒版</h3>
+<blockquote><p>&quot;我们配了 <b>8 个工具</b>，可以分三组：<b>查询类</b> 6 个——查订单、查物流、查退款规则、查商品、查活动、查工单；<b>写入类</b> 2 个——建工单、留回访。 参数都很简单，基本是一个业务主键加一个客户标识；返回都是<b>结构化的 JSON</b>，不是文本。 解决的问题是：<b>让 AI 从'会说话'变成'能办事'</b>。顾客问'我快递到哪了'，模型不知道也不该猜，必须真去查。&quot;</p></blockquote>
+<h3>工具清单（这张表要能背）</h3>
+<div class="tblwrap"><table><thead><tr><th>工具</th><th>入参</th><th>返回</th><th>解决什么问题</th></tr></thead><tbody><tr><td><code>queryOrder</code></td><td>订单号 / 手机号</td><td>订单状态、商品清单、金额、下单时间</td><td>&quot;我的订单到哪一步了&quot;</td></tr><tr><td><code>queryLogistics</code></td><td>订单号</td><td>物流公司、运单号、最新轨迹（含时间点）</td><td>&quot;快递到哪了&quot;——<b>最高频的一类</b></td></tr><tr><td><code>queryRefundRule</code></td><td>商品类目 / 订单号</td><td>退款规则、可退期限、是否支持七天无理由</td><td>&quot;这个能退吗&quot;</td></tr><tr><td><code>queryProduct</code></td><td>商品 ID / 关键词</td><td>商品属性（成分 / 尺码 / 功效）、价格、活动价</td><td>&quot;这个成分适合敏感肌吗&quot;</td></tr><tr><td><code>queryActivity</code></td><td>商品 ID / 客户标识</td><td>当前活动、优惠券、会员权益</td><td>&quot;现在有什么优惠&quot;</td></tr><tr><td><code>queryTicket</code></td><td>工单号</td><td>工单状态、当前处理人、SLA 剩余时间</td><td>&quot;我上次提的问题处理得怎么样了&quot;</td></tr><tr><td><code>createTicket</code></td><td>意图、摘要、顾客 ID</td><td>工单号</td><td><b>转人工前的兜底建单</b>——保证问题不丢</td></tr><tr><td><code>createCallback</code></td><td>手机号、原因</td><td>回访任务号</td><td>留资 / 回访</td></tr></tbody></table></div>
+<p><b>分组的讲究</b>：<b>6 个读、2 个写</b>。写操作只保留了&quot;建工单&quot;和&quot;留回访&quot;这两个<b>低风险、可逆</b>的；改价、改地址、发起退款这类<b>都不在工具清单里</b>——<b>工具清单本身就是 AI 的能力边界</b>。（这一点在第四题展开）</p>
+<h3>结合一个场景完整讲一遍</h3>
+<p><b>场景：顾客问&quot;我上周买的那件衣服还没到，帮我看看&quot;</b></p>
+<pre class="code"><code>① 分类节点
+   问题 → 大模型结构化输出
+   { intent: &quot;物流&quot;, confidence: 0.92, need_business_data: true }
+
+② 条件边
+   intent = 物流 → 走 tool_call 分支
+
+③ 工具选择节点
+   模型看到可用工具清单 + 问题，决定调用 queryLogistics
+   参数：它先从会话历史里找到订单号（上一轮顾客报过），
+        找不到就先调 queryOrder 用手机号反查
+   ⚠️ 关键：模型传的订单号，服务端必须校验&quot;这个订单属于当前客户&quot;
+
+④ 工具执行（Python 用 httpx 调 Java 侧内部接口）
+   POST /inner/orders/logistics  { orderNo, tenantId }
+   ← { carrier: &quot;顺丰&quot;, waybill: &quot;SF123...&quot;, latest: &quot;已到达杭州转运中心&quot;,
+       time: &quot;2026-10-12 18:30&quot; }
+
+⑤ 结果回填 Prompt
+   System: 只依据给定资料回答，不确定就转人工
+   User:   顾客问物流 → 以下是查询结果：{...}
+
+⑥ 生成
+   &quot;您的包裹目前已经到达杭州转运中心，昨天 18:30 更新的，
+    预计明天下午能送到您那边。需要我帮您留意一下吗？&quot;
+
+⑦ 生成后输出校验 + 落日志
+   ai_execution 记：intent=物流, tool_calls_json=[{queryLogistics,...}],
+                    latency_ms, is_transferred=false</code></pre>
+<p><b>★这个场景里有三个&quot;做过才知道&quot;的细节，一定要讲出来：</b></p>
+<ol><li><b>工具的参数经常不齐</b>。顾客说&quot;我的快递到哪了&quot;，<b>没给订单号</b>。这时候不是直接失败，而是：先从会话历史里找 → 找不到就调 <code>queryOrder</code>（用手机号，手机号是会话上下文里就有的）→ 还拿不到，<b>就反问顾客要订单号</b>。<code>queryOrder</code> 的入参写的是&quot;订单号 / 手机号&quot;就是因为这个。</li><li><b>模型传的参数不能信</b>。这是安全问题：模型可能把订单号编错，也可能被人诱导去查别人的订单。所以<b>工具的服务端实现必须校验归属</b>——<code>orderNo</code> 对应的订单必须属于当前会话的客户，不属于就直接返回&quot;查不到&quot;。<b>校验在服务端做，不在 prompt 里求模型守规矩。</b></li><li><b>工具超时要有兜底</b>。业务服务挂了或者慢了，不能让顾客干等。超时（比如 3 秒）就走降级话术&quot;我帮您转人工确认一下&quot;，同时<b>把这条记进日志</b>——这是排查工具可用性的依据。</li></ol>
+<h3>追问预案</h3>
+<div class="tblwrap"><table><thead><tr><th>追问</th><th>答法</th></tr></thead><tbody><tr><td>&quot;工具描述（description）怎么写？&quot;</td><td>&quot;<b>这是工具调用效果的关键，比参数定义还重要</b>。我们的写法是三段：<b>什么时候用</b>（'当顾客询问包裹位置、配送进度时使用'）、<b>什么时候不要用</b>（'不要用它查询退款进度'）、<b>参数怎么拿</b>（'订单号优先从会话历史取'）。写得含糊，模型就会乱调或者该调不调。&quot;</td></tr><tr><td>&quot;多个工具能一起调吗？&quot;</td><td>&quot;支持并行调用，比如顾客问'订单到哪了，顺便看下有没有优惠'——<code>queryLogistics</code> 和 <code>queryActivity</code> 可以一起发。<b>我们的实现里是让它一次返回多个工具调用，并发执行再一起回填</b>，比串行快。&quot;</td></tr><tr><td>&quot;工具调用失败了怎么办？&quot;</td><td>&quot;分两种情况：<b>业务性失败</b>（订单号不存在）——把'查不到'这个结果如实回给模型，让它组织话术；<b>技术性失败</b>（超时、500）——走降级，转人工，同时记日志。<b>这两种不能混</b>，混了就会出现'系统故障却说订单不存在'。&quot;</td></tr><tr><td>&quot;工具是同步调还是异步？&quot;</td><td>&quot;同步调，因为<b>顾客在等这个答案</b>，异步就没意义了。能异步的是写日志、写 <code>ai_unanswered</code> 这类旁路动作。&quot;</td></tr><tr><td>&quot;怎么知道工具调用得对不对？&quot;</td><td>&quot;看 <code>ai_execution.tool_calls_json</code>。<b>能统计出每个工具的调用次数、成功率、平均耗时</b>，也能人工抽查'该调没调'和'不该调却调了'的比例。&quot;</td></tr></tbody></table></div>
+</section>
+
+<section class="q" id="q4">
+  <div class="q-head"><span class="q-no">四</span><h2>AI 边界</h2></div>
+<h3>★这题问的是&quot;AI 能做什么、不能做什么、你怎么用代码保证它不越界&quot;</h3>
+<h3>30 秒版</h3>
+<blockquote><p>&quot;我把 AI 的边界分四层： <b>一是能力边界</b>——不承诺、不猜实时数据、不越权操作、知识库没有就不答； <b>二是技术边界</b>——Prompt 约束是软的，真正兜底的是代码：生成前检索门控、生成后输出校验、工具白名单和服务端参数校验； <b>三是业务边界</b>——转人工规则由客户配，连续识别不出来就转，兜底话术是'我帮您转人工确认一下'； <b>四是责任边界</b>——全程留痕、答案带引用、人工可随时接管，<b>AI 是辅助，最终责任在人</b>。&quot;</p></blockquote>
+<h3>展开讲</h3>
+<h4>一、能力边界：AI 不该做的四件事</h4>
+<div class="tblwrap"><table><thead><tr><th>不该做</th><th>为什么</th><th>我们怎么处理</th></tr></thead><tbody><tr><td><b>不做承诺性回答</b></td><td>&quot;能不能退&quot;&quot;赔多少&quot;&quot;几天一定到&quot;——<b>这是业务决策，不是知识</b></td><td>只给规则不给定论：&quot;按规定七天内可以退，具体我帮您转人工确认一下&quot;</td></tr><tr><td><b>不猜实时数据</b></td><td>库存、价格、物流状态是<b>秒级变化</b>的，模型记忆里的都是错的</td><td>必须走 Tool Calling 拿实时数据；拿不到就说拿不到</td></tr><tr><td><b>不做越权操作</b></td><td>改价、改地址、发起退款——<b>出错就是资损</b></td><td><b>这些工具根本不在清单里</b>。AI 只能读，写只开放&quot;建工单/留回访&quot;</td></tr><tr><td><b>不超纲回答</b></td><td>知识库没有的内容它一定会编</td><td>召回为空或重排分不达标 → <b>不允许生成</b>，走兜底</td></tr></tbody></table></div>
+<h4>二、技术边界：软的 + 硬的，两层</h4>
+<p><b>第一层是 prompt 约束（软）</b>：</p>
+<blockquote><p>System Prompt 里明确写三条：<b>只依据下面提供的资料回答</b>；<b>资料里没有的就说不确定</b>；<b>不确定时把问题转给人工</b>。同时给一个够用的兜底话术模板。</p></blockquote>
+<p><b>第二层是代码约束（硬）——这一层才是真正兜底的</b>：</p>
+<blockquote><p>&quot;<b>只靠 prompt 是不行的</b>，模型会不听话。所以我们做了三道代码约束： ① <b>生成前检索门控</b>：检查召回片段是否为空、重排分是否达标，<b>不达标就不调用生成模型</b>，直接走兜底。这一步是生成前拦截，不是生成之后的输出检查； ② <b>工具白名单</b>：能调什么工具是配置表（<code>ai_agent_tool</code>）里配的，<b>不在表里的调不到</b>； ③ <b>服务端参数校验</b>：模型传过来的参数，在业务服务里再校验一次归属和合法性，<b>不信模型</b>。&quot;</p></blockquote>
+<p><b>★这里有个容易说错的地方</b>（如果面试官追问&quot;你到底是 prompt 约束还是代码约束&quot;）：</p>
+<blockquote><p>&quot;<b>两个都有，而且作用不一样</b>。prompt 约束管的是'正常的回答别跑偏'，成本低、覆盖面广；<b>代码约束管的是'越界的时候一定要拦住'</b>——比如召回为空这种情况，prompt 里就算写了'没资料就别答'，模型也可能硬答，所以必须用代码在生成前拦掉。 一句话：<b>prompt 是引导，代码是底线。</b>&quot;</p></blockquote>
+<h4>三、业务边界：什么时候必须转人工</h4>
+<blockquote><p>&quot;转人工的规则是<b>客户可配的</b>，默认有四条，是<b>或</b>的关系：<b>① 意图是投诉；② 连续两次没识别出来；③ 命中客户配的关键词</b>（'人工''投诉''找客服'）；<b>④ 顾客主动要求</b>。 另外还有一条技术性的：<b>工具超时或者大模型降级</b>的时候，也直接转人工——<b>宁可转人工，不能给错答案</b>。&quot;</p></blockquote>
+<h4>四、责任边界</h4>
+<blockquote><p>&quot;<b>AI 答错了谁负责？</b>我们的做法是让整个过程可追溯：<code>ai_execution</code> 记下意图、召回片段、工具调用、token、耗时；答案里带知识引用；坐席可以随时接管会话。 <b>AI 在我们系统里的定位是'坐席的助手和第一道分流'，不是'替代坐席'。</b>&quot;</p></blockquote>
+<h3>追问预案</h3>
+<div class="tblwrap"><table><thead><tr><th>追问</th><th>答法</th></tr></thead><tbody><tr><td>&quot;顾客就是要 AI 给个准话，怎么办？&quot;</td><td>&quot;'我理解您着急'——先共情，然后<b>给规则不给结论</b>：'按规定是七天内，您这个情况我帮您转人工，能给您明确答复的是他们'。<b>客服场景里'转人工'不是失败，是正确动作。</b>&quot;</td></tr><tr><td>&quot;怎么防止 prompt 注入？顾客说'忽略之前的指令'。&quot;</td><td>&quot;三层：<b>① 系统提示词和用户输入在结构上分开</b>（不能字符串拼在一起让模型分不清）；<b>② 工具的服务端校验</b>——就算模型被骗去调工具，订单不属于这个客户就是查不到；<b>③ 生成后的输出校验</b>能拦住一部分异常输出。诚实说：<b>这块我们没有做得很深</b>，注入是个持续对抗的问题。&quot;</td></tr><tr><td>&quot;AI 会不会被客户投诉？&quot;</td><td>&quot;所以有几条硬红线：<b>不合规的话不能说、不确定的话不能编、涉及金额和承诺的必须转人工</b>。这几条不是靠模型自觉，而是由<b>生成前检索门控、工具白名单与服务端参数校验、生成后输出校验及转人工规则</b>共同保障。&quot;</td></tr><tr><td>&quot;如果老板要你把边界放宽，让 AI 直接办退款呢？&quot;</td><td>★<b>这题考判断力</b>：&quot;我会先问清楚<b>出错谁承担</b>。如果一定要做，我的方案是<b>分级</b>：小额、无争议的自动处理，带<b>金额上限 + 白名单类目 + 可回滚</b>；超过阈值的强制人工。<b>不做一刀切的放开</b>——AI 的收益是效率，风险是资损，这两件事必须分开算。&quot;</td></tr></tbody></table></div>
+</section>
+
+<section class="q" id="q5">
+  <div class="q-head"><span class="q-no">五</span><h2>老师的建议——&quot;零售商品推荐 → 用户意图识别基于推荐&quot;</h2></div>
+<h3>★先判断这条建议该怎么接</h3>
+<p>老师这条建议<b>方向是对的，但落地方式要选对</b>。它的本质是两句话：</p>
+<ol><li><b>把&quot;意图识别&quot;理解成一种推荐问题</b>——根据用户当前说的话，给他&quot;推荐&quot;一条最合适的处理路径；</li><li><b>在零售场景里补一个商品推荐的抓手</b>，让项目更贴零售客户的业务。</li></ol>
+<p><b>有两种接法，我建议接第一种：</b></p>
+<div class="tblwrap"><table><thead><tr><th>接法</th><th>怎么做</th><th>评价</th></tr></thead><tbody><tr><td>❌ <b>新起一个&quot;商品推荐系统&quot;模块</b></td><td>加协同过滤、CTR 预估、特征工程</td><td><b>不要碰</b>。这和&quot;客服工单平台&quot;是两回事，而且要编一堆你没做过的模型细节，一问就穿</td></tr><tr><td>✅ <b>接到已有能力上</b></td><td>把推荐思想落到<b>意图路由</b>和<b>知识/商品召回</b>上</td><td><b>对</b>。不用改架构，还能把之前的链路讲得更有高度</td></tr></tbody></table></div>
+<h3>接法一：意图识别 ≈ 给问题推荐一条处理路径（这个类比很加分）</h3>
+<blockquote><p>&quot;<b>意图路由本质就是一个推荐问题</b>：候选是几条处理路径（知识问答 / 工具调用 / 转人工），特征是这个问题的语义和历史上下文，目标是<b>推荐最合适的那条</b>。 而且它和推荐系统一样是<b>两阶段</b>的：<b>先粗召回</b>（关键词规则 + 分类，把候选缩到几条），<b>再确定路由</b>（结合置信度和路由规则决定最终走哪条）。 我们做检索用的'召回 - 排序'两层结构，和推荐系统<b>是同构的</b>。&quot;</p></blockquote>
+<p>这段话的价值在于：<b>它说明你理解的是模式，不是只会调 API</b>。</p>
+<h3>接法二：客服场景里真实的&quot;推荐&quot;有三处</h3>
+<div class="tblwrap"><table><thead><tr><th>推荐什么</th><th>怎么推</th><th>在你项目里的位置</th></tr></thead><tbody><tr><td><b>知识推荐</b></td><td>同一意图下，把语义相近的 FAQ 一起召回（不只是命中那一条）</td><td>知识库模块，<code>knowledge_faq</code> 的相似问法 JSON</td></tr><tr><td><b>话术推荐</b></td><td>给坐席推荐几条可直接发的回复，坐席点一下就发</td><td>坐席工作台（这个我们<b>只做了候选展示，没做自动发送</b>）</td></tr><tr><td><b>商品推荐</b></td><td>零售客户场景：顾客问&quot;有没有类似的&quot;&quot;这个还有别的颜色吗&quot;</td><td>走 <code>queryProduct</code> 工具 + 向量检索做<b>相似商品召回</b></td></tr></tbody></table></div>
+<p><b>商品推荐这段可以这么讲</b>（这是老师建议真正能落地的位置）：</p>
+<blockquote><p>&quot;零售客户的场景里确实有导购需求。顾客问'这件有没有别的颜色'或者'有没有类似的'， 我们的做法是<b>两路召回再排</b>：<b>一路是向量召回</b>——商品标题和属性描述做 Embedding，语义相似的商品；<b>一路是规则召回</b>——同品类、有库存、在活动期内的。 然后排序用的不是模型，是<b>简单的业务规则加权</b>：库存优先、活动商品加权、同价位段优先。 <b>这里要说清楚</b>：我们做的是<b>客服场景的导购辅助</b>，不是电商首页那种个性化推荐系统——那个要用户画像和 CTR 模型，<b>不在我们的范围里</b>。&quot;</p></blockquote>
+<h3>★如果面试官顺着往下深挖推荐</h3>
+<div class="tblwrap"><table><thead><tr><th>追问</th><th>答法</th></tr></thead><tbody><tr><td>&quot;你们有用户画像吗？&quot;</td><td>&quot;<b>没有做完整的画像</b>。会话里能拿到的是当前客户标识 + 历史会话记录（这个顾客之前问过什么），做不到跨渠道的行为画像。<b>个性化推荐的前提是行为数据，我们只有对话数据</b>——这是客观限制。&quot;</td></tr><tr><td>&quot;怎么做相似商品召回？&quot;</td><td>&quot;商品标题 + 关键属性拼成一段文本做 Embedding，检索时用顾客描述做 query。<b>要注意的是商品结构是 SPU/SKU 两层</b>：SPU 是'哪一款'，SKU 是'哪个规格'。属性是 SPU 级的（品牌、材质），规格是 SKU 级的（颜色、尺码）。<b>做召回要带上 SPU 过滤，不然'这个有货吗'会召回一堆无关商品。</b>&quot;</td></tr><tr><td>&quot;推荐效果怎么评估？&quot;</td><td>&quot;<b>这题我答不实</b>。电商推荐看 CTR、转化率，但客服场景下我们没有埋这些点，<b>能看的是'推荐后被采纳的比例'</b>——这块我们没做透。&quot;（<b>不会就说不会，别编</b>）</td></tr></tbody></table></div>
+</section>
+
+<section class="q" id="q6">
+  <div class="q-head"><span class="q-no">六</span><h2>会话记忆管理，10 轮对话的存储大小</h2></div>
+<h3>30 秒版</h3>
+<blockquote><p>&quot;<b>单会话大概 10KB 上下</b>。算的时候要看三样：<b>文本本身多大、JSON 结构的开销、Redis 自己的对象开销</b>。 我们存 10 轮 ≈ 20 条消息，顾客的话短、AI 的话长，加起来两三千字，UTF-8 中文一个字 3 字节，所以<b>文本约 6KB，加上结构大概 8KB，Redis 实际占用乘以 1.5~2 倍，落到 12~15KB</b>。 听起来小，乘上并发就有点数了：<b>峰值同时缓存的会话一千多个，算下来二三十兆</b>——<b>对 Redis 来说是零头</b>。&quot;</p></blockquote>
+<h3>展开讲：完整算法（这题面试官就是想看你算不算得出来）</h3>
+<p><b>第一步：一轮是多少</b></p>
+<div class="tblwrap"><table><thead><tr><th>项</th><th>平均值</th><th>说明</th></tr></thead><tbody><tr><td>顾客 1 条</td><td>约 25 字</td><td>客服场景顾客话很短：&quot;我的快递到哪了&quot;&quot;怎么退货&quot;</td></tr><tr><td>AI 1 条</td><td>约 180 字</td><td>AI 回复要解释清楚，还会带&quot;需要我帮您…吗&quot;这类引导</td></tr><tr><td><b>一轮合计</b></td><td><b>约 205 字</b></td><td></td></tr><tr><td><b>10 轮（20 条）</b></td><td><b>约 2050 字</b></td><td></td></tr></tbody></table></div>
+<p><b>第二步：文本体积</b></p>
+<ul><li>UTF-8 编码下<b>一个汉字 3 字节</b>：2050 字 × 3 ≈ <b>6.2 KB</b></li></ul>
+<p><b>第三步：加上 JSON 结构开销</b></p>
+<p>每条消息不只是内容，还有结构：</p>
+<pre class="code"><code>{&quot;msgId&quot;:&quot;...&quot;,&quot;role&quot;:&quot;assistant&quot;,&quot;content&quot;:&quot;...&quot;,&quot;senderType&quot;:2,&quot;ts&quot;:1760000000000}</code></pre>
+<p>字段名、ID、时间戳这些大概占 <b>20%~30%</b> → <b>约 8 KB</b></p>
+<p><b>第四步：★Redis 实际内存占用（这一步最容易漏）</b></p>
+<p>Redis 不是把字符串原样扔进内存的，每个 key 还有：</p>
+<ul><li><code>dictEntry</code>（哈希表项）</li><li><code>robj</code>（对象头）</li><li><code>sds</code> 头 + 内存对齐</li><li>jemalloc 的<b>内存碎片</b></li></ul>
+<p>小对象场景下，实测通常是数据本身的 <b>1.5~2 倍</b> → <b>单会话实际占 12~15 KB</b></p>
+<p><b>第五步：乘并发</b></p>
+<div class="tblwrap"><table><thead><tr><th>项</th><th>数</th><th>算法</th></tr></thead><tbody><tr><td>日均会话</td><td>8000</td><td>业务量</td></tr><tr><td>每小时</td><td>约 800</td><td>8000 ÷ 10 小时</td></tr><tr><td>稳态同时缓存</td><td>约 400</td><td>TTL 30 分钟 → 800 × 0.5</td></tr><tr><td><b>峰值同时缓存</b></td><td><b>约 1600</b></td><td>乘 4 倍峰值系数（大促/活动日）</td></tr><tr><td><b>总内存</b></td><td><b>约 20~25 MB</b></td><td>1600 × 13.5 KB ≈ 21.6 MB</td></tr></tbody></table></div>
+<p><b>结论</b>：</p>
+<blockquote><p>&quot;<b>二十多兆，对一个 Redis 实例来说基本可以忽略</b>。所以这里<b>不需要做任何存储优化</b>——不压缩、不换数据结构、不加二级缓存，都不值得。 <b>真正花钱的地方在大模型的 token</b>：这 2000 字进一次 Prompt 大概 1500~2000 token。一天 8000 个会话、每个会话多轮，<b>token 成本是 Redis 内存成本的几个数量级</b>。所以优化的优先级很明确：<b>先优化进 Prompt 的内容，再谈存储。</b>&quot;</p></blockquote>
+<h3>追问预案</h3>
+<div class="tblwrap"><table><thead><tr><th>追问</th><th>答法</th></tr></thead><tbody><tr><td>&quot;10 轮每次都全塞进 Prompt 吗？&quot;</td><td>&quot;<b>不是</b>。10 轮是<b>留存上限</b>，不是每次都全发。发之前会按<b>上下文预算裁剪</b>：系统提示词和召回片段优先，然后是最新的几轮，更早的按需截断或摘要。<b>存的比用的多。</b>&quot;</td></tr><tr><td>&quot;为什么是 10 轮不是 20 轮？&quot;</td><td>&quot;两个理由：<b>一是成本</b>——每多一轮，每次调用都多付一次 token；<b>二是效果</b>——塞太多模型反而抓不住重点。客服场景 <b>10 轮基本能覆盖一次完整咨询</b>（问规则 → 追问 → 确认 → 结束）。<b>这个数是设计中的经验值，不是调出来的最优值。</b>&quot;</td></tr><tr><td>&quot;会话很长（顾客聊了 50 轮）怎么办？&quot;</td><td>&quot;靠<b>三层记忆</b>：短期是 Redis 里的最近几轮；中期是<b>超过窗口的部分做结构化摘要</b>——把诉求、已经给过的方案、结论提炼成一段短文本存下来；长期是把会话原文持久化到消息表，再将适合检索的历史片段切分、向量化并写入 PGVector 等向量库，保存顾客标识和原文关联 ID；按顾客范围检索、按需取回相关内容，<b>而不是把全部历史塞进去</b>。<b>关键不是'存多久'，是'检索什么'。</b>&quot;</td></tr><tr><td>&quot;Redis 挂了会话就断了？&quot;</td><td>&quot;会。所以<b>会话原文是落库的</b>（消息表），Redis 只是热数据的缓存，挂了之后能从库里重建最近几轮。<b>代价是丢失'没落库的那几条'</b>——所以我们是<b>先落库再写 Redis</b>。&quot;</td></tr><tr><td>&quot;内存怎么估容量、怎么防爆？&quot;</td><td>&quot;估法就是刚才那个：峰值并发会话 × 单会话大小。防爆有三招：<b>① 一定要设 TTL</b>（30 分钟），不能有不过期的 key；<b>② 配置 <code>maxmemory</code> + <code>maxmemory-policy</code></b>（我们用的近似 LRU），满了淘汰最老的；<b>③ 加内存水位告警</b>。&quot;</td></tr></tbody></table></div>
+</section>
+
+<section class="q" id="q7">
+  <div class="q-head"><span class="q-no">七</span><h2>会话记忆存储——明文还是密文</h2></div>
+<h3>30 秒版</h3>
+<blockquote><p>&quot;<b>明文</b>——我们没做字段级加密。 理由是三层的：<b>① 会话每轮都要读出来拼进 Prompt，加密了就是每轮多一次加解密，而且密钥就在应用侧，防不住能读到应用内存的人，安全提升有限</b>； <b>② 真正的防护在访问层</b>——Redis 只在<b>内网</b>、不出公网、开密码和 ACL、禁危险命令； <b>③ 但有两件必须做的事</b>：<b>敏感字段是脱敏不是加密</b>——手机号、身份证在进 Prompt 之前就掩码掉；<b>日志不能打全量会话内容</b>，<code>ai_execution</code> 存 prompt 的时候同样要脱敏。 一句话：<b>风险在'谁能读到'，不在'盘上是不是密文'。</b>&quot;</p></blockquote>
+<h3>展开讲：四件事要说清楚</h3>
+<h4>一、现状：明文 JSON</h4>
+<p>Redis 里存的是<b>明文的 JSON 数组</b>，一条消息一个对象（<code>role</code> / <code>content</code> / <code>ts</code> / <code>msgId</code>）。</p>
+<p><b>★不要假装加密了</b>。面试官如果追问&quot;你们密钥怎么管的&quot;而你答不上来，比一开始就说没加密差得多。</p>
+<h4>二、为什么不做字段级加密——三个理由</h4>
+<div class="tblwrap"><table><thead><tr><th>理由</th><th>展开</th></tr></thead><tbody><tr><td><b>用了就要解，成本在热路径上</b></td><td>每一轮对话都要把最近 10 轮读出来解密、拼进 Prompt。<b>这是整条链路最热的地方</b>，加解密和密钥调用都在这里</td></tr><tr><td><b>密钥在应用侧，防不住&quot;能读到内存的人&quot;</b></td><td>加密防御的是&quot;拿到磁盘/拿到备份&quot;的场景。<b>但如果攻击者能读到应用进程，密钥和明文他都能拿到</b>——安全性提升有限</td></tr><tr><td><b>会话内容是业务数据，不是凭证</b></td><td>和密码、支付密钥不一样。<b>它就是顾客说的话</b>，价值在于&quot;别让不该看的人看到&quot;，不在于&quot;存储介质上是不是乱码&quot;</td></tr></tbody></table></div>
+<h4>三、真正该做的三件事（★这才是这题的重点）</h4>
+<p><b>① 敏感字段脱敏，而不是加密</b></p>
+<blockquote><p>&quot;会话里确实会出现手机号、身份证、银行卡号。我们的做法不是加密，是<b>在进 Prompt 前做掩码</b>——手机号变成 <code>138****8888</code>，身份证只留前六后四。 <b>原始值只在业务库里</b>，而且业务库的字段有权限控制。 这样做有两个好处：<b>一是模型不需要完整的手机号也能回答</b>；<b>二是就算会话内容泄露、或者被日志打出来，也不直接暴露个人信息</b>。&quot;</p></blockquote>
+<p><b>② 日志脱敏</b></p>
+<blockquote><p>&quot;<code>ai_execution</code> 表会存 prompt 的摘要，<b>这里也要脱敏</b>。另外生产环境的日志级别要控制——<b>会话内容不能打全量到文件里</b>，那是最常见的泄露渠道。&quot;</p></blockquote>
+<p><b>③ Redis 侧的加固</b></p>
+<div class="tblwrap"><table><thead><tr><th>措施</th><th>说明</th></tr></thead><tbody><tr><td><b>只在内网</b></td><td><code>bind</code> 内网 IP，安全组不放行公网端口</td></tr><tr><td><b>开密码 + ACL</b></td><td>不用默认用户，按应用分配权限</td></tr><tr><td><b>禁危险命令</b></td><td><code>rename-command</code> 把 <code>FLUSHALL</code> / <code>KEYS</code> / <code>CONFIG</code> 这类改掉</td></tr><tr><td><b>这个实例不落盘</b></td><td>关掉 RDB / AOF，或者用<b>单独的实例</b>——缓存数据丢了能从库重建，<b>但 dump 文件被拿走就是全量会话泄露</b></td></tr><tr><td><b>跨机房开 TLS</b></td><td>同机房内网一般可省，跨机房必须开</td></tr></tbody></table></div>
+<h4>四、如果客户有合规要求（这题的高分延伸）</h4>
+<blockquote><p>&quot;上面说的是我们<b>默认的架构</b>。但我们是<b>交付型项目，客户自己的合规要求不一样</b>。 如果客户是金融、医疗这类有强合规要求的，就得上：<b>① 应用层加密</b>——AES-GCM 加密后再存，密钥放 KMS 统一管；<b>② 磁盘加密</b>——兜住物理层面的风险；<b>③ 会话历史也加密</b>——落库的 <code>message</code> 表同样处理。 <b>这些是按客户要求加的，不是默认就上</b>——因为加了之后加解密的开销和运维复杂度都上来了。&quot;</p></blockquote>
+<p><b>★再补一句更实际的（这是《个人信息保护法》里真正卡人的地方）</b>：</p>
+<blockquote><p>&quot;比'明文还是密文'更实际的问题是<b>保留多久</b>。 会话历史落库之后，我们按客户配的<b>保留期</b>做归档和清理（比如 6 个月），到期删除或者脱敏。 <b>很多团队加密做得很认真，但数据留了五年</b>——那个风险比明文存三天大得多。&quot;</p></blockquote>
+<h3>追问预案</h3>
+<div class="tblwrap"><table><thead><tr><th>追问</th><th>答法</th></tr></thead><tbody><tr><td>&quot;那 Redis 被人拖库了不就全泄露了？&quot;</td><td>&quot;会。所以要<b>两条腿走</b>：<b>① 让它进不来</b>（内网 + 密码 + ACL + 禁危险命令 + 不落盘）；<b>② 让拖到了也不完整</b>（敏感字段已经脱敏）。<b>剩下的风险要如实承认</b>——我们没有做到'拖库也无所谓'这个级别，那需要端到端加密，代价是整条链路的加解密开销。&quot;</td></tr><tr><td>&quot;为什么不用 Redis 的透明加密？&quot;</td><td>&quot;<b>Redis 本身没有原生的字段级加密</b>。要做只能在应用层做（存之前加密、读之后解密），或者用支持加密的托管服务。<b>应用层做的话就是我刚才说的那些代价。</b>&quot;</td></tr><tr><td>&quot;落库的会话历史加密了吗？&quot;</td><td>&quot;<b>默认没有，和 Redis 保持一致</b>。有合规要求的客户会开——MySQL 那边可以走<b>透明数据加密（TDE）</b>或者对特定列做应用层加密。<b>这点我没做得很深</b>，知道有这几条路。&quot;</td></tr><tr><td>&quot;AI 的执行日志里会不会有敏感信息？&quot;</td><td>&quot;会有——因为 prompt 里有召回片段和会话历史。所以 <b><code>ai_execution</code> 的 prompt 字段做脱敏或只存摘要</b>，敏感原文不落。<b>这一条我们做了，但做得不够系统</b>，是靠写的时候注意。&quot;</td></tr><tr><td>&quot;怎么证明你们真的做了脱敏？&quot;</td><td>&quot;<b>看代码和表结构</b>——脱敏是集中在<b>进 Prompt 之前的那一个函数</b>里做的，所有链路都走它。<b>不是每个地方各写一遍</b>，那样一定会漏。&quot;</td></tr></tbody></table></div>
+</section>
+
+<section class="q" id="q8">
+  <div class="q-head"><span class="q-no">附</span><h2>本场七问的红线自查</h2></div>
+<ul><li>[ ] <b>第一题</b>：亮点说清了&quot;三块（我负责 4 个模块）&quot;，<b>没有说成&quot;全是我一个人做的&quot;</b></li><li>[ ] <b>第一题</b>：主动交代了&quot;没有人工评测集&quot;这条局限</li><li>[ ] <b>第二题</b>：★说清了&quot;<b>意图识别是模型做的，LangGraph 负责编排和路由</b>&quot;，没把两者混为一谈</li><li>[ ] <b>第二题</b>：讲了那个<b>顺序错误</b>（先阈值后工具 → 改成一先意图路由），这是最强证据</li><li>[ ] <b>第二题</b>：置信度 0.5 说了是&quot;<b>设计中的经验值</b>&quot;，没说成调出来的</li><li>[ ] <b>第三题</b>：8 个工具分成了&quot;<b>6 读 2 写</b>&quot;，并说了&quot;<b>工具清单本身就是边界</b>&quot;</li><li>[ ] <b>第三题</b>：讲了&quot;<b>模型传的参数服务端要再校验</b>&quot;——这是安全，不是啰嗦</li><li>[ ] <b>第四题</b>：说清了&quot;<b>Prompt 是引导、代码是底线</b>&quot;，并区分生成前检索门控与生成后输出校验</li><li>[ ] <b>第四题</b>：明确说&quot;改价/退款这类工具<b>根本不在清单里</b>&quot;</li><li>[ ] <b>第五题</b>：推荐接在了<b>已有能力</b>上，<b>没有新编一个推荐系统模块</b></li><li>[ ] <b>第五题</b>：说了&quot;<b>没有用户画像</b>&quot;这个客观限制</li><li>[ ] <b>第六题</b>：★算全了四步——<b>文本 / JSON 开销 / Redis 对象开销 / 乘并发</b></li><li>[ ] <b>第六题</b>：说了&quot;10 轮是<b>留存上限</b>不是每次都全发&quot;</li><li>[ ] <b>第七题</b>：★<b>直接说&quot;明文&quot;</b>，没假装加密了</li><li>[ ] <b>第七题</b>：说清了&quot;<b>脱敏 ≠ 加密</b>&quot;，以及&quot;<b>保留期比加密更实际</b>&quot;</li><li>[ ] 全程：<b>没有出现&quot;注册 / 试用 / 订阅 / 官网 / 租户&quot;</b></li></ul>
+</section>
+</main>
+
+<div class="totop" id="totop" title="回到顶部">↑</div>
+<script>
+(function () {
+  var t = document.getElementById('totop');
+  var ticking = false;
+  function upd() { t.classList.toggle('on', window.scrollY > 420); ticking = false; }
+  window.addEventListener('scroll', function () {
+    if (ticking) return; ticking = true; window.requestAnimationFrame(upd);
+  }, { passive: true });
+  t.addEventListener('click', function () { window.scrollTo({ top: 0, behavior: 'smooth' }); });
+})();
+</script>
+</body>
+</html>
