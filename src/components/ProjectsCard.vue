@@ -50,9 +50,10 @@ export default {
   },
   computed: {
     displayProjects() {
-      // Six (not five) so the two-column grid packs into three full rows —
-      // five left an empty 399x212 hole in the bottom-right corner.
-      return (this.projects || []).slice(0, 6)
+      // Render every configured card: the grid packs them into full rows, so an
+      // odd count would leave a hole and any `slice` would silently hide cards
+      // the user has no other way to reach from the homepage.
+      return this.projects || []
     },
   },
 }

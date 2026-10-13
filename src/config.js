@@ -136,6 +136,8 @@ const config = {
 		{ go: "📝 前往", img: "/img/projects/note.svg", title: "架构课件 · 10 章速记", subtitle: "零基础也能看懂", text: "把微服务拆成 10 个章节的速记课件，每个概念配一张图，适合面试前快速过一遍。", url: "/project02/架构/2-架构课件（10章速记）.html", show: true },
 		{ go: "🎬 前往", img: "/img/projects/palette.svg", title: "微服务动画 · 4 场景", subtitle: "动起来才看得懂", text: "服务注册、负载均衡、熔断降级、链路追踪——四段动画把抽象流程演一遍。", url: "/project02/动画/1-微服务动画（4场景）.html", show: true },
 		{ go: "🖥️ 前往", img: "/img/projects/thumb.svg", title: "高保真交互原型", subtitle: "坐席工作台 · 工单 · 看板", text: "可直接点击操作的客服系统原型：坐席工作台、工单流转、知识库与服务质量看板。", url: "/project02/原型/0-原型总入口.html", show: true },
+		{ go: "🗣️ 前往", img: "/img/projects/chat.svg", title: "面试题精讲 · 五题", subtitle: "云联客服工单平台", text: "父子块切分、文档解析四环节、Agent 评估、知识来源、离职口径——每题都是「30 秒版 → 展开 → 追问预案」。", url: "/project02/面试/1-面试题精讲.html", show: true },
+		{ go: "🎓 前往", img: "/img/projects/qa.svg", title: "老师模拟面 · 六问", subtitle: "追问预案 + 表达纪律", text: "项目亮点、LangGraph 意图识别、Tool Calling、AI 边界、会话记忆算量与明文密文，附老师那条建议的接法。", url: "/project02/面试/2-老师模拟面.html", show: true },
 		{ go: "🚀 前往", img: "/img/projects/campus.svg", title: "科大智慧校园", subtitle: "学校一站式服务大厅", text: "广西科技大学网上服务大厅，成绩、课表、缴费等常用入口。", url: "https://ehall.gxust.edu.cn/", show: false },
 	],
 
