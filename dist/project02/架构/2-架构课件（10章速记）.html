@@ -3,6 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#07060f">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230a0a1a'/%3E%3Cpath d='M9 22V10h3v4.6h8V10h3v12h-3v-4.8h-8V22H9z' fill='%238b7aaa'/%3E%3C/svg%3E">
 <title>云联客服工单平台 · 架构与面试速记课件</title>
 <style>
 /* ============ 基础变量 ============ */
@@ -58,7 +60,7 @@ code{font-family:var(--mono)}
 .brand{display:flex;align-items:center;gap:10px;font-weight:700;color:var(--bright);white-space:nowrap}
 .brand .dot{
   width:10px;height:10px;border-radius:50%;
-  background:var(--cyan); box-shadow:0 0 12px 2px rgba(139,122,170,0.12);
+  background:var(--cyan); box-shadow:0 0 12px 2px rgba(139,122,170,0.30);
   animation:pulse 2.4s ease-in-out infinite;
 }
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
@@ -80,7 +82,7 @@ section{scroll-margin-top:78px;margin-bottom:64px}
   display:flex;align-items:center;justify-content:center;
   border-radius:11px; font-weight:700; font-size:16px;
   color:#12102a; background:linear-gradient(135deg,var(--cyan),var(--blue));
-  box-shadow:0 0 22px -4px rgba(139,122,170,0.10);
+  box-shadow:0 0 22px -4px rgba(139,122,170,0.26);
 }
 h2{margin:0;font-size:21px;color:var(--bright);letter-spacing:.4px}
 .sec-sub{color:var(--dim);font-size:12.5px;margin:0 0 22px;padding-left:52px}
@@ -98,11 +100,11 @@ h4{font-size:13.5px;color:var(--bright);margin:0 0 8px}
 }
 .card.glow{
   border-color:rgba(139,122,170,.34);
-  box-shadow:0 0 0 1px rgba(139,122,170,.06), 0 0 30px -12px rgba(139,122,170,0.09);
+  box-shadow:0 0 0 1px rgba(139,122,170,.06), 0 0 30px -12px rgba(139,122,170,0.22);
 }
 .card.blue-glow{
   border-color:rgba(127,143,181,.34);
-  box-shadow:0 0 0 1px rgba(127,143,181,.06), 0 0 30px -12px rgba(127,143,181,0.09);
+  box-shadow:0 0 0 1px rgba(127,143,181,.06), 0 0 30px -12px rgba(127,143,181,0.22);
 }
 .grid{display:grid;gap:14px}
 .g2{grid-template-columns:repeat(2,minmax(0,1fr))}
@@ -182,7 +184,7 @@ td.m{color:var(--dim);font-size:12.5px}
 .node .nd{font-size:11px;color:var(--dim);margin-top:2px}
 .node:hover{
   border-color:rgba(139,122,170,.7); transform:translateY(-2px);
-  box-shadow:0 0 20px -6px rgba(139,122,170,0.11);
+  box-shadow:0 0 20px -6px rgba(139,122,170,0.28);
 }
 .node.cy{border-color:rgba(139,122,170,.45);background:linear-gradient(180deg,#1a1732,#191630)}
 .node.bl{border-color:rgba(127,143,181,.45);background:linear-gradient(180deg,#1a1734,#181532)}
@@ -200,7 +202,7 @@ td.m{color:var(--dim);font-size:12.5px}
   padding:8px 11px; font-size:12px; line-height:1.6; text-align:left;
   letter-spacing:0; font-weight:400;
   opacity:0; pointer-events:none; transition:.18s; z-index:800;
-  box-shadow:0 10px 30px -8px rgba(0,0,0,.9), 0 0 18px -6px rgba(139,122,170,0.08);
+  box-shadow:0 10px 30px -8px rgba(0,0,0,.9), 0 0 18px -6px rgba(139,122,170,0.20);
 }
 .tip::before{
   content:""; position:absolute; left:50%; bottom:calc(100% + 4px);
@@ -236,19 +238,19 @@ td.m{color:var(--dim);font-size:12.5px}
   border:1px solid var(--line); border-radius:12px;
   padding:12px 13px; position:relative; transition:.18s; margin:6px 0;
 }
-.fstep:hover{border-color:rgba(127,143,181,.65);box-shadow:0 0 22px -8px rgba(127,143,181,0.13);transform:translateY(-2px)}
+.fstep:hover{border-color:rgba(127,143,181,.65);box-shadow:0 0 22px -8px rgba(127,143,181,0.32);transform:translateY(-2px)}
 .fstep .fn{
   display:inline-flex;align-items:center;justify-content:center;
   width:22px;height:22px;border-radius:50%;font-size:12px;font-weight:700;
   color:#12102a;background:var(--cyan);margin-bottom:6px;
-  box-shadow:0 0 14px -3px rgba(139,122,170,0.14);
+  box-shadow:0 0 14px -3px rgba(139,122,170,0.36);
 }
 .fstep .ft{font-size:13px;color:var(--bright);font-weight:700;line-height:1.5}
 .fstep .fd{font-size:11.5px;color:var(--dim);margin-top:5px;line-height:1.65}
 .fstep .fd b{color:var(--cyan);font-weight:600}
 .farrow{
   align-self:center; flex:0 0 auto; padding:0 5px; color:var(--blue);
-  font-size:18px; text-shadow:0 0 10px rgba(127,143,181,0.14); font-weight:700;
+  font-size:18px; text-shadow:0 0 10px rgba(127,143,181,0.36); font-weight:700;
 }
 @media(max-width:760px){.farrow{transform:rotate(90deg)}}
 
@@ -262,10 +264,10 @@ td.m{color:var(--dim);font-size:12.5px}
 .chain-item{position:relative;margin-bottom:12px}
 .chain-item::before{
   content:"";position:absolute;left:-29px;top:16px;width:11px;height:11px;border-radius:50%;
-  background:var(--bg);border:2px solid var(--cyan);box-shadow:0 0 12px -1px rgba(139,122,170,0.14);
+  background:var(--bg);border:2px solid var(--cyan);box-shadow:0 0 12px -1px rgba(139,122,170,0.36);
 }
-.chain-item.alt::before{border-color:var(--blue);box-shadow:0 0 12px -1px rgba(127,143,181,0.14)}
-.chain-item.warn::before{border-color:var(--red);box-shadow:0 0 12px -1px rgba(181,106,106,0.14)}
+.chain-item.alt::before{border-color:var(--blue);box-shadow:0 0 12px -1px rgba(127,143,181,0.36)}
+.chain-item.warn::before{border-color:var(--red);box-shadow:0 0 12px -1px rgba(181,106,106,0.36)}
 .chain-box{
   background:linear-gradient(180deg,#1a1734,#151230);
   border:1px solid var(--line); border-radius:12px; padding:12px 15px;
@@ -295,7 +297,7 @@ details{
   border:1px solid var(--line); border-radius:12px; background:var(--card);
   margin-bottom:10px; overflow:hidden; transition:.18s;
 }
-details[open]{border-color:rgba(139,122,170,.45);box-shadow:0 0 26px -14px rgba(139,122,170,0.12)}
+details[open]{border-color:rgba(139,122,170,.45);box-shadow:0 0 26px -14px rgba(139,122,170,0.30)}
 summary{
   cursor:pointer; padding:12px 16px; font-size:13.5px; color:var(--bright);
   list-style:none; display:flex; align-items:center; gap:10px; transition:.15s;
@@ -331,7 +333,7 @@ details .body .bad{color:var(--red);font-weight:600}
   display:flex;align-items:center;justify-content:center;
   font-size:12px;font-weight:700;color:#12102a;
   background:linear-gradient(135deg,var(--cyan),var(--blue));
-  box-shadow:0 0 16px -3px rgba(139,122,170,0.14);
+  box-shadow:0 0 16px -3px rgba(139,122,170,0.36);
 }
 .tl-item .card{margin-bottom:0}
 .tl-meta{margin-top:10px;display:grid;gap:8px;grid-template-columns:1fr 1fr}
@@ -501,10 +503,101 @@ p,li{line-height:1.85;}
     background-position:center,0 0;
   }
   .wrap{padding-left:14px !important;padding-right:14px !important;}
+
+  /* ---- horizontal-overflow guard ----
+     Measured on 架构/2-架构课件 at 390px: document scrollWidth was 414 (24px of
+     sideways scroll). Two causes, both only reachable below the breakpoint:
+       1. the architecture diagram's hover tooltips are position:absolute with
+          width:max-content and max-width:270px, anchored left:50% on a node that
+          can sit near the right edge, so the tooltip box sticks out. There is no
+          hover on touch, so the tooltip is dead weight on mobile anyway.
+       2. .brand is white-space:nowrap and its text is longer than a 360px bar,
+          so the flex row cannot shrink and pushes the document wide.
+     Fixing these two leaves scrollWidth === clientWidth at 360/390/414 without
+     html{overflow-x:hidden}, which would clip and fight the sticky header. */
+  .tip::after,.tip::before{display:none !important;}
+  .brand{white-space:normal !important;min-width:0;}
+  .topbar-inner{flex-wrap:wrap !important;row-gap:6px;}
 }
 @media (prefers-reduced-motion:reduce){
   *{animation-duration:.01ms !important;animation-iteration-count:1 !important;}
   *{transition-duration:.01ms !important;}
+}
+</style>
+
+<style id="sd-type">
+/* Star Desk skin v3 — typography (generated by .dsh-tmp/gen-type.mjs — do not hand-edit)
+   Measured defects fixed here: h3 was the same size as body text (14.5 vs 14);
+   56–107 CJK characters per line; secondary text at 4.6–5.6:1 contrast;
+   8–15 competing font sizes per page; monospace body copy on the courseware page. */
+:root{
+  --txt:#ded8cf; --dim:#a9a396; --faint:#8b8578;
+}
+html{ -webkit-text-size-adjust:100%; }
+body{
+  font-family:system-ui,-apple-system,"Segoe UI","PingFang SC","Microsoft YaHei","Hiragino Sans GB","Source Han Sans SC","Noto Sans SC",sans-serif !important;
+  font-size:15.5px !important;
+  line-height:1.85 !important;
+  color:#ded8cf;
+}
+code,pre,kbd,samp,var,.mono{ font-family:var(--mono,ui-monospace,Consolas,"Cascadia Mono",Menlo,monospace) !important; }
+p,li,dd,td,th,blockquote,summary{ line-height:1.85 !important; }
+h1,h2,h3,h4,h5,h6{ color:#ece7f3 !important; font-weight:600; letter-spacing:.01em; }
+h5,h6{ color:#a9a396 !important; }
+main,.wrap{max-width:700px !important;margin-left:auto !important;margin-right:auto !important}
+/* Dense reference blocks stay legible without competing with prose. */
+.tblwrap,.tbl-wrap,table{ font-size:13.5px !important; }
+table{ line-height:1.7 !important; }
+.brand small{font-size:13.5px !important}
+.nav a{font-size:13.5px !important}
+.sec-no{font-size:16.5px !important}
+.sec-sub{font-size:13.5px !important}
+h3{font-size:17.5px !important}
+h4{font-size:16.5px !important}
+.kpi .num{font-size:26px !important}
+.kpi .num .unit{font-size:14px !important}
+.kpi .lbl{font-size:13.5px !important}
+table{font-size:14px !important}
+thead th{font-size:13.5px !important}
+td.m{font-size:13.5px !important}
+.badge{font-size:12.5px !important}
+.layer-label{font-size:12.5px !important}
+.node .nt{font-size:14px !important}
+.node .nd{font-size:12.5px !important}
+.tip::after{font-size:13.5px !important}
+.arch-legend{font-size:13.5px !important}
+.fstep .fn{font-size:13.5px !important}
+.fstep .ft{font-size:14px !important}
+.fstep .fd{font-size:13.5px !important}
+.chain-box .ct{font-size:14.5px !important}
+.chain-box .cd{font-size:13.5px !important}
+.stage .sh{font-size:13.5px !important}
+.stage p{font-size:13.5px !important}
+summary{font-size:14.5px !important}
+summary::before{font-size:15.5px !important}
+details .body{font-size:14px !important}
+.chip{font-size:13.5px !important}
+.chip b{font-size:14.5px !important}
+.tl-item::before{font-size:13.5px !important}
+.tl-meta div{font-size:13.5px !important}
+.tl-meta .k{font-size:13.5px !important}
+footer{font-size:13.5px !important}
+ul.tight li{font-size:14px !important}
+.note{font-size:13.5px !important}
+h2.part{font-size:21px !important}
+@media (max-width:767px){
+  body{ font-size:15.5px !important; }
+  /* A bare `1fr` track has an automatic minimum of min-content, so one long
+     unbreakable token (an IP, a hostname, a code span) makes the column WIDER
+     than the viewport. Measured on 动画/2 at 390px: .term-body's single column
+     computed to 413px and pushed .mini out to right=444, i.e. real horizontal
+     overflow the user sees as a cut-off layout. minmax(0,1fr) removes that
+     automatic floor, and min-width:0 lets the flex children shrink with it. */
+  .term-body,.grid2,.grid3,.svc .kv{ grid-template-columns:minmax(0,1fr) !important; }
+  .mini,.term-body>*,.row>*,.col>*{ min-width:0; }
+  h1{ font-size:23.5px !important; }
+  h2,h2.part{ font-size:21px !important; }
+  h3{ font-size:17.5px !important; }
 }
 </style>
 <script>/*__perfLayer__*/
@@ -702,85 +795,6 @@ p,li{line-height:1.85;}
   };
 })();
 </script>
-
-
-
-
-<style id="sd-type">
-/* Star Desk skin v3 — typography (generated by .dsh-tmp/gen-type.mjs — do not hand-edit)
-   Measured defects fixed here: h3 was the same size as body text (14.5 vs 14);
-   56–107 CJK characters per line; secondary text at 4.6–5.6:1 contrast;
-   8–15 competing font sizes per page; monospace body copy on the courseware page. */
-:root{
-  --txt:#ded8cf; --dim:#a9a396; --faint:#8b8578;
-}
-html{ -webkit-text-size-adjust:100%; }
-body{
-  font-family:system-ui,-apple-system,"Segoe UI","PingFang SC","Microsoft YaHei","Hiragino Sans GB","Source Han Sans SC","Noto Sans SC",sans-serif !important;
-  font-size:15.5px !important;
-  line-height:1.85 !important;
-  color:#ded8cf;
-}
-code,pre,kbd,samp,var,.mono{ font-family:var(--mono,ui-monospace,Consolas,"Cascadia Mono",Menlo,monospace) !important; }
-p,li,dd,td,th,blockquote,summary{ line-height:1.85 !important; }
-h1,h2,h3,h4,h5,h6{ color:#ece7f3 !important; font-weight:600; letter-spacing:.01em; }
-h5,h6{ color:#a9a396 !important; }
-main,.wrap{max-width:700px !important;margin-left:auto !important;margin-right:auto !important}
-/* Dense reference blocks stay legible without competing with prose. */
-.tblwrap,.tbl-wrap,table{ font-size:13.5px !important; }
-table{ line-height:1.7 !important; }
-.brand small{font-size:13.5px !important}
-.nav a{font-size:13.5px !important}
-.sec-no{font-size:16.5px !important}
-.sec-sub{font-size:13.5px !important}
-h3{font-size:17.5px !important}
-h4{font-size:16.5px !important}
-.kpi .num{font-size:26px !important}
-.kpi .num .unit{font-size:14px !important}
-.kpi .lbl{font-size:13.5px !important}
-table{font-size:14px !important}
-thead th{font-size:13.5px !important}
-td.m{font-size:13.5px !important}
-.badge{font-size:12.5px !important}
-.layer-label{font-size:12.5px !important}
-.node .nt{font-size:14px !important}
-.node .nd{font-size:12.5px !important}
-.tip::after{font-size:13.5px !important}
-.arch-legend{font-size:13.5px !important}
-.fstep .fn{font-size:13.5px !important}
-.fstep .ft{font-size:14px !important}
-.fstep .fd{font-size:13.5px !important}
-.chain-box .ct{font-size:14.5px !important}
-.chain-box .cd{font-size:13.5px !important}
-.stage .sh{font-size:13.5px !important}
-.stage p{font-size:13.5px !important}
-summary{font-size:14.5px !important}
-summary::before{font-size:15.5px !important}
-details .body{font-size:14px !important}
-.chip{font-size:13.5px !important}
-.chip b{font-size:14.5px !important}
-.tl-item::before{font-size:13.5px !important}
-.tl-meta div{font-size:13.5px !important}
-.tl-meta .k{font-size:13.5px !important}
-footer{font-size:13.5px !important}
-ul.tight li{font-size:14px !important}
-.note{font-size:13.5px !important}
-h2.part{font-size:21px !important}
-@media (max-width:767px){
-  body{ font-size:15.5px !important; }
-  /* A bare `1fr` track has an automatic minimum of min-content, so one long
-     unbreakable token (an IP, a hostname, a code span) makes the column WIDER
-     than the viewport. Measured on 动画/2 at 390px: .term-body's single column
-     computed to 413px and pushed .mini out to right=444, i.e. real horizontal
-     overflow the user sees as a cut-off layout. minmax(0,1fr) removes that
-     automatic floor, and min-width:0 lets the flex children shrink with it. */
-  .term-body,.grid2,.grid3,.svc .kv{ grid-template-columns:minmax(0,1fr) !important; }
-  .mini,.term-body>*,.row>*,.col>*{ min-width:0; }
-  h1{ font-size:23.5px !important; }
-  h2,h2.part{ font-size:21px !important; }
-  h3{ font-size:17.5px !important; }
-}
-</style>
 </head>
 <body>
 
@@ -1008,7 +1022,7 @@ h2.part{font-size:21px !important}
       <div class="fstep">
         <div class="fn">2</div>
         <div class="ft">机器人接待</div>
-        <div class="fd">意图识别 → RAG 检索 Top5 → Tool Calling → LLM 生成。<br><b>技术点：</b>SSE 流式返回；答案必须带知识引用。</div>
+        <div class="fd">意图识别 → <b>意图路由</b>（知识问答走 RAG / 实时业务查询走 Tool Calling）→ 执行分支 → LLM 生成 → 后置校验。<br><b>技术点：</b>SSE 流式返回；答案必须带知识引用。<br><b>★顺序不能反：</b>不能先看 RAG 分数再决定要不要调工具——"我的快递到哪了"知识库里本来就没有，先卡 RAG 阈值会把它直接兜底掉。</div>
       </div>
       <div class="farrow">➜</div>
 
@@ -1122,10 +1136,22 @@ h2.part{font-size:21px !important}
 
       <div class="chain-item">
         <div class="chain-box">
-          <div class="ct">② RAG 检索（混合检索 + 融合）</div>
+          <div class="ct">② ★意图路由（先分支，再谈阈值）</div>
+          <div class="cd">
+            <b>知识问答类</b>（"退货规则是什么"）→ 走 <b>RAG 分支</b>；<br>
+            <b>实时业务查询类</b>（"我的快递到哪了"）→ 走 <b>Tool Calling 分支</b>，<b>完全不看知识库分数</b>；<br>
+            <b>组合类</b> → 先 Tool Calling 拿数据，再补 RAG 政策。<br>
+            ★ <b>顺序不能反：</b>不能先看 RAG 分数再决定要不要调工具——"我的快递到哪了"知识库里本来就没有，先卡 RAG 阈值会把它直接兜底掉。
+          </div>
+        </div>
+      </div>
+
+      <div class="chain-item">
+        <div class="chain-box">
+          <div class="ct">③-A RAG 分支：混合检索 + 融合（★只有这条分支受阈值约束）</div>
           <div class="cd">
             调 knowledge 服务：<span class="badge bl">POST /inner/knowledge/search</span><br>
-            问题向量化 → 向量库召回 → 与 ES <b>BM25</b> 结果做 <b>RRF 融合</b> → 重排取 <b>Top5</b> 知识片段。<br>
+            问题向量化 → 向量库召回 → 与 ES <b>BM25</b> 结果做 <b>RRF 融合</b> → 取 <b>Top20~30</b> 候选送重排 → 取 <b>Top5</b> 知识片段。<br>
             只查本客户知识库（客户之间物理隔离），并带 <code>tenant_id</code> metadata 过滤做二次防护。
           </div>
         </div>
@@ -1133,10 +1159,10 @@ h2.part{font-size:21px !important}
 
       <div class="chain-item">
         <div class="chain-box">
-          <div class="ct">③ 判定是否需要业务数据</div>
+          <div class="ct">③-B Tool Calling 分支：实时业务查询</div>
           <div class="cd">
-            <b>需要</b> → <b>Tool Calling</b>（LLM Function Calling 决策），用 OpenFeign / RestTemplate 调业务服务，把结构化结果回填 Prompt；<br>
-            <b>不需要</b> → 仅用知识片段进生成。
+            LLM 决定调哪个工具、抽参数 → Python 侧用 <b>httpx</b> 调 Java 服务的内部接口（<span class="badge bl">/inner/*</span>），把结构化结果回填 Prompt。<br>
+            <b>参数校验在服务端做</b>（订单必须属于当前会话的客户），超时 → 兜底 + 转人工。
           </div>
         </div>
       </div>
@@ -1150,11 +1176,12 @@ h2.part{font-size:21px !important}
 
       <div class="chain-item warn">
         <div class="chain-box" style="border-color:rgba(181,106,106,.45)">
-          <div class="ct" style="color:#bb8680">⑤ 后置校验（幻觉兜底）</div>
+          <div class="ct" style="color:#bb8680">⑤ 后置校验（幻觉兜底 · 生成前拦截）</div>
           <div class="cd">
             <b class="red" style="color:var(--red)">召回片段为空，或重排分不达标（设计中的经验阈值 0.72）→ 禁止生成</b>，直接走兜底话术（"我帮您转人工确认一下"）+ 转人工。<br>
-            ★注意：<b>向量相似度只作参考信号，不能单独触发兜底</b>——BM25 可能精确命中而向量分很低，硬过滤会误杀正确结果。
-            其余校验：是否引用知识、是否包含违规词、长度是否合理。
+            ★注意：<b>向量相似度只作参考信号，不能单独触发兜底</b>——BM25 可能精确命中而向量分很低，硬过滤会误杀正确结果。<br>
+            ★<b>"后置"是相对 System Prompt 的软约束说的</b>——代码在真正调用生成模型之前拦一道，这是硬约束。<br>
+            生成之后还有一道 <b>输出检查</b>：是否引用知识、是否包含违规词、长度是否合理。
           </div>
         </div>
       </div>
@@ -1789,7 +1816,7 @@ h2.part{font-size:21px !important}
           <div>
             <span class="k">要写的类 / 表 / 接口</span>
             <b>类：</b><code>DocumentParseService</code>（解析 + 切分 chunk）、<code>EmbeddingService</code>（调 embedding，写 PGVector）、
-            <code>EsIndexService</code>（写 ES 供 BM25）、<code>HybridSearchService</code>（向量 + BM25 → <b>RRF 融合</b> → 重排 Top5）、
+            <code>EsIndexService</code>（写 ES 供 BM25）、<code>HybridSearchService</code>（向量 + BM25 → <b>RRF 融合</b> → 取 Top20~30 送重排 → 取 Top5）、
             <code>IntentService</code>、<code>ToolCallingService</code>、<code>LlmClient</code>（DeepSeek）、
             <code>PostCheckService</code>（<b>召回为空或重排分不达标禁止生成，走兜底 + 转人工；向量相似度只作参考</b>）、
             <code>AiExecutionLogger</code>（异步写日志）。<br>
