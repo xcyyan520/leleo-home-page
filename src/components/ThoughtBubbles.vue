@@ -1,5 +1,5 @@
 <template>
-  <div class="memory-chamber" ref="chamber" @mousemove="onMouseMove" @touchmove="onTouchMove">
+  <div class="memory-chamber" ref="chamber" @pointermove="onPointerMove">
     <!-- ═══ Layer 0: canvas — starfield, drifting dust, reveal accretion ═══ -->
     <canvas ref="fxCanvas" class="fx-canvas"></canvas>
     <div class="nebula-wash" aria-hidden="true"></div>
@@ -10,11 +10,20 @@
          个角度预先烘焙成精灵图，逐帧贴出来 —— 每帧每颗只要两次 drawImage。
          命中判定也走 canvas：点下去时按同一套坐标算出最近的那颗。以前这里有
          13 个会 transform 的 DOM 按钮，每个都被提升成独立合成层，实测把帧率
-         从 60 压到 30；现在整个星空只有这一个透明层。 -->
+         从 60 压到 30；现在整个星空只有这一个透明层。
+
+         这一层同时是「无限星云」的拖拽面：世界坐标是无限的，视野只是一扇
+         窗，往任何方向拖都会生成新的记忆，拖回去还是原来那些。 -->
     <div
       v-show="mode === 'nebula'"
       class="point-field"
       ref="pointField"
+      :class="{ 'is-grabbing': dragging }"
+      @pointerdown="onPanStart"
+      @pointermove="onPanMove"
+      @pointerup="onPanEnd"
+      @pointercancel="onPanEnd"
+      @pointerleave="onPanEnd"
       @click.stop="onFieldClick"
       @mousemove="onFieldMove"
       @mouseleave="onFieldLeave"
@@ -99,7 +108,11 @@
     <div class="chrome chrome--title"><span class="t-main">思绪</span><span class="t-sub">memory nebula</span></div>
 
     <p v-if="mode === 'nebula' && !revealed" class="field-hint">
-      {{ ready ? '轻触光点，展开一段记忆' : '正在打捞记忆…' }}
+      {{ ready ? '拖动星云，继续打捞记忆' : '正在打捞记忆…' }}
+    </p>
+
+    <p v-if="mode === 'nebula' && !revealed && ready" class="field-count">
+      {{ seenCount }} / {{ pool.length }} 段已遇见
     </p>
 
     <div class="mode-switch">
@@ -184,6 +197,22 @@ function hash01(n) {
   t = Math.imul(t, 3266489917) >>> 0
   t ^= t >>> 16
   return (t >>> 0) / 4294967296
+}
+
+/* The nebula plane is carved into cells of this size. A cell is either empty
+   or holds one crystal, and the choice is a pure function of the cell's
+   coordinates — so the plane is unlimited without storing anything. */
+const FIELD_CELL = { w: 260, h: 240, density: 0.72 }
+
+/* Integer hash of a cell coordinate. Two large primes keep neighbouring cells
+   from correlating, which would otherwise show up as visible diagonal bands. */
+function cellHash(cx, cy) {
+  let h = Math.imul(cx | 0, 0x27D4EB2D) ^ Math.imul(cy | 0, 0x165667B1)
+  h = Math.imul(h ^ (h >>> 15), 0x2545F491)
+  h ^= h >>> 13
+  h = Math.imul(h, 0x85EBCA6B)
+  h ^= h >>> 16
+  return h >>> 0
 }
 
 /**
@@ -304,9 +333,22 @@ export default {
       customList: [],
       pool: [],
 
-      // ── nebula points ──
+      // ── nebula: an endless plane, panned by dragging ──
+      // Only the crystals near the viewport exist at any moment; the plane
+      // itself is generated from a hash of the cell coordinates, so panning
+      // outward always finds more and panning back finds the same ones again.
       points: [],
       hoverUid: -1,
+      panX: 0, panY: 0,     // world coordinate sitting at the viewport's top-left
+      panVX: 0, panVY: 0,   // inertia carried after the finger lifts
+      lastPanX: 0, lastPanY: 0, // previous frame, to derive velocity while dragging
+      dragging: false,
+      dragId: null,
+      dragX: 0, dragY: 0,
+      dragMoved: 0,         // total travel, so a tap is not mistaken for a drag
+      overrides: {},        // cellKey → pool index, so a read memory re-lights
+      cellX0: 1, cellY0: 1, cellX1: 0, cellY1: 0, // visible cell range (empty at first)
+      seen: {}, seenCount: 0,                     // how much of the corpus has been met
 
       // ── reveal ──
       revealed: null,
@@ -359,7 +401,7 @@ export default {
     window.addEventListener('keydown', this.onKeydown)
 
     await this.loadCorpus()
-    this.rebuildPoints()
+    this.syncField(true)
     this.layoutWall()
     this.ready = true
   },
@@ -594,64 +636,103 @@ export default {
 
     /* ═══════════════════ Nebula points ═══════════════════ */
 
-    rebuildPoints() {
-      if (this.pool.length === 0) { this.points = []; return }
-      const count = Math.min(this.isMobile ? 7 : 13, this.pool.length)
-      const slots = this.makeSlots(count)
-
-      // Shuffle the pool so the field never reads in file order.
-      const idx = this.pool.map((_, i) => i)
-      for (let i = idx.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1))
-        ;[idx[i], idx[j]] = [idx[j], idx[i]]
-      }
-
-      this.points = slots.map((slot, i) => this.makePoint(this.pool[idx[i]], slot))
-    },
+    /* ═══════════════════ Nebula plane ═══════════════════ */
 
     /**
-     * Even scatter with jitter. Cells stay inside 8–92% x and 16–84% y so no
-     * light point ever lands under the fixed chrome (title / toggle / add).
+     * The nebula is an endless plane, not a fixed screen of dots.
+     *
+     * World space is carved into cells. A cell either holds a crystal or is
+     * empty, and WHICH memory it holds comes from a hash of the cell's own
+     * coordinates — nothing is stored per cell. Panning outward therefore keeps
+     * finding new memories forever, and panning back finds the same ones again,
+     * for a cost that stays proportional to what is on screen.
      */
-    makeSlots(count) {
-      const cols = Math.ceil(Math.sqrt(count * 1.5))
-      const rows = Math.ceil(count / cols)
-      const slots = []
-      for (let i = 0; i < count; i++) {
-        const col = i % cols
-        const row = Math.floor(i / cols)
-        const cellW = 84 / cols
-        const cellH = 68 / rows
-        const size = this.isMobile ? 30 + Math.random() * 13 : 38 + Math.random() * 20
-        slots.push({
-          x: +(8 + (col + 0.5) * cellW + (Math.random() - 0.5) * cellW * 0.55).toFixed(2),
-          y: +(16 + (row + 0.5) * cellH + (Math.random() - 0.5) * cellH * 0.5).toFixed(2),
-          size: +size.toFixed(1),
-          // Touch targets stay finger-sized even when the crystal is small.
-          hit: +Math.max(48, size + 16).toFixed(1),
-          spin: +(0.06 + Math.random() * 0.1).toFixed(3),
-        })
-      }
-      return slots
-    },
-
-    makePoint(data, slot) {
+    fieldBounds() {
+      const c = FIELD_CELL
       return {
-        uid: nextId++,
-        data,
-        slot,
+        x0: Math.floor(this.panX / c.w) - 1,
+        y0: Math.floor(this.panY / c.h) - 1,
+        x1: Math.floor((this.panX + this.cw) / c.w) + 1,
+        y1: Math.floor((this.panY + this.ch) / c.h) + 1,
       }
     },
 
-    /** Once a memory has been read, the light re-lights with a different one. */
+    /** Rebuild the visible set — only when the visible cell range actually moved. */
+    syncField(force) {
+      if (!this.pool.length || this.mode !== 'nebula') return
+      const b = this.fieldBounds()
+      if (!force && this.cellX0 === b.x0 && this.cellY0 === b.y0 &&
+          this.cellX1 === b.x1 && this.cellY1 === b.y1) return
+      this.cellX0 = b.x0; this.cellY0 = b.y0
+      this.cellX1 = b.x1; this.cellY1 = b.y1
+
+      const c = FIELD_CELL
+      const n = this.pool.length
+      const taken = new Set()
+      const out = []
+
+      for (let cy = b.y0; cy <= b.y1; cy++) {
+        for (let cx = b.x0; cx <= b.x1; cx++) {
+          const h = cellHash(cx, cy)
+          // Sparse: empty cells keep the plane from reading as a grid.
+          if ((h >>> 8) / 16777216 > c.density) continue
+
+          const h2 = hash01(h + 1)
+          const h3 = hash01(h + 3)
+          const h4 = hash01(h + 7)
+          const h5 = hash01(h + 11)
+
+          // Pick a memory, probing past ones already on screen so the visitor
+          // never sees the same thought twice in one view.
+          let pi = Math.floor(h2 * n) % n
+          for (let g = 0; g < 5 && taken.has(this.pool[pi].key); g++) pi = (pi + 1) % n
+          const cellKey = cx + ',' + cy
+          const data = this.overrides[cellKey] || this.pool[pi]
+          taken.add(data.key)
+
+          const size = this.isMobile ? 30 + h3 * 13 : 38 + h3 * 20
+          const wx = (cx + 0.15 + h4 * 0.7) * c.w
+          const wy = (cy + 0.15 + h5 * 0.7) * c.h
+
+          // Only what is actually on screen counts as "met" — the field keeps a
+          // one-cell margin around the viewport for smooth panning, and counting
+          // that margin would report memories the visitor has never seen.
+          if (wx >= this.panX && wx <= this.panX + this.cw &&
+              wy >= this.panY && wy <= this.panY + this.ch) {
+            if (!this.seen[data.key]) { this.seen[data.key] = 1; this.seenCount++ }
+          }
+
+          out.push({
+            // Unique by construction, and stable for a given cell: two crystals
+            // can never share a Vue key, and panning back re-finds the same one
+            // with the same drift phase.
+            uid: ((cx & 0xffff) << 16 | (cy & 0xffff)) >>> 0,
+            cellKey,
+            data,
+            wx,
+            wy,
+            size: +size.toFixed(1),
+            // Touch targets stay finger-sized even when the crystal is small.
+            hit: +Math.max(48, size + 16).toFixed(1),
+          })
+        }
+      }
+      this.points = out
+    },
+
+    /** Once a memory has been read, that cell re-lights with a different one. */
     reseedPoint(dataKey) {
       const i = this.points.findIndex(p => p.data.key === dataKey)
       if (i === -1) return
       const onScreen = new Set(this.points.map(p => p.data.key))
       const candidates = this.pool.filter(t => !onScreen.has(t.key))
       if (candidates.length === 0) return
+      const pick = candidates[Math.floor(Math.random() * candidates.length)]
+      const p = this.points[i]
+      // Pinned to the cell, so panning away and back keeps the replacement.
+      this.overrides[p.cellKey] = pick
       const next = this.points.slice()
-      next[i] = this.makePoint(candidates[Math.floor(Math.random() * candidates.length)], this.points[i].slot)
+      next[i] = { uid: p.uid, cellKey: p.cellKey, data: pick, wx: p.wx, wy: p.wy, size: p.size, hit: p.hit }
       this.points = next
     },
 
@@ -668,8 +749,10 @@ export default {
       const d4 = hash01(u * 31 + 17)
       const ampX = 12 + d1 * 26
       const ampY = 10 + d2 * 24
-      const sx = (parseFloat(p.slot.x) / 100) * this.cw
-      const sy = (parseFloat(p.slot.y) / 100) * this.ch
+      // World → screen. The pan offset is what makes the plane feel endless:
+      // the crystal keeps its place in the world and the viewport moves.
+      const sx = p.wx - this.panX
+      const sy = p.wy - this.panY
       return {
         x: sx + Math.sin(t * (0.09 + d1 * 0.07) + u * 1.7) * ampX,
         y: sy + Math.cos(t * (0.07 + d2 * 0.06) + u * 2.3) * ampY,
@@ -694,7 +777,7 @@ export default {
       for (let i = 0; i < this.points.length; i++) {
         const p = this.points[i]
         const pos = this.pointScreenPos(p, t)
-        const r = Math.max(p.slot.hit, p.slot.size) * 0.9
+        const r = Math.max(p.hit, p.size) * 0.9
         const dx = x - pos.x
         const dy = y - pos.y
         const d = dx * dx + dy * dy
@@ -705,6 +788,8 @@ export default {
 
     onFieldClick(e) {
       if (this.revealed) return
+      // A drag that ends over a crystal is not a tap on it.
+      if (this.dragMoved > 6) { this.dragMoved = 0; return }
       const r = this.pointFieldRect()
       const p = this.hitTest(e.clientX - r.left, e.clientY - r.top, this.now)
       if (p) this.open(p.data, e)
@@ -719,6 +804,73 @@ export default {
 
     onFieldLeave() {
       if (this.hoverUid !== -1) this.hoverUid = -1
+    },
+
+    /* ═══════════════════ Panning the endless plane ═══════════════════ */
+
+    onPanStart(e) {
+      if (this.revealed) return
+      // Ignore secondary buttons; a right-drag is not a pan.
+      if (e.pointerType === 'mouse' && e.button !== 0) return
+      this.dragging = true
+      this.dragId = e.pointerId
+      this.dragX = e.clientX
+      this.dragY = e.clientY
+      this.dragMoved = 0
+      this.lastPanX = e.clientX
+      this.lastPanY = e.clientY
+      this.panVX = 0
+      this.panVY = 0
+      if (e.currentTarget.setPointerCapture) {
+        try { e.currentTarget.setPointerCapture(e.pointerId) } catch (_) { /* pointer already gone */ }
+      }
+    },
+
+    onPanMove(e) {
+      if (!this.dragging) return
+      this.dragMoved += Math.abs(e.clientX - this.lastPanX) + Math.abs(e.clientY - this.lastPanY)
+      this.lastPanX = e.clientX
+      this.lastPanY = e.clientY
+      // Drag the world with the finger: moving right reveals what is to the LEFT.
+      const dx = e.clientX - this.dragX
+      const dy = e.clientY - this.dragY
+      this.panX -= dx
+      this.panY -= dy
+      this.dragX = e.clientX
+      this.dragY = e.clientY
+      // Velocity for the throw, sampled per move so a fast flick carries far.
+      // Clamped: a synthetic drag (or a jumpy trackpad) can report a 120px
+      // single-event delta, and unclamped that becomes a throw of a whole
+      // screen that no hand actually asked for.
+      this.panVX = Math.max(-40, Math.min(40, -dx))
+      this.panVY = Math.max(-40, Math.min(40, -dy))
+      this.syncField()
+    },
+
+    onPanEnd(e) {
+      if (!this.dragging) return
+      this.dragging = false
+      this.dragId = null
+      if (e && e.currentTarget && e.currentTarget.releasePointerCapture && e.pointerId != null) {
+        try { e.currentTarget.releasePointerCapture(e.pointerId) } catch (_) { /* already released */ }
+      }
+    },
+
+    /** Keep the throw going after the finger lifts, then let it settle. */
+    applyPanInertia() {
+      if (this.dragging) return
+      if (Math.abs(this.panVX) < 0.08 && Math.abs(this.panVY) < 0.08) {
+        if (this.panVX || this.panVY) { this.panVX = 0; this.panVY = 0 }
+        return
+      }
+      this.panX += this.panVX
+      this.panY += this.panVY
+      // 0.9 per frame stops the throw in about a second; a slower decay keeps
+      // sliding long after the hand has stopped, which reads as drift rather
+      // than momentum.
+      this.panVX *= 0.9
+      this.panVY *= 0.9
+      this.syncField()
     },
 
     pointFieldRect() {
@@ -741,7 +893,7 @@ export default {
         const breathe = 1 + 0.055 * Math.sin(t * 1.25 * pos.breathe + p.uid)
         const hot = p.uid === this.hoverUid ? 1.22 : 1
         // Sprite is the whole glow square; the stone inside it is 1/GEM_GLOW.
-        const gs = p.slot.size * GEM_GLOW * breathe * hot
+        const gs = p.size * GEM_GLOW * breathe * hot
         const gx = pos.x - gs / 2
         const gy = pos.y - gs / 2
 
@@ -830,14 +982,17 @@ export default {
       this.newText = ''
       this.newDate = ''
 
-      // Drop it straight into the nebula as a fresh light.
+      // Drop it straight into the nebula as a fresh light, pinned to whichever
+      // cell happens to be free so panning away and back still finds it.
       if (this.points.length > 0) {
         const i = Math.floor(Math.random() * this.points.length)
+        const p = this.points[i]
+        this.overrides[p.cellKey] = entry
         const next = this.points.slice()
-        next[i] = this.makePoint(entry, this.points[i].slot)
+        next[i] = { uid: p.uid, cellKey: p.cellKey, data: entry, wx: p.wx, wy: p.wy, size: p.size, hit: p.hit }
         this.points = next
       } else {
-        this.rebuildPoints()
+        this.syncField(true)
       }
 
       // The wall is packed, not reflowed — a new memory has to be given a slot.
@@ -1033,7 +1188,7 @@ export default {
       this.buildStars()
       this.buildGemSprites()
       this.resizeCanvas()
-      if (wasMobile !== this.isMobile) this.rebuildPoints()
+      if (wasMobile !== this.isMobile) this.syncField(true)
       // Card widths track the viewport continuously, so re-pack on any width
       // change, not just when the column count happens to cross a breakpoint.
       // Debounced: a drag-resize fires this dozens of times a second and each
@@ -1063,6 +1218,7 @@ export default {
       // Cached so the click handler can hit-test against the exact position the
       // crystals were last drawn at, without recomputing the drift.
       this.now = now / 1000
+      this.applyPanInertia()
       this.draw(this.now)
     },
 
@@ -1187,14 +1343,9 @@ export default {
 
     /* ═══════════════════ Pointer ═══════════════════ */
 
-    onMouseMove(e) { this.mouseX = e.clientX; this.mouseY = e.clientY; this.mouseActive = true },
-    onTouchMove(e) {
-      if (e.touches[0]) {
-        this.mouseX = e.touches[0].clientX
-        this.mouseY = e.touches[0].clientY
-        this.mouseActive = true
-      }
-    },
+    /* Pointer events already unify mouse, touch and pen, so one handler feeds
+       the dust's cursor repulsion on every device. */
+    onPointerMove(e) { this.mouseX = e.clientX; this.mouseY = e.clientY; this.mouseActive = true },
   },
 }
 </script>
@@ -1245,8 +1396,11 @@ export default {
    costs exactly one layer instead of one per light. */
 .point-field {
   position: absolute; inset: 0; z-index: 3;
-  cursor: default;
+  /* The plane is pannable, so the grab cursor is the whole affordance. */
+  cursor: grab;
+  touch-action: none;
 }
+.point-field.is-grabbing { cursor: grabbing; }
 
 /* Keyboard / screen-reader route to the same memories. Visually hidden but
    focusable, so Tab reaches every thought exactly as a click would. */
@@ -1269,6 +1423,15 @@ export default {
   z-index: 3; margin: 0; white-space: nowrap; pointer-events: none;
   font-size: 12px; letter-spacing: 0.22em; color: rgba(210, 204, 192, 0.28);
   animation: hint-breathe 6s ease-in-out infinite;
+}
+
+/* How much of the corpus has actually been met. The plane is endless, so
+   without this the visitor has no way to tell progress from repetition. */
+.field-count {
+  position: absolute; left: 50%; bottom: 84px; transform: translateX(-50%);
+  z-index: 3; margin: 0; white-space: nowrap; pointer-events: none;
+  font-size: 10.5px; letter-spacing: 0.18em; color: rgba(200, 195, 185, 0.2);
+  font-variant-numeric: tabular-nums;
 }
 @keyframes hint-breathe {
   0%, 100% { opacity: 0.55; }
