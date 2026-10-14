@@ -2,16 +2,22 @@
 <template>
   <div class="projects-card glass-card">
     <span class="section-label">✦ 项目</span>
-    <div class="project-list">
+    <div class="project-list" :class="{ single: displayProjects.length === 1 }">
       <div
         v-for="(item, i) in displayProjects"
         :key="i"
         class="project-item"
         :style="{ '--accent': accentColors[i % accentColors.length] }"
-        @click="item.show = !item.show"
+        @click="toggle(item)"
       >
         <div class="project-thumb">
-          <v-img :src="item.img" :width="isMobile ? 40 : 52" :height="isMobile ? 40 : 52" cover class="project-img"></v-img>
+          <v-img
+            :src="item.img"
+            :width="thumbSize"
+            :height="thumbSize"
+            cover
+            class="project-img"
+          ></v-img>
         </div>
         <div class="project-info">
           <div class="project-title">{{ item.title }}</div>
@@ -43,17 +49,23 @@ export default {
   beforeUnmount() {
     window.removeEventListener('resize', this.syncViewport)
   },
+  computed: {
+    displayProjects() {
+      // `hide: true` keeps a card configured but off the homepage. The grid packs
+      // cards into full rows, so an odd count would leave a hole and any `slice`
+      // would silently hide cards the user has no other way to reach.
+      return (this.projects || []).filter((p) => !p.hide)
+    },
+    thumbSize() {
+      return this.isMobile ? 40 : 52
+    },
+  },
   methods: {
     syncViewport() {
       this.isMobile = window.innerWidth < 768
     },
-  },
-  computed: {
-    displayProjects() {
-      // Render every configured card: the grid packs them into full rows, so an
-      // odd count would leave a hole and any `slice` would silently hide cards
-      // the user has no other way to reach from the homepage.
-      return this.projects || []
+    toggle(item) {
+      item.show = !item.show
     },
   },
 }
@@ -88,6 +100,20 @@ export default {
   grid-auto-rows: minmax(96px, 1fr);
   gap: 10px;
 }
+/* A single card must NOT stretch: `flex: 1 1 auto` + a `1fr` row would inflate
+   one tile to the whole column height (~700px of mostly empty box). Let the
+   card hug its content and keep the column's remaining space unused. */
+.project-list.single {
+  flex: 0 0 auto;
+  grid-auto-rows: min-content;
+}
+.project-list.single .project-item {
+  align-items: flex-start;
+  padding: 18px 20px;
+}
+.project-list.single .project-title { font-size: 17px; }
+.project-list.single .project-subtitle { font-size: 13px; margin-top: 6px; }
+.project-list.single .project-text { font-size: 13px; }
 .project-item {
   display: flex; align-items: center; gap: 12px;
   padding: 14px 16px;

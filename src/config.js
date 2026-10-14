@@ -8,7 +8,7 @@ const config = {
 	},
 
 	avatar: "/img/avatar.jpg", // 头像
-	welcometitle: "Hi, I'm Chunyanyan", // 标题
+	welcometitle: "Hi, I'm xcyyan", // 标题
 
 	// 颜色配置
 	color: {
@@ -22,24 +22,24 @@ const config = {
 	blur: 5, // 毛玻璃模糊效果
 
 	// 我的标签
-	tags: ['微服务架构', 'Canvas 动效', '高保真原型', 'Vue 3', 'Cloudflare 部署', '爱做梦的人'],
+	tags: ['姐姐极度依赖者', '爱做梦的人'],
 
 	// 默认背景壁纸
 	background: {
 		"pc": {   //pc端
 			"type": "pic",   //"pic":静态壁纸;"video":动态壁纸
 			"datainfo": {
-				"title": "海洋女孩",
-				"preview": "/img/wallpaper/static/海洋女孩/image-pre.webp",
-				"url": "/img/wallpaper/static/海洋女孩/image.png",     //当然，也可填写网络地址或壁纸api，如随机PC壁纸api："url":"https://t.mwm.moe/pc"
+				"title": "书房夜晚",
+				"preview": "/img/wallpaper/static/书房夜晚/image-pre.webp",
+				"url": "/img/wallpaper/static/书房夜晚/image.png",     //当然，也可填写网络地址或壁纸api，如随机PC壁纸api："url":"https://t.mwm.moe/pc"
 			},
 		},
 		"mobile": {   //移动端
 			"type": "pic",
 			"datainfo": {
-				"title": "0001",
-				"preview": "/img/wallpaper/static-mobile/0001/image-pre.webp",
-				"url": "/img/wallpaper/static-mobile/0001/image.png"  //同理，随机移动端壁纸："url":"https://t.mwm.moe/mp"
+				"title": "书房夜晚",
+				"preview": "/img/wallpaper/static/书房夜晚/image-pre.webp",
+				"url": "/img/wallpaper/static/书房夜晚/image.png"  //同理，随机移动端壁纸："url":"https://t.mwm.moe/mp"
 			}
 		}
 
@@ -129,16 +129,18 @@ const config = {
 		],
 	},
 
-	//项目卡片 其中 字段"show"控制初始卡片的text是否展开
+	//项目卡片 其中 字段"show"控制初始卡片的text是否展开，"hide"控制是否在首页显示。
+	//首页只留「微服务学习路线」一张：其余页面都能从 project02 的目录/章节抽屉跳进去，
+	//没必要在首页再铺一遍导航。想放回来的话，把 hide 删掉即可。
 	projectcards: [
 		{ go: "📚 前往", img: "/img/projects/micro.svg", title: "微服务学习路线", subtitle: "11 章 · 架构 / 动画 / 原型", text: "一条能从头跑到尾的微服务入门路线：自我介绍稿、云联逐字稿、7 大模块技术手册、57 题追问预案，外加架构动态图、4 场景动画与 5 页高保真原型。", url: "/project02/", show: true },
-		{ go: "🧭 前往", img: "/img/projects/gem.svg", title: "架构总览 · Canvas 动态图", subtitle: "服务拓扑与调用链路", text: "用 Canvas 实时绘制的微服务拓扑：网关、注册中心、各服务与数据流向一目了然。", url: "/project02/架构/1-架构总览（Canvas动态图）.html", show: true },
-		{ go: "📝 前往", img: "/img/projects/note.svg", title: "架构课件 · 10 章速记", subtitle: "零基础也能看懂", text: "把微服务拆成 10 个章节的速记课件，每个概念配一张图，适合面试前快速过一遍。", url: "/project02/架构/2-架构课件（10章速记）.html", show: true },
-		{ go: "🎬 前往", img: "/img/projects/palette.svg", title: "微服务动画 · 4 场景", subtitle: "动起来才看得懂", text: "服务注册、负载均衡、熔断降级、链路追踪——四段动画把抽象流程演一遍。", url: "/project02/动画/1-微服务动画（4场景）.html", show: true },
-		{ go: "🖥️ 前往", img: "/img/projects/thumb.svg", title: "高保真交互原型", subtitle: "坐席工作台 · 工单 · 看板", text: "可直接点击操作的客服系统原型：坐席工作台、工单流转、知识库与服务质量看板。", url: "/project02/原型/0-原型总入口.html", show: true },
-		{ go: "🗣️ 前往", img: "/img/projects/chat.svg", title: "面试题精讲 · 五题", subtitle: "父子块 / 四环节 / Agent 评估", text: "10 月 16 日这一场：父子块架构 vs 单级递归、文档解析四环节、Agent 项目评估、知识来源、离职口径——每题「30 秒版 → 展开讲 → 结合项目 → 追问预案」。", url: "/project02/#c8", show: true },
-		{ go: "🎓 前往", img: "/img/projects/qa.svg", title: "老师模拟面 · 六问", subtitle: "追问预案 + 表达纪律", text: "项目亮点、LangGraph 意图识别、Tool Calling、AI 边界、会话记忆算量与明文密文，附老师那条建议的接法。", url: "/project02/#c9", show: true },
-		{ go: "🚀 前往", img: "/img/projects/campus.svg", title: "科大智慧校园", subtitle: "学校一站式服务大厅", text: "广西科技大学网上服务大厅，成绩、课表、缴费等常用入口。", url: "https://ehall.gxust.edu.cn/", show: false },
+		{ go: "🧭 前往", img: "/img/projects/gem.svg", title: "架构总览 · Canvas 动态图", subtitle: "服务拓扑与调用链路", text: "用 Canvas 实时绘制的微服务拓扑：网关、注册中心、各服务与数据流向一目了然。", url: "/project02/架构/1-架构总览（Canvas动态图）.html", show: true, hide: true },
+		{ go: "📝 前往", img: "/img/projects/note.svg", title: "架构课件 · 10 章速记", subtitle: "零基础也能看懂", text: "把微服务拆成 10 个章节的速记课件，每个概念配一张图，适合面试前快速过一遍。", url: "/project02/架构/2-架构课件（10章速记）.html", show: true, hide: true },
+		{ go: "🎬 前往", img: "/img/projects/palette.svg", title: "微服务动画 · 4 场景", subtitle: "动起来才看得懂", text: "服务注册、负载均衡、熔断降级、链路追踪——四段动画把抽象流程演一遍。", url: "/project02/动画/1-微服务动画（4场景）.html", show: true, hide: true },
+		{ go: "🖥️ 前往", img: "/img/projects/thumb.svg", title: "高保真交互原型", subtitle: "坐席工作台 · 工单 · 看板", text: "可直接点击操作的客服系统原型：坐席工作台、工单流转、知识库与服务质量看板。", url: "/project02/原型/0-原型总入口.html", show: true, hide: true },
+		{ go: "🗣️ 前往", img: "/img/projects/chat.svg", title: "面试题精讲 · 五题", subtitle: "父子块 / 四环节 / Agent 评估", text: "10 月 16 日这一场：父子块架构 vs 单级递归、文档解析四环节、Agent 项目评估、知识来源、离职口径——每题「30 秒版 → 展开讲 → 结合项目 → 追问预案」。", url: "/project02/#c8", show: true, hide: true },
+		{ go: "🎓 前往", img: "/img/projects/qa.svg", title: "老师模拟面 · 六问", subtitle: "追问预案 + 表达纪律", text: "项目亮点、LangGraph 意图识别、Tool Calling、AI 边界、会话记忆算量与明文密文，附老师那条建议的接法。", url: "/project02/#c9", show: true, hide: true },
+		{ go: "🚀 前往", img: "/img/projects/campus.svg", title: "科大智慧校园", subtitle: "学校一站式服务大厅", text: "广西科技大学网上服务大厅，成绩、课表、缴费等常用入口。", url: "https://ehall.gxust.edu.cn/", show: false, hide: true },
 	],
 
 	statement: ["备案号：桂ICP备2025012345号", "Copyright © 2026 xcyyan"],
