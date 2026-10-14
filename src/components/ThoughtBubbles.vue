@@ -5,47 +5,77 @@
     <div class="nebula-wash" aria-hidden="true"></div>
     <div class="grain" aria-hidden="true"></div>
 
-    <!-- ═══ 星云：只有光点，没有文字 ═══ -->
-    <transition-group v-show="mode === 'nebula'" name="point-swap" tag="div" class="point-field">
+    <!-- ═══ 星云：只有光点，没有文字 ═══
+         光点本体画在 canvas 上：每颗是一枚有高光、折射、边光的立体结晶，按 16
+         个角度预先烘焙成精灵图，逐帧贴出来 —— 每帧每颗只要两次 drawImage。
+         命中判定也走 canvas：点下去时按同一套坐标算出最近的那颗。以前这里有
+         13 个会 transform 的 DOM 按钮，每个都被提升成独立合成层，实测把帧率
+         从 60 压到 30；现在整个星空只有这一个透明层。 -->
+    <div
+      v-show="mode === 'nebula'"
+      class="point-field"
+      ref="pointField"
+      @click.stop="onFieldClick"
+      @mousemove="onFieldMove"
+      @mouseleave="onFieldLeave"
+    ></div>
+
+    <!-- 键盘 / 读屏用户走的入口。视觉上不存在，也不参与逐帧绘制。 -->
+    <div class="sr-points">
       <button
         v-for="p in points"
-        :key="p.uid"
+        :key="'k' + p.uid"
         type="button"
-        class="light-point"
-        :style="p.style"
-        @click.stop="open(p.data, $event)"
-      >
-        <span class="lp-drift">
-          <span class="lp-inner">
-            <span class="lp-halo"></span>
-            <span class="lp-core"></span>
-          </span>
-        </span>
-      </button>
-    </transition-group>
+        class="sr-point"
+        :aria-label="'展开一段记忆：' + p.data.name"
+        @click="open(p.data, null)"
+      >{{ p.data.name }}：{{ p.data.text }}</button>
+    </div>
 
-    <!-- ═══ 瀑布流：把记忆全铺开 ═══ -->
-    <div v-show="mode === 'stream'" class="stream-view">
+    <!-- ═══ 瀑布流：只在屏幕里缓存 ═══
+         所有卡片的位置在进入时一次算好（绝对定位写进 style），滚动时只把可视
+         范围 ± 一屏的卡片放进 DOM —— 屏幕外的记忆连节点都不存在，所以 73 段
+         也好 730 段也好，节点数始终只有屏上那十几张。 -->
+    <div v-show="mode === 'stream'" class="stream-view" ref="streamView" @scroll.passive="onWallScroll">
       <header class="stream-head">
         <h1>记忆瀑布</h1>
-        <p v-if="ready">{{ pool.length }} 段思绪，沉在星云里</p>
+        <p v-if="ready">{{ pool.length }} 段思绪 · 屏上 {{ wallVisible.length }} 张</p>
         <p v-else>正在打捞记忆…</p>
       </header>
-      <div class="stream-wall">
+      <div class="stream-wall" ref="wall" :style="{ height: wallHeight + 'px' }">
         <article
-          v-for="t in pool"
+          v-for="t in wallVisible"
           :key="t.key"
-          class="memory-card memory-card--wall"
-          :style="{ '--accent': t.color, '--halo': t.halo }"
-          @click="open(t, $event)"
+          class="memory-card memory-card--wall wall-item"
+          :style="t.style"
+          @click="open(t.data, $event)"
         >
-          <p class="mc-text">{{ t.text }}</p>
+          <p class="mc-text">{{ t.data.text }}</p>
           <footer class="mc-foot">
-            <span class="mc-persona">{{ t.name }}</span>
-            <span v-if="t.date" class="mc-date">{{ t.date }}</span>
+            <span class="mc-persona">{{ t.data.name }}</span>
+            <span v-if="t.data.date" class="mc-date">{{ t.data.date }}</span>
           </footer>
         </article>
       </div>
+      <p v-if="ready" class="stream-tail">— 到底了，{{ pool.length }} 段 —</p>
+    </div>
+
+    <!-- 量高度用的一遍，放在容器外面：v-show 的父级是 display:none，
+         offsetHeight 会全是 0。这一层在屏幕外、不可见，量完就卸载。 -->
+    <div
+      v-if="measuring"
+      class="wall-measure"
+      ref="measure"
+      :style="{ width: wallColW + 'px' }"
+      aria-hidden="true"
+    >
+      <article v-for="t in pool" :key="'m' + t.key" class="memory-card memory-card--wall">
+        <p class="mc-text">{{ t.text }}</p>
+        <footer class="mc-foot">
+          <span class="mc-persona">{{ t.name }}</span>
+          <span v-if="t.date" class="mc-date">{{ t.date }}</span>
+        </footer>
+      </article>
     </div>
 
     <!-- ═══ 展开的记忆卡 ═══ -->
@@ -115,6 +145,22 @@ const PERSONAS = [
 const CUSTOM_STYLE = { name:'我自己', color:'#c0b0a0', halo:'rgba(192,176,160,0.28)', coreSize:9 }
 const MAX_CUSTOM = 10
 
+/* Every palette on the page, so the crystal sprites can be baked once for all
+   of them instead of being re-rendered whenever a light changes. */
+const PALETTES = PERSONAS.map(p => ({ color: p.color, halo: p.halo }))
+  .concat([{ color: CUSTOM_STYLE.color, halo: CUSTOM_STYLE.halo }])
+
+/* 16 pre-baked rotation angles. A crystal is expensive to draw (gradients,
+   rim light, facets); baking it once means the per-frame cost is a single
+   drawImage per light instead of ~8 path fills. */
+const GEM_ANGLES = 16
+// One sprite holds the glow AND the stone, so a light costs a single blit.
+// Held at the size the glow is actually drawn at, which keeps that blit
+// near 1:1 — resampling a soft 180px gradient every frame was the most
+// expensive thing on this page once rasterisation fell back to the CPU.
+const HALO_SPRITE = 192
+const GEM_GLOW = 3.1      // glow diameter, as a multiple of the stone's
+
 let nextId = 0
 
 /* Deterministic PRNG so the sky is the same place on every visit. */
@@ -125,6 +171,125 @@ function mulberry32(a) {
     t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t
     return ((t ^ (t >>> 14)) >>> 0) / 4294967296
   }
+}
+
+/* Stable per-light pseudo-randomness. The drift used to be baked into the
+   slot, but slots get reused when a light is reseeded; deriving it from the
+   uid instead keeps every light's motion its own. */
+function hash01(n) {
+  let t = Math.imul(n ^ 0x9E3779B9, 2654435761) >>> 0
+  t ^= t >>> 15
+  t = Math.imul(t, 2246822519) >>> 0
+  t ^= t >>> 13
+  t = Math.imul(t, 3266489917) >>> 0
+  t ^= t >>> 16
+  return (t >>> 0) / 4294967296
+}
+
+/**
+ * One frame of a faceted crystal, seen from a slowly rotating angle.
+ * Light comes from the upper left and sweeps across the facets as `phase`
+ * advances, which is what actually reads as "turning" rather than "spinning".
+ */
+function paintGem(g, s, phase, pal, radius) {
+  const cx = s / 2
+  const cy = s / 2
+  const R = radius || s * 0.33
+  const turn = phase * Math.PI * 2
+  const lightX = cx + Math.cos(turn - 2.2) * R * 0.55
+  const lightY = cy + Math.sin(turn - 2.2) * R * 0.55
+
+  // Silhouette: a hexagonal crystal whose corners breathe with the angle.
+  const corners = []
+  for (let i = 0; i < 6; i++) {
+    const a = (i / 6) * Math.PI * 2 - Math.PI / 2 + turn * 0.16
+    const rr = R * (1 + 0.075 * Math.cos(i * 2.3 + turn * 1.7))
+    corners.push([cx + Math.cos(a) * rr, cy + Math.sin(a) * rr])
+  }
+  const path = (pts) => {
+    g.beginPath()
+    g.moveTo(pts[0][0], pts[0][1])
+    for (let i = 1; i < pts.length; i++) g.lineTo(pts[i][0], pts[i][1])
+    g.closePath()
+  }
+
+  // ── body: dark on the far side, luminous where the light lands ──
+  const body = g.createLinearGradient(lightX - R, lightY - R, lightX + R, lightY + R)
+  body.addColorStop(0, pal.color)
+  body.addColorStop(0.42, pal.color)
+  body.addColorStop(1, 'rgba(0,0,0,0.55)')
+  path(corners)
+  g.fillStyle = body
+  g.fill()
+
+  // ── table facet, offset toward the light — the "cut" of the stone ──
+  const inner = corners.map(([x, y]) => {
+    const dx = cx - x, dy = cy - y
+    return [x + dx * 0.44 + Math.cos(turn) * R * 0.07, y + dy * 0.44 + Math.sin(turn) * R * 0.07]
+  })
+  const table = g.createLinearGradient(lightX, lightY, cx * 1.6 - lightX, cy * 1.6 - lightY)
+  table.addColorStop(0, 'rgba(255,255,255,0.72)')
+  table.addColorStop(0.5, 'rgba(255,255,255,0.14)')
+  table.addColorStop(1, 'rgba(255,255,255,0.02)')
+  path(inner)
+  g.fillStyle = table
+  g.fill()
+
+  // ── refraction: a band of the body colour bent through the lower facets ──
+  const refract = g.createRadialGradient(cx - R * 0.3, cy + R * 0.5, 0, cx - R * 0.3, cy + R * 0.5, R * 1.1)
+  refract.addColorStop(0, 'rgba(255,255,255,0.30)')
+  refract.addColorStop(0.45, pal.color)
+  refract.addColorStop(1, 'rgba(0,0,0,0)')
+  path(corners)
+  g.globalAlpha = 0.5
+  g.fillStyle = refract
+  g.fill()
+  g.globalAlpha = 1
+
+  // ── rim light on the lit edge only ──
+  g.save()
+  path(corners)
+  g.clip()
+  const rim = g.createLinearGradient(lightX, lightY, lightX + R * 1.4, lightY + R * 1.4)
+  rim.addColorStop(0, 'rgba(255,255,255,0.9)')
+  rim.addColorStop(1, 'rgba(255,255,255,0)')
+  g.strokeStyle = rim
+  g.lineWidth = s * 0.035
+  path(corners)
+  g.stroke()
+  g.restore()
+
+  // ── specular: the hard highlight that sells "polished" ──
+  const spec = g.createRadialGradient(lightX, lightY, 0, lightX, lightY, R * 0.44)
+  spec.addColorStop(0, 'rgba(255,255,255,0.95)')
+  spec.addColorStop(0.35, 'rgba(255,255,255,0.34)')
+  spec.addColorStop(1, 'rgba(255,255,255,0)')
+  g.fillStyle = spec
+  g.beginPath()
+  g.arc(lightX, lightY, R * 0.44, 0, Math.PI * 2)
+  g.fill()
+
+  // ── caustic sparkle ──
+  const sp = R * 0.72
+  g.globalAlpha = 0.55
+  g.strokeStyle = 'rgba(255,255,255,0.85)'
+  g.lineWidth = s * 0.014
+  g.beginPath()
+  g.moveTo(lightX - sp, lightY); g.lineTo(lightX + sp, lightY)
+  g.moveTo(lightX, lightY - sp); g.lineTo(lightX, lightY + sp)
+  g.stroke()
+  g.globalAlpha = 1
+}
+
+/** Soft round glow, baked once per palette and blitted behind each crystal. */
+function paintHalo(g, s, pal) {
+  const c = s / 2
+  const grad = g.createRadialGradient(c, c, 0, c, c, c)
+  grad.addColorStop(0, pal.halo)
+  grad.addColorStop(0.42, pal.halo)
+  grad.addColorStop(1, 'rgba(0,0,0,0)')
+  g.fillStyle = grad
+  g.fillRect(0, 0, s, s)
 }
 
 export default {
@@ -141,22 +306,43 @@ export default {
 
       // ── nebula points ──
       points: [],
+      hoverUid: -1,
 
       // ── reveal ──
       revealed: null,
       revealStyle: {},
+
+      // ── crystal sprites (pre-rendered angles) ──
+      gemSprites: [],       // [paletteIndex][angleIndex] → canvas
+
+      // ── waterfall (virtualised: only the cards on screen are ever mounted) ──
+      wallItems: [],        // { key, data, col, top, height, style }
+      wallVisible: [],      // the subset currently in the DOM
+      wallHeight: 0,
+      wallScroll: 0,
+      wallViewH: 0,
+      wallTop: 0,           // .stream-wall offset inside the scroller
+      wallColW: 0,
+      wallGap: 16,
+      wallPad: 24,          // .stream-wall horizontal padding (abs-pos origin)
+      wallColsAt: 4,
+      measuring: false,     // true while the hidden measuring pass is mounted
 
       // ── canvas ──
       ctx: null, cw: 0, ch: 0, dpr: 1,
       stars: [], dust: [], motes: [], rings: [],
       rafId: null, frame: 0,
       mouseX: -9999, mouseY: -9999, mouseActive: false,
+      // Wall-clock seconds of the last drawn frame; the click hit-test reuses it
+      // so a tap lands on the crystal the visitor actually saw.
+      now: 0,
 
       // ── form ──
       showAddForm: false, newText: '', newDate: '',
 
       // ── flags ──
       isMobile: false, reduceMotion: false,
+      wallResizeTimer: null,
     }
   },
 
@@ -165,6 +351,7 @@ export default {
     this.isMobile = window.innerWidth < 768
 
     this.buildStars()
+    this.buildGemSprites()
     this.$nextTick(() => this.initCanvas())
 
     window.addEventListener('resize', this.onResize)
@@ -173,11 +360,13 @@ export default {
 
     await this.loadCorpus()
     this.rebuildPoints()
+    this.layoutWall()
     this.ready = true
   },
 
   beforeUnmount() {
     this.stopCanvas()
+    clearTimeout(this.wallResizeTimer)
     window.removeEventListener('resize', this.onResize)
     document.removeEventListener('visibilitychange', this.onVisibilityChange)
     window.removeEventListener('keydown', this.onKeydown)
@@ -191,7 +380,7 @@ export default {
         try {
           const res = await fetch(p.file)
           const raw = await res.text()
-          this.personaData[i] = this.parseParagraphs(raw)
+          this.personaData[i] = this.parseMemories(raw)
         } catch (e) {
           this.personaData[i] = []
         }
@@ -200,18 +389,93 @@ export default {
       this.buildPool()
     },
 
-    parseParagraphs(raw) {
-      let blocks = String(raw || '')
-        .split(/\n\n+/)
-        .map(b => b.replace(/\n/g, ' ').trim())
-        .filter(b => b.length > 6 && b.length < 220)
-      if (blocks.length === 0) {
-        blocks = String(raw || '')
-          .split(/\n/)
-          .map(b => b.trim())
-          .filter(b => b.length > 4 && b.length < 220)
+    /**
+     * Turn one persona's raw diary into a list of memories.
+     *
+     * These files were written in a plain text editor on Windows, so every line
+     * ends \r\n. The old parser split on /\n\n+/ to find paragraphs, which CANNOT
+     * match a blank line in CRLF text — the separator is \r\n\r\n, so there is a
+     * \r sitting between the two \n and the pattern never fires. Every file
+     * therefore fell through to the per-line fallback and each line became its
+     * own "memory", which is how a bare date header ("2023.11.12  20:49") ended
+     * up floating in the nebula as a thought.
+     *
+     * Normalising the newlines first restores the blank-line structure. Within a
+     * section the lines are then re-grouped by length rather than one-per-line,
+     * because these are conversational fragments — a single "来啦" is not a
+     * memory, but "来啦" followed by the sentences it belongs to is.
+     *
+     * Dates are lifted out of the text (they are metadata, not content) and
+     * attached to the memory they head or trail.
+     */
+    parseMemories(raw) {
+      const text = String(raw || '').replace(/\r\n?/g, '\n')
+      const DATE = /(\d{4})\s*[.\-/]\s*(\d{1,2})\s*[.\-/]\s*(\d{1,2})/
+      const sections = text
+        .split(/\n{2,}/)
+        .map(s => s.split('\n').map(l => l.trim()).filter(Boolean))
+        .filter(s => s.length)
+
+      const out = []
+      for (const section of sections) {
+        let pendingDate = ''
+        const lines = []
+        for (const line of section) {
+          // A line that is nothing but a date/time hands its date to what follows.
+          const stripped = line
+            .replace(new RegExp(DATE.source, 'g'), '')
+            .replace(/\d{1,2}:\d{2}/g, '')
+            .replace(/[\s\-—:：（）()]+/g, '')
+          if (!stripped) {
+            const m = line.match(DATE)
+            if (m && !pendingDate) pendingDate = `${m[1]}.${+m[2]}.${+m[3]}`
+            continue
+          }
+          lines.push(line)
+        }
+
+        let buf = []
+        let bufLen = 0
+        const flush = () => {
+          if (!buf.length) return
+          let body = buf.join(' ').replace(/\s+/g, ' ').trim()
+          let date = pendingDate
+          pendingDate = ''
+
+          const lead = body.match(new RegExp('^' + DATE.source + '[\\s:：]*'))
+          if (lead) {
+            if (!date) date = `${lead[1]}.${+lead[2]}.${+lead[3]}`
+            body = body.slice(lead[0].length).trim()
+          }
+          const tail = body.match(new RegExp('[\\s\\-—]*' + DATE.source + '\\s*$'))
+          if (tail) {
+            if (!date) date = `${tail[1]}.${+tail[2]}.${+tail[3]}`
+            body = body.slice(0, tail.index).trim()
+          }
+
+          body = body
+            .replace(/^[\s\-—]+/, '')
+            .replace(/[\s\-—]+$/, '')
+            .replace(/[\s\-—]*\d{1,2}[.\-/]\d{1,2}\s*$/, '')
+            .trim()
+          // Trailing "s" left over from "2024-8-18s" and similar typos.
+          body = body.replace(/\s+s$/, '').trim()
+
+          if (body.length >= 4 && body.length <= 220) out.push({ text: body, date })
+          buf = []
+          bufLen = 0
+        }
+
+        for (const line of lines) {
+          const add = bufLen ? line.length + 1 : line.length
+          if (bufLen && bufLen + add > 150) flush()
+          buf.push(line)
+          bufLen += add
+          if (bufLen >= 14) flush()
+        }
+        flush()
       }
-      return blocks
+      return out
     },
 
     buildPool() {
@@ -232,16 +496,16 @@ export default {
       })
       this.personaData.forEach((list, pi) => {
         const p = PERSONAS[pi]
-        list.forEach((text, i) => {
+        list.forEach((entry, i) => {
           out.push({
             key: `p${pi}-${i}`,
-            text,
+            text: entry.text,
             name: p.name,
             color: p.color,
             halo: p.halo,
             coreSize: p.coreSize,
             isCustom: false,
-            date: '',
+            date: entry.date || '',
           })
         })
       })
@@ -295,6 +559,39 @@ export default {
       return `${d.getFullYear()}.${d.getMonth() + 1}.${d.getDate()}`
     },
 
+    /* ═══════════════════ Crystal sprites ═══════════════════ */
+
+    /**
+     * Bake every palette at every angle ONCE, at mount.
+     * Each frame is a single square sprite holding the glow, the stone and the
+     * halo together, so a light point costs exactly one drawImage per frame.
+     */
+    buildGemSprites() {
+      const size = HALO_SPRITE
+      // paintGem sizes the stone as 0.66 of whatever square it is handed, and
+      // the sprite is blitted at (stone x GEM_GLOW). Solving those two against
+      // each other keeps the stone's on-screen size at 0.66 x slot.size, which
+      // is exactly how large it looked when the two sprites were separate.
+      const stoneR = (size * 0.33) / GEM_GLOW
+      this.gemSprites = PALETTES.map(pal => {
+        const frames = []
+        for (let i = 0; i < GEM_ANGLES; i++) {
+          const c = document.createElement('canvas')
+          c.width = c.height = size
+          const g = c.getContext('2d')
+          paintHalo(g, size, pal)
+          paintGem(g, size, i / GEM_ANGLES, pal, stoneR)
+          frames.push(c)
+        }
+        return frames
+      })
+    },
+
+    paletteIndex(color) {
+      const i = PALETTES.findIndex(p => p.color === color)
+      return i === -1 ? PALETTES.length - 1 : i
+    },
+
     /* ═══════════════════ Nebula points ═══════════════════ */
 
     rebuildPoints() {
@@ -325,13 +622,14 @@ export default {
         const row = Math.floor(i / cols)
         const cellW = 84 / cols
         const cellH = 68 / rows
+        const size = this.isMobile ? 30 + Math.random() * 13 : 38 + Math.random() * 20
         slots.push({
           x: +(8 + (col + 0.5) * cellW + (Math.random() - 0.5) * cellW * 0.55).toFixed(2),
           y: +(16 + (row + 0.5) * cellH + (Math.random() - 0.5) * cellH * 0.5).toFixed(2),
-          dx: +((Math.random() - 0.5) * 34).toFixed(1),
-          dy: +((Math.random() - 0.5) * 34).toFixed(1),
-          dur: +(11 + Math.random() * 9).toFixed(1),
-          delay: +(-Math.random() * 12).toFixed(1),
+          size: +size.toFixed(1),
+          // Touch targets stay finger-sized even when the crystal is small.
+          hit: +Math.max(48, size + 16).toFixed(1),
+          spin: +(0.06 + Math.random() * 0.1).toFixed(3),
         })
       }
       return slots
@@ -342,17 +640,6 @@ export default {
         uid: nextId++,
         data,
         slot,
-        style: {
-          '--x': slot.x + '%',
-          '--y': slot.y + '%',
-          '--core': data.color,
-          '--halo': data.halo,
-          '--core-size': (data.coreSize || 8) + 'px',
-          '--drift-x': slot.dx + 'px',
-          '--drift-y': slot.dy + 'px',
-          '--dur': slot.dur + 's',
-          '--delay': slot.delay + 's',
-        },
       }
     },
 
@@ -366,6 +653,114 @@ export default {
       const next = this.points.slice()
       next[i] = this.makePoint(candidates[Math.floor(Math.random() * candidates.length)], this.points[i].slot)
       this.points = next
+    },
+
+    /**
+     * Where a light point currently is on screen, in CSS pixels.
+     * Driven purely by the wall clock, so the hit area and the crystal agree —
+     * the crystal is drawn at exactly these coordinates every frame.
+     */
+    pointScreenPos(p, t) {
+      const u = p.uid
+      const d1 = hash01(u * 7 + 1)
+      const d2 = hash01(u * 13 + 5)
+      const d3 = hash01(u * 29 + 11)
+      const d4 = hash01(u * 31 + 17)
+      const ampX = 12 + d1 * 26
+      const ampY = 10 + d2 * 24
+      const sx = (parseFloat(p.slot.x) / 100) * this.cw
+      const sy = (parseFloat(p.slot.y) / 100) * this.ch
+      return {
+        x: sx + Math.sin(t * (0.09 + d1 * 0.07) + u * 1.7) * ampX,
+        y: sy + Math.cos(t * (0.07 + d2 * 0.06) + u * 2.3) * ampY,
+        // Deliberately slow: the lights should look like they are floating on
+        // their own, not orbiting a shared attractor.
+        spin: 0.035 + d3 * 0.045,
+        breathe: 0.9 + d4 * 0.5,
+      }
+    },
+
+    /**
+     * Which crystal is under (x, y), judged by the same maths that drew it.
+     *
+     * The pointer coordinates arrive in CSS pixels relative to the canvas, so
+     * they are directly comparable to pointScreenPos()'s output. The tolerance
+     * is the crystal's drawn radius or the finger-sized floor, whichever is
+     * larger — a 30px gem is still comfortably tappable.
+     */
+    hitTest(x, y, t) {
+      let best = null
+      let bestD = Infinity
+      for (let i = 0; i < this.points.length; i++) {
+        const p = this.points[i]
+        const pos = this.pointScreenPos(p, t)
+        const r = Math.max(p.slot.hit, p.slot.size) * 0.9
+        const dx = x - pos.x
+        const dy = y - pos.y
+        const d = dx * dx + dy * dy
+        if (d <= r * r && d < bestD) { best = p; bestD = d }
+      }
+      return best
+    },
+
+    onFieldClick(e) {
+      if (this.revealed) return
+      const r = this.pointFieldRect()
+      const p = this.hitTest(e.clientX - r.left, e.clientY - r.top, this.now)
+      if (p) this.open(p.data, e)
+    },
+
+    onFieldMove(e) {
+      const r = this.pointFieldRect()
+      const p = this.hitTest(e.clientX - r.left, e.clientY - r.top, this.now)
+      const uid = p ? p.uid : -1
+      if (uid !== this.hoverUid) this.hoverUid = uid
+    },
+
+    onFieldLeave() {
+      if (this.hoverUid !== -1) this.hoverUid = -1
+    },
+
+    pointFieldRect() {
+      const el = this.$refs.pointField
+      return el ? el.getBoundingClientRect() : { left: 0, top: 0 }
+    },
+
+    /** Draw every crystal at its baked angle. One blit per light per frame. */
+    drawGems(t, ctx) {
+      if (!this.gemSprites.length) return
+      const dpr = this.dpr
+      for (let i = 0; i < this.points.length; i++) {
+        const p = this.points[i]
+        const pos = this.pointScreenPos(p, t)
+        const pi = this.paletteIndex(p.data.color)
+        const frames = this.gemSprites[pi]
+        if (!frames) continue
+
+        const frame = frames[Math.floor((((t * pos.spin + i * 0.11) % 1) + 1) % 1 * GEM_ANGLES) % GEM_ANGLES]
+        const breathe = 1 + 0.055 * Math.sin(t * 1.25 * pos.breathe + p.uid)
+        const hot = p.uid === this.hoverUid ? 1.22 : 1
+        // Sprite is the whole glow square; the stone inside it is 1/GEM_GLOW.
+        const gs = p.slot.size * GEM_GLOW * breathe * hot
+        const gx = pos.x - gs / 2
+        const gy = pos.y - gs / 2
+
+        ctx.globalAlpha = 0.78 + 0.22 * Math.sin(t * 0.9 + p.uid * 1.7)
+        ctx.drawImage(frame, gx, gy, gs, gs)
+        ctx.globalAlpha = 1
+
+        // A faint rim ring on hover only — the affordance costs nothing idle.
+        if (p.uid === this.hoverUid) {
+          const s = gs / GEM_GLOW
+          ctx.globalAlpha = 0.4
+          ctx.beginPath()
+          ctx.arc(pos.x, pos.y, s * 0.78, 0, Math.PI * 2)
+          ctx.strokeStyle = p.data.color
+          ctx.lineWidth = 1 / dpr
+          ctx.stroke()
+          ctx.globalAlpha = 1
+        }
+      }
     },
 
     /* ═══════════════════ Reveal / mode ═══════════════════ */
@@ -393,6 +788,16 @@ export default {
       if (this.mode === mode) return
       this.revealed = null
       this.mode = mode
+      if (mode === 'stream') {
+        // The scroller was display:none until now, so its height and the
+        // wall's offset were both 0 while the window was last computed.
+        this.$nextTick(() => {
+          this.wallTop = 0
+          const v = this.$refs.streamView
+          if (v) this.wallScroll = v.scrollTop
+          this.syncWallWindow(true)
+        })
+      }
     },
 
     onKeydown(e) {
@@ -435,7 +840,133 @@ export default {
         this.rebuildPoints()
       }
 
+      // The wall is packed, not reflowed — a new memory has to be given a slot.
+      if (this.mode === 'stream') this.layoutWall()
+
       this.saveCustomBubbleToApi(text, dateStr)
+    },
+
+    /* ═══════════════════ Waterfall (virtualised) ═══════════════════ */
+
+    /** Column count for the current width — mirrors the CSS breakpoints. */
+    wallCols() {
+      const w = window.innerWidth
+      if (w <= 559) return 1
+      if (w <= 859) return 2
+      if (w <= 1139) return 3
+      return 4
+    },
+
+    /**
+     * Measure every card ONCE, off screen, then hand out absolute positions.
+     *
+     * Why measure instead of estimating: a masonry that guesses heights and
+     * then corrects itself makes the scrollbar jump under the reader. One
+     * hidden pass costs a single reflow at load and is right from then on.
+     */
+    layoutWall() {
+      if (this.pool.length === 0) {
+        this.wallItems = []
+        this.wallVisible = []
+        this.wallHeight = 0
+        return
+      }
+
+      // Column geometry first: the hidden measure pass needs the card width,
+      // otherwise it would measure cards at the wrong wrap.
+      const mobile = window.innerWidth <= 767
+      const cols = this.wallCols()
+      // NOTE: an absolutely positioned child is placed against the PADDING
+      // edge of .stream-wall, not its content edge, so the horizontal padding
+      // has to be added back into every `left` or the whole wall shifts left.
+      const pad = mobile ? 16 : 24
+      const wallW = Math.min(1180, window.innerWidth) - pad * 2
+      const gap = mobile ? 12 : 16
+      const colW = (wallW - gap * (cols - 1)) / cols
+      this.wallColsAt = cols
+      this.wallColW = colW
+      this.wallGap = gap
+      this.wallPad = pad
+
+      this.measuring = true
+      this.$nextTick(() => {
+        const boxes = this.$refs.measure
+          ? Array.from(this.$refs.measure.children).map(el => el.offsetHeight)
+          : []
+        this.measuring = false
+
+        const heights = new Array(cols).fill(0)
+        const items = []
+        for (let i = 0; i < this.pool.length; i++) {
+          const h = boxes[i] || 160 // fallback keeps the layout sane if a card was not measured
+          let c = 0
+          for (let k = 1; k < cols; k++) if (heights[k] < heights[c] - 0.5) c = k
+          items.push({
+            key: this.pool[i].key,
+            data: this.pool[i],
+            col: c,
+            top: heights[c],
+            height: h,
+            style: {
+              left: (pad + c * (colW + gap)) + 'px',
+              top: heights[c] + 'px',
+              width: colW + 'px',
+              // The persona's colour rides along with the layout so a wall card
+              // keeps its own accent hairline (see .memory-card::before).
+              '--accent': this.pool[i].color,
+            },
+          })
+          heights[c] += h + gap
+        }
+
+        this.wallItems = items
+        this.wallHeight = Math.max(0, Math.max.apply(null, heights) - gap)
+        this.syncWallWindow(true)
+      })
+    },
+
+    onWallScroll(e) {
+      this.wallScroll = e.target.scrollTop
+      this.syncWallWindow()
+    },
+
+    /**
+     * Put only the cards intersecting the viewport (± half a screen of slack)
+     * into the DOM. 73 memories or 730, the mounted count stays ~15.
+     */
+    syncWallWindow(force) {
+      const view = this.$refs.streamView
+      if (!view && !force) return
+      const scroll = this.wallScroll
+      const vh = view ? view.clientHeight : window.innerHeight
+      this.wallViewH = vh
+      // The wall sits below the page header inside the same scroller.
+      if (view && !this.wallTop) {
+        const wall = this.$refs.wall
+        if (wall) this.wallTop = wall.offsetTop
+      }
+      const headH = this.wallTop
+      // Cards are packed with their heights already known, so the window can
+      // hug the viewport: a tenth of a screen of slack above and a twentieth
+      // below. Anything wider is not virtualising — a 1.5-screen window held
+      // 31 of 73 cards before this was tightened.
+      const from = scroll - headH - vh * 0.1
+      const to = scroll - headH + vh * 1.05
+      const next = []
+      for (let i = 0; i < this.wallItems.length; i++) {
+        const it = this.wallItems[i]
+        if (it.top + it.height < from) continue
+        // No early exit: cards are packed into whichever column is shortest,
+        // so `top` is NOT monotonic and a break would silently drop cards.
+        if (it.top > to) continue
+        next.push(it)
+      }
+      // Only touch the reactive array when the SET changed — a scroll event
+      // must not re-render the list on every pixel.
+      if (next.length !== this.wallVisible.length ||
+          next.some((it, i) => it.key !== this.wallVisible[i].key)) {
+        this.wallVisible = next
+      }
     },
 
     /* ═══════════════════ Canvas ═══════════════════ */
@@ -500,8 +1031,15 @@ export default {
       const wasMobile = this.isMobile
       this.isMobile = window.innerWidth < 768
       this.buildStars()
+      this.buildGemSprites()
       this.resizeCanvas()
       if (wasMobile !== this.isMobile) this.rebuildPoints()
+      // Card widths track the viewport continuously, so re-pack on any width
+      // change, not just when the column count happens to cross a breakpoint.
+      // Debounced: a drag-resize fires this dozens of times a second and each
+      // run costs a full measuring pass.
+      clearTimeout(this.wallResizeTimer)
+      this.wallResizeTimer = setTimeout(() => this.layoutWall(), 180)
     },
 
     onVisibilityChange() {
@@ -522,7 +1060,10 @@ export default {
       this.rafId = requestAnimationFrame(this.tick)
       // Half-rate on phones: the sky reads the same, the battery does not.
       if (this.isMobile && (this.frame++ & 1)) return
-      this.draw(now / 1000)
+      // Cached so the click handler can hit-test against the exact position the
+      // crystals were last drawn at, without recomputing the drift.
+      this.now = now / 1000
+      this.draw(this.now)
     },
 
     draw(t) {
@@ -534,7 +1075,7 @@ export default {
       ctx.clearRect(0, 0, w, h)
 
       // ── stars (twinkle is computed, not a DOM animation) ──
-      for (let i = 0; i < this.stars.length; i++) {
+      if (this.stars.length) for (let i = 0; i < this.stars.length; i++) {
         const s = this.stars[i]
         const tw = 0.55 + 0.45 * Math.sin(t * s.speed + s.phase)
         const px = s.x * w
@@ -556,7 +1097,7 @@ export default {
       // ── drifting dust, nudged away from the cursor ──
       const mx = this.mouseX
       const my = this.mouseY
-      for (let i = 0; i < this.dust.length; i++) {
+      if (this.dust.length) for (let i = 0; i < this.dust.length; i++) {
         const d = this.dust[i]
         if (this.mouseActive) {
           const dx = d.x * w - mx
@@ -584,6 +1125,11 @@ export default {
         ctx.fill()
       }
       ctx.globalAlpha = 1
+
+      // ── crystal light points (baked sprites, blitted) ──
+      if (this.mode === 'nebula' && !this.revealed) {
+        this.drawGems(t, ctx)
+      }
 
       // ── reveal accretion: motes that spiral in and settle around the card ──
       for (let i = this.motes.length - 1; i >= 0; i--) {
@@ -693,80 +1239,30 @@ export default {
 }
 
 /* ═══════════════ Light points ═══════════════ */
-.point-field { position: absolute; inset: 0; z-index: 3; }
+/* The crystals are drawn on the canvas that sits beneath this layer; the field
+   itself is a single transparent sheet whose only job is to catch the pointer.
+   Nothing here animates and nothing here is composited, so the whole starfield
+   costs exactly one layer instead of one per light. */
+.point-field {
+  position: absolute; inset: 0; z-index: 3;
+  cursor: default;
+}
 
-.light-point {
-  position: absolute;
-  left: var(--x); top: var(--y);
-  width: 60px; height: 60px;
-  margin: -30px 0 0 -30px;
-  padding: 0; border: 0; background: none;
+/* Keyboard / screen-reader route to the same memories. Visually hidden but
+   focusable, so Tab reaches every thought exactly as a click would. */
+.sr-points {
+  position: absolute; width: 1px; height: 1px;
+  margin: -1px; padding: 0; border: 0;
+  overflow: hidden; clip-path: inset(50%); white-space: nowrap;
+}
+.sr-point {
+  font: inherit; color: inherit; background: none; border: 0;
   cursor: pointer;
-  display: flex; align-items: center; justify-content: center;
-  -webkit-tap-highlight-color: transparent;
 }
-.lp-drift {
-  position: absolute; inset: 0;
-  display: flex; align-items: center; justify-content: center;
-  animation: point-drift var(--dur, 14s) var(--delay, 0s) ease-in-out infinite;
+.sr-point:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 1px rgba(200, 190, 230, 0.45);
 }
-.lp-inner {
-  position: relative;
-  width: 100%; height: 100%;
-  display: flex; align-items: center; justify-content: center;
-  transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
-}
-.lp-inner::after {
-  content: '';
-  position: absolute; inset: 12px;
-  border-radius: 50%;
-  border: 1px solid var(--core, #8b7aaa);
-  opacity: 0;
-  transform: scale(0.55);
-  transition: opacity 0.5s ease, transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
-}
-.light-point:hover .lp-inner { transform: scale(1.28); }
-.light-point:hover .lp-inner::after { opacity: 0.42; transform: scale(1.1); }
-
-.lp-halo {
-  position: absolute;
-  width: 60px; height: 60px; border-radius: 50%;
-  background: radial-gradient(circle, var(--halo, rgba(139, 122, 170, 0.3)) 0%, transparent 68%);
-  opacity: 0.7;
-  animation: halo-breathe 5.5s var(--delay, 0s) ease-in-out infinite;
-}
-.lp-core {
-  position: relative;
-  width: var(--core-size, 8px); height: var(--core-size, 8px);
-  border-radius: 50%;
-  background: radial-gradient(circle, #fff 0%, var(--core, #8b7aaa) 45%, transparent 74%);
-  box-shadow:
-    0 0 calc(var(--core-size, 8px) * 1.8) var(--core, #8b7aaa),
-    0 0 calc(var(--core-size, 8px) * 5.5) var(--halo, rgba(139, 122, 170, 0.3));
-  animation: core-breathe 3.8s var(--delay, 0s) ease-in-out infinite;
-}
-.light-point:focus-visible { outline: none; }
-.light-point:focus-visible .lp-inner::after { opacity: 0.8; transform: scale(1.1); }
-
-@keyframes point-drift {
-  0%, 100% { transform: translate(0, 0); }
-  25%      { transform: translate(var(--drift-x, 14px), calc(var(--drift-y, -10px) * 0.6)); }
-  50%      { transform: translate(calc(var(--drift-x, 14px) * 0.4), var(--drift-y, -10px)); }
-  75%      { transform: translate(calc(var(--drift-x, 14px) * -0.45), calc(var(--drift-y, -10px) * 0.55)); }
-}
-@keyframes halo-breathe {
-  0%, 100% { opacity: 0.42; transform: scale(0.86); }
-  50%      { opacity: 0.85; transform: scale(1.16); }
-}
-@keyframes core-breathe {
-  0%, 100% { opacity: 0.72; transform: scale(0.9); }
-  50%      { opacity: 1; transform: scale(1.22); }
-}
-
-.point-swap-enter-active { transition: opacity 1.1s ease-out; }
-.point-swap-leave-active { transition: opacity 0.7s ease-in; position: absolute; }
-.point-swap-enter-from { opacity: 0; }
-.point-swap-leave-to { opacity: 0; }
 
 .field-hint {
   position: absolute; left: 50%; bottom: 104px; transform: translateX(-50%);
@@ -813,10 +1309,15 @@ export default {
   color: rgba(205, 199, 187, 0.32);
 }
 
-/* ── wall variant ── */
+/* ── wall variant ──
+   Cards are positioned absolutely by the virtualiser (left/top/width come in
+   through the inline style), so no column-count here: CSS columns would keep
+   every card in the layout box and defeat the whole point. */
+.wall-item {
+  position: absolute;
+  margin: 0;
+}
 .memory-card--wall {
-  break-inside: avoid;
-  margin: 0 0 16px;
   padding: 24px 22px 18px;
   cursor: pointer;
   transition: border-color 0.45s ease, background 0.45s ease;
@@ -827,6 +1328,15 @@ export default {
     radial-gradient(ellipse 120% 90% at 50% 0%, rgba(139, 122, 170, 0.18) 0%, transparent 62%),
     rgba(16, 15, 28, 0.96);
 }
+
+/* The one-off measuring pass: laid out for real, never seen. */
+.wall-measure {
+  position: absolute;
+  left: -99999px; top: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+.wall-measure .memory-card--wall { margin: 0; }
 
 /* ── full variant ── */
 .memory-card--full {
@@ -840,7 +1350,9 @@ export default {
     rgba(12, 11, 22, 0.96);
   border: 1px solid rgba(255, 255, 255, 0.07);
   border-radius: 18px;
-  box-shadow: 0 30px 90px rgba(0, 0, 0, 0.72);
+  /* The halo of the light that was touched, so the card reads as that memory
+     opening rather than a generic panel appearing. */
+  box-shadow: 0 30px 90px rgba(0, 0, 0, 0.72), 0 0 90px var(--halo, rgba(139, 122, 170, 0.25));
   animation: memory-arrive 1.05s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 .memory-card--full .mc-text {
@@ -907,9 +1419,18 @@ export default {
   color: rgba(205, 199, 187, 0.34);
 }
 .stream-wall {
+  position: relative;
   max-width: 1180px; margin: 0 auto;
-  padding: 0 24px 150px;
-  column-count: 4; column-gap: 16px;
+  /* No bottom padding: this element's height IS the packed card extent, so a
+     trailing gap would push the tail caption back up over the last cards. */
+  padding: 0 24px;
+}
+.stream-tail {
+  margin: 28px 0 130px;
+  text-align: center;
+  font-size: 11.5px; letter-spacing: 0.2em;
+  color: rgba(205, 199, 187, 0.22);
+  pointer-events: none;
 }
 
 /* ═══════════════ Fixed chrome ═══════════════ */
@@ -1028,8 +1549,9 @@ export default {
 .form-btn.submit:disabled { opacity: 0.3; cursor: not-allowed; }
 
 /* ═══════════════ Responsive ═══════════════ */
-@media (max-width: 1139px) { .stream-wall { column-count: 3; } }
-@media (max-width: 859px)  { .stream-wall { column-count: 2; } }
+/* No column-count anywhere: cards are absolutely positioned by layoutWall(),
+   and CSS columns would have no effect on out-of-flow children anyway. The
+   matching breakpoints live in wallCols() — keep the two in step. */
 
 @media (max-width: 767px) {
   /* A full-screen grain layer costs fill rate on phones for very little. */
@@ -1047,7 +1569,7 @@ export default {
 
   .stream-head { padding: 66px 16px 20px; }
   .stream-head h1 { font-size: 21px; }
-  .stream-wall { padding: 0 16px 132px; column-gap: 12px; }
+  .stream-wall { padding: 0 16px 132px; }
   .memory-card--wall { margin-bottom: 12px; padding: 20px 18px 16px; }
   .memory-card--wall .mc-text { font-size: 14.5px; line-height: 1.95; }
 
@@ -1059,11 +1581,15 @@ export default {
   .reveal-veil { gap: 16px; padding: 16px; }
 }
 
-@media (max-width: 559px) { .stream-wall { column-count: 1; } }
+@media (max-width: 559px) {
+  /* wallCols() returns 1 here; the wall's geometry comes from JS, not CSS. */
+  .stream-head { padding: 66px 16px 18px; }
+}
 
 @media (prefers-reduced-motion: reduce) {
-  .lp-drift, .lp-halo, .lp-core, .field-hint, .reveal-hint { animation: none !important; }
+  .field-hint, .reveal-hint { animation: none !important; }
   .memory-card--full { animation: none; opacity: 1; }
   .point-swap-enter-active, .point-swap-leave-active { transition: none; }
+  .memory-card { transition: none; }
 }
 </style>
