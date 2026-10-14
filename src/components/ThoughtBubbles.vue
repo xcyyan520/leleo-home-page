@@ -104,7 +104,10 @@
     </transition>
 
     <!-- ═══ UI ═══ -->
-    <a href="/" class="chrome chrome--back"><span class="back-arrow">←</span><span class="back-text">回去</span></a>
+    <div class="chrome chrome--back">
+      <a href="/" class="chrome-link"><span class="back-arrow">←</span><span class="back-text">回去</span></a>
+      <a href="/visitors" class="chrome-link chrome-link--sub">来访记录</a>
+    </div>
     <div class="chrome chrome--title"><span class="t-main">思绪</span><span class="t-sub">memory nebula</span></div>
 
     <p v-if="mode === 'nebula' && !revealed" class="field-hint">
@@ -1604,13 +1607,20 @@ export default {
 }
 .chrome--back {
   top: 28px; left: 30px;
-  color: rgba(200, 195, 185, 0.35);
+  gap: 16px;
   font-size: 13px; letter-spacing: 0.08em;
+}
+.chrome-link {
+  display: flex; align-items: center; gap: 6px;
+  color: rgba(200, 195, 185, 0.35);
+  text-decoration: none;
   transition: color 0.4s ease;
 }
-.chrome--back:hover { color: rgba(220, 210, 195, 0.78); }
+.chrome-link--sub { font-size: 11.5px; letter-spacing: 0.12em; }
+.chrome--back:hover .chrome-link { color: rgba(200, 195, 185, 0.22); }
+.chrome--back .chrome-link:hover { color: rgba(220, 210, 195, 0.78); }
 .back-arrow { font-size: 15px; transition: transform 0.3s ease; }
-.chrome--back:hover .back-arrow { transform: translateX(-4px); }
+.chrome--back .chrome-link:hover .back-arrow { transform: translateX(-4px); }
 
 .chrome--title {
   top: 30px; right: 34px;
@@ -1720,7 +1730,7 @@ export default {
   /* A full-screen grain layer costs fill rate on phones for very little. */
   .grain { display: none; }
 
-  .chrome--back { top: 16px; left: 16px; font-size: 12px; }
+  .chrome--back { top: 16px; left: 16px; font-size: 12px; gap: 12px; }
   .chrome--title { top: 18px; right: 16px; }
   .t-main { font-size: 17px; letter-spacing: 0.26em; }
   .t-sub { display: none; }

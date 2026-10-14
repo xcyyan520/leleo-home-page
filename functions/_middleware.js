@@ -1,12 +1,8 @@
-async function hashPassword(password) {
-  const encoder = new TextEncoder()
-  const data = encoder.encode(password + 'thoughts-salt-2026')
-  const hash = await crypto.subtle.digest('SHA-256', data)
-  return btoa(String.fromCharCode(...new Uint8Array(hash)))
-}
+import { hashPassword, ownerToken, readCookie, VISITOR_COOKIE } from './_lib/visitor.js'
 
-function getLoginPage(error) {
+function getLoginPage(error, next) {
   const msg = error ? `<p class="err">${error}</p>` : ''
+  const target = JSON.stringify(next || '/thoughts.html')
   return `<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
@@ -92,7 +88,7 @@ async function submitAuth(e) {
       headers:{'Content-Type':'application/json'},
       body:JSON.stringify({password:pw})
     })
-    if (res.ok) { location.href = '/thoughts.html'; return }
+    if (res.ok) { location.href = ${target}; return }
     btn.textContent = '进入'
     btn.disabled = false
     const err = document.createElement('p')
@@ -113,8 +109,32 @@ export async function onRequest(context) {
   const { request, next, env } = context
   const url = new URL(request.url)
 
-  // Protect thoughts + bubble API
-  const needsAuth = url.pathname.startsWith('/thoughts') || url.pathname.startsWith('/api/bubbles') || url.pathname.startsWith('/api/diary') || url.pathname.startsWith('/api/activity')
+  // ── Visitor welcome gate ────────────────────────────────────────────────
+  // A stranger landing on the front page is asked for her name once; the
+  // answer is recorded in the D1 history the owner can read from 思绪.
+  // Only the front page is gated: deep links (project02, shared study pages)
+  // stay reachable, so a link the owner sends never dead-ends on a form.
+  const isFrontPage = url.pathname === '/' || url.pathname === '/index.html'
+  if (isFrontPage && !env.NO_VISITOR_GATE) {
+    const ua = request.headers.get('User-Agent') || ''
+    const wantsHtml = (request.headers.get('Accept') || '').includes('text/html')
+    // Link previews and search crawlers must see the real page: a shared URL
+    // that unfurls into a name form looks broken.
+    const isBot = /bot|crawler|spider|preview|facebookexternalhit|TelegramBot|WhatsApp|Slackbot|Twitterbot|Discordbot|Googlebot|bingbot|Baiduspider|YisouSpider|Sogou/i.test(ua)
+    // Anything unexpected here must fail OPEN: a guest who cannot reach the
+    // front page is a worse outcome than a visit that goes unrecorded.
+    let isOwner = false
+    try { isOwner = !!(await ownerToken(request, env)) } catch { isOwner = true }
+    if (wantsHtml && !isBot && !isOwner && !readCookie(request, VISITOR_COOKIE)) {
+      // `/welcome`, not `/welcome.html`: Pages 308s the .html form, and a
+      // redirect into a redirect shows up as a flash on slow connections.
+      const back = encodeURIComponent(url.pathname + url.search)
+      return Response.redirect(new URL(`/welcome?back=${back}`, url).toString(), 302)
+    }
+  }
+
+  // Protect thoughts + bubble API + the owner's visitor history
+  const needsAuth = url.pathname.startsWith('/thoughts') || url.pathname.startsWith('/api/bubbles') || url.pathname.startsWith('/api/diary') || url.pathname.startsWith('/api/activity') || url.pathname.startsWith('/visitors')
   if (!needsAuth) return next()
 
   // Let auth API through
@@ -128,19 +148,13 @@ export async function onRequest(context) {
   }
 
   // Check cookie
-  const cookieHeader = request.headers.get('Cookie') || ''
-  const match = cookieHeader.match(/(?:^|;\s*)thoughts-auth=([^;]+)/)
-  const cookieValue = match ? match[1] : null
-
-  if (cookieValue) {
-    const expected = await hashPassword(env.THOUGHTS_PASSWORD)
-    if (cookieValue === expected) {
-      return next()
-    }
+  const token = await ownerToken(request, env)
+  if (token) {
+    return next()
   }
 
   // Blocked
-  return new Response(getLoginPage(), {
+  return new Response(getLoginPage(null, url.pathname + url.search), {
     status: 401,
     headers: { 'Content-Type': 'text/html; charset=utf-8' },
   })

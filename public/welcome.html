@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#07060f">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230a0a1a'/%3E%3Cpath d='M16 6l7 5.5v9L16 26l-7-5.5v-9z' fill='none' stroke='%238b7aaa' stroke-width='1.6'/%3E%3C/svg%3E">
+<title>你好呀 · xcyyan的小家</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+html, body { height:100%; }
+body {
+  background:#07060f;
+  background-image:
+    radial-gradient(900px 620px at 18% -8%, rgba(139,122,170,.16), transparent 62%),
+    radial-gradient(760px 560px at 88% 12%, rgba(127,143,181,.11), transparent 60%),
+    radial-gradient(680px 520px at 50% 112%, rgba(196,169,112,.07), transparent 62%);
+  display:flex; align-items:center; justify-content:center;
+  padding:24px;
+  font-family:'Georgia','Songti SC','Noto Serif SC',serif;
+  color:#d8d2c8;
+  -webkit-font-smoothing:antialiased;
+}
+.card { text-align:center; max-width:390px; width:100%; }
+
+.title {
+  font-size:27px; color:rgba(220,215,205,.9);
+  letter-spacing:.34em; margin-bottom:6px; text-indent:.34em;
+}
+.sub {
+  font-size:11px; color:rgba(200,195,185,.34);
+  letter-spacing:.16em; margin-bottom:34px;
+}
+.lead {
+  font-size:14px; line-height:2; color:rgba(210,205,196,.62);
+  letter-spacing:.06em; margin-bottom:30px;
+}
+.lead b { color:rgba(196,169,112,.9); font-weight:400; }
+
+.field { position:relative; margin-bottom:12px; }
+.field input {
+  width:100%;
+  background:rgba(255,255,255,.02);
+  border:1px solid rgba(255,255,255,.08);
+  border-radius:14px;
+  padding:15px 18px;
+  color:rgba(220,215,205,.9);
+  font-family:inherit; font-size:15px;
+  letter-spacing:.06em;
+  outline:none;
+  transition:border-color .3s, background .3s;
+}
+.field input::placeholder { color:rgba(200,195,185,.2); letter-spacing:.08em; }
+.field input:focus {
+  border-color:rgba(139,122,170,.5);
+  background:rgba(255,255,255,.035);
+}
+
+button {
+  width:100%; margin-top:8px;
+  background:rgba(139,122,170,.14);
+  border:1px solid rgba(139,122,170,.28);
+  border-radius:14px;
+  color:rgba(225,218,235,.86);
+  padding:15px; font-family:inherit; font-size:14px;
+  letter-spacing:.22em; text-indent:.22em;
+  cursor:pointer;
+  transition:background .25s, border-color .25s, color .25s, opacity .25s;
+}
+button:hover:not(:disabled) {
+  background:rgba(139,122,170,.24);
+  border-color:rgba(139,122,170,.45);
+  color:rgba(235,230,242,.98);
+}
+button:disabled { opacity:.45; cursor:default; }
+
+.err {
+  font-size:12.5px; color:rgba(220,140,140,.75);
+  letter-spacing:.06em; margin-bottom:8px; min-height:17px;
+  transition:opacity .25s;
+}
+.hint {
+  font-size:11px; line-height:1.9; color:rgba(200,195,185,.26);
+  letter-spacing:.05em; margin-top:22px;
+}
+.skip {
+  display:inline-block; margin-top:16px;
+  font-size:11.5px; color:rgba(200,195,185,.3);
+  letter-spacing:.1em; text-decoration:none;
+  border-bottom:1px solid rgba(200,195,185,.14);
+  padding-bottom:2px; transition:color .25s, border-color .25s;
+}
+.skip:hover { color:rgba(200,195,185,.55); border-color:rgba(200,195,185,.3); }
+
+.done { animation:rise .5s ease both; }
+@keyframes rise { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:none; } }
+.done-title { font-size:23px; letter-spacing:.2em; color:rgba(230,225,215,.92); margin-bottom:14px; }
+.done-sub { font-size:13.5px; line-height:2; color:rgba(205,200,190,.5); letter-spacing:.06em; margin-bottom:26px; }
+.done-sub b { color:rgba(196,169,112,.9); font-weight:400; }
+.tip { font-size:11.5px; color:rgba(200,195,185,.32); letter-spacing:.04em; }
+</style>
+</head>
+<body>
+<div class="card" id="card"></div>
+
+<script>
+const params = new URLSearchParams(location.search);
+// `back` is where to land after the introduction. Only same-site paths are
+// honoured, so the form can never be used as an open redirect.
+const rawBack = params.get('back') || '/';
+const back = /^\/(?!\/)/.test(rawBack) ? rawBack : '/';
+const card = document.getElementById('card');
+
+function esc(s) {
+  return String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+}
+
+function renderForm() {
+  card.innerHTML = `
+    <div class="title">你好呀</div>
+    <div class="sub">welcome to my little home</div>
+    <div class="lead">在进来之前，<b>方便告诉我你的名字吗</b>？<br>这样我就知道今天有谁来过啦。</div>
+    <div class="err" id="err"></div>
+    <form id="f">
+      <div class="field"><input id="name" type="text" maxlength="24" placeholder="你的名字……" autocomplete="name" autofocus></div>
+      <div class="field"><input id="note" type="text" maxlength="60" placeholder="想说的话（可留空）"></div>
+      <button type="submit" id="btn">进 入</button>
+    </form>
+    <div class="hint">名字只用来记录「今天谁来过」，不会公开显示，也不会用于别的地方。</div>
+  `;
+  const f = document.getElementById('f');
+  f.addEventListener('submit', submit);
+}
+
+function renderDone(displayName, returning, changed) {
+  card.className = 'card done';
+  // If a namesake already exists, the label carries a "#N" suffix so the
+  // owner can tell the two of you apart. Say so plainly instead of letting
+  // her wonder why her own name looks different.
+  const suffixed = /#\d+$/.test(displayName);
+  card.innerHTML = `
+    <div class="done-title">${returning ? '又见面啦' : '欢迎你'}</div>
+    <div class="done-sub">
+      ${returning ? '我记得你来过。' : '已经记下你的名字了：'}<br>
+      <b>${esc(displayName)}</b>
+      ${suffixed && changed ? '<br><span class="tip">已经有同名的客人啦，所以给你编了个号</span>' : ''}
+    </div>
+    <a class="skip" href="${esc(back)}">进入 xcyyan 的小家 →</a>
+  `;
+  // Give the greeting a beat to be read before moving on. A namesake's note
+  // adds a line, so it gets longer.
+  setTimeout(() => { location.href = back; }, suffixed && changed ? 2200 : 1600);
+}
+
+async function submit(e) {
+  e.preventDefault();
+  const nameEl = document.getElementById('name');
+  const errEl = document.getElementById('err');
+  const btn = document.getElementById('btn');
+  const name = nameEl.value.trim();
+
+  if (!name) {
+    errEl.textContent = '还没写名字呢';
+    nameEl.focus();
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = '…';
+  errEl.textContent = '';
+
+  try {
+    const res = await fetch('/api/visitor', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, note: document.getElementById('note').value.trim(), path: back }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || !data.ok) throw new Error(data.error || 'failed');
+    renderDone(data.displayName || name, !!data.returning, data.changed !== false);
+  } catch (err) {
+    // A failed introduction must never trap a guest outside the site.
+    btn.disabled = false;
+    btn.textContent = '进 入';
+    errEl.textContent = '没记上，不过没关系——';
+    setTimeout(() => { location.href = back; }, 900);
+  }
+}
+
+renderForm();
+</script>
+</body>
+</html>

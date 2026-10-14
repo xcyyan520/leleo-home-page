@@ -1,9 +1,4 @@
-async function hashPassword(password) {
-  const encoder = new TextEncoder()
-  const data = encoder.encode(password + 'thoughts-salt-2026')
-  const hash = await crypto.subtle.digest('SHA-256', data)
-  return btoa(String.fromCharCode(...new Uint8Array(hash)))
-}
+import { hashPassword } from '../_lib/visitor.js'
 
 export async function onRequestPost(context) {
   const { request, env } = context

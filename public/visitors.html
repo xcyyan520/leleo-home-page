@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#07060f">
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230a0a1a'/%3E%3Cpath d='M16 6l7 5.5v9L16 26l-7-5.5v-9z' fill='none' stroke='%238b7aaa' stroke-width='1.6'/%3E%3C/svg%3E">
+<title>来访记录 · xcyyan的小家</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+html, body { min-height:100%; }
+body {
+  background:#07060f;
+  background-image:
+    radial-gradient(900px 620px at 18% -8%, rgba(139,122,170,.14), transparent 62%),
+    radial-gradient(760px 560px at 88% 12%, rgba(127,143,181,.09), transparent 60%);
+  background-attachment:fixed;
+  font-family:'Georgia','Songti SC','Noto Serif SC',system-ui,-apple-system,sans-serif;
+  color:#d8d2c8;
+  padding:34px 20px 72px;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap { max-width:860px; margin:0 auto; }
+
+.top { display:flex; align-items:baseline; justify-content:space-between; gap:16px; flex-wrap:wrap; margin-bottom:6px; }
+h1 { font-size:21px; font-weight:400; letter-spacing:.22em; color:rgba(225,220,210,.92); }
+.back { font-size:12px; color:rgba(200,195,185,.35); text-decoration:none; letter-spacing:.08em; border-bottom:1px solid rgba(200,195,185,.14); padding-bottom:2px; transition:color .25s,border-color .25s; }
+.back:hover { color:rgba(200,195,185,.65); border-color:rgba(200,195,185,.32); }
+
+.summary { font-size:12.5px; color:rgba(200,195,185,.4); letter-spacing:.06em; margin-bottom:26px; }
+.summary b { color:rgba(196,169,112,.9); font-weight:400; }
+
+.tabs { display:flex; gap:6px; margin-bottom:20px; }
+.tab {
+  font-size:12.5px; letter-spacing:.1em; font-family:inherit;
+  background:rgba(255,255,255,.03); color:rgba(200,195,185,.5);
+  border:1px solid rgba(255,255,255,.07); border-radius:10px;
+  padding:8px 16px; cursor:pointer; transition:all .22s;
+}
+.tab:hover { color:rgba(215,210,200,.8); }
+.tab.on { background:rgba(139,122,170,.16); border-color:rgba(139,122,170,.34); color:rgba(228,222,238,.92); }
+
+.list { display:flex; flex-direction:column; gap:10px; }
+
+.person {
+  background:rgba(20,18,40,.6);
+  border:1px solid rgba(255,255,255,.06);
+  border-radius:14px;
+  padding:15px 18px;
+  transition:border-color .25s, transform .25s;
+}
+.person:hover { border-color:rgba(255,255,255,.12); }
+.person.new { border-left:2px solid rgba(196,169,112,.5); }
+
+.prow { display:flex; align-items:baseline; justify-content:space-between; gap:14px; flex-wrap:wrap; }
+.pname { font-size:16.5px; letter-spacing:.08em; color:rgba(228,222,212,.95); }
+.pname .suffix, .tname .suffix { font-size:12.5px; color:rgba(196,169,112,.72); letter-spacing:.04em; margin-left:2px; }
+.pwhen { font-size:11.5px; color:rgba(200,195,185,.34); letter-spacing:.05em; white-space:nowrap; }
+
+.pmeta { margin-top:9px; display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+.chip {
+  font-size:11px; letter-spacing:.06em; padding:3px 9px; border-radius:7px;
+  background:rgba(255,255,255,.035); border:1px solid rgba(255,255,255,.06);
+  color:rgba(200,195,185,.52); white-space:nowrap;
+}
+.chip.dev { background:rgba(139,122,170,.1); border-color:rgba(139,122,170,.2); color:rgba(200,190,220,.72); }
+.chip.visit { background:rgba(196,169,112,.1); border-color:rgba(196,169,112,.2); color:rgba(214,196,158,.75); }
+
+.pnote { margin-top:10px; font-size:13px; line-height:1.85; color:rgba(205,200,190,.6); letter-spacing:.03em; padding-left:10px; border-left:1px solid rgba(139,122,170,.3); }
+
+.trace { display:flex; flex-direction:column; gap:1px; }
+.trow { display:flex; align-items:baseline; gap:12px; padding:9px 2px; border-bottom:1px solid rgba(255,255,255,.04); font-size:13px; }
+.trow:last-child { border-bottom:none; }
+.ttime { color:rgba(200,195,185,.32); font-size:11.5px; white-space:nowrap; min-width:132px; letter-spacing:.03em; }
+.tname { color:rgba(220,215,205,.82); letter-spacing:.05em; }
+.tpath { color:rgba(200,195,185,.3); font-size:11.5px; margin-left:auto; }
+
+.empty, .loading { text-align:center; padding:52px 20px; font-size:13.5px; color:rgba(200,195,185,.3); letter-spacing:.1em; line-height:2.2; }
+.empty b { color:rgba(196,169,112,.75); font-weight:400; letter-spacing:.06em; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <h1>来访记录</h1>
+    <a class="back" href="/thoughts.html">← 回到思绪</a>
+  </div>
+  <div class="summary" id="summary">读取中……</div>
+  <div class="tabs">
+    <button class="tab on" data-v="people">按人看</button>
+    <button class="tab" data-v="trace">按次看</button>
+  </div>
+  <div class="list" id="list"><div class="loading">读取中……</div></div>
+</div>
+
+<script>
+const listEl = document.getElementById('list');
+const sumEl = document.getElementById('summary');
+let view = 'people';
+let data = null;
+
+function esc(s) {
+  return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+}
+
+// A display name carries an optional " #N" suffix that is the disambiguator.
+// Splitting it out lets the name read at full size and the suffix stay quiet.
+function nameParts(display) {
+  const m = String(display || '').match(/^(.*?)\s(#\d+)$/);
+  return m ? { base: m[1], suffix: m[2] } : { base: display || '(无名)', suffix: '' };
+}
+
+function rel(ts) {
+  if (!ts) return '';
+  // D1's datetime('now') is UTC without a zone marker.
+  const d = new Date(String(ts).replace(' ', 'T') + 'Z');
+  if (isNaN(d)) return String(ts);
+  const diff = (Date.now() - d.getTime()) / 1000;
+  if (diff < 60) return '刚刚';
+  if (diff < 3600) return Math.floor(diff / 60) + ' 分钟前';
+  if (diff < 86400) return Math.floor(diff / 3600) + ' 小时前';
+  if (diff < 86400 * 30) return Math.floor(diff / 86400) + ' 天前';
+  const p = n => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+}
+
+function full(ts) {
+  if (!ts) return '';
+  const d = new Date(String(ts).replace(' ', 'T') + 'Z');
+  if (isNaN(d)) return String(ts);
+  const p = n => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+
+function renderPeople() {
+  const rows = data.visitors || [];
+  if (!rows.length) {
+    listEl.innerHTML = '<div class="empty">还没有人来过。<br>把网址分享出去，<b>第一个访客</b>就会出现在这里。</div>';
+    return;
+  }
+  listEl.innerHTML = rows.map((v, i) => {
+    const { base, suffix } = nameParts(v.display_name || v.name);
+    const meta = [];
+    if (v.device) meta.push(`<span class="chip dev">${esc(v.device)}</span>`);
+    if (v.ua_label) meta.push(`<span class="chip">${esc(v.ua_label)}</span>`);
+    const place = [v.country, v.city].filter(Boolean).join(' · ');
+    if (place) meta.push(`<span class="chip">${esc(place)}</span>`);
+    if (v.visits > 1) meta.push(`<span class="chip visit">来过 ${v.visits} 次</span>`);
+    else meta.push('<span class="chip visit">第一次来</span>');
+    return `
+      <div class="person${i === 0 ? ' new' : ''}">
+        <div class="prow">
+          <div class="pname">${esc(base)}${suffix ? `<span class="suffix">${esc(suffix)}</span>` : ''}</div>
+          <div class="pwhen" title="${esc(full(v.last_seen))}">${esc(rel(v.last_seen))}</div>
+        </div>
+        <div class="pmeta">${meta.join('')}</div>
+        ${v.note ? `<div class="pnote">${esc(v.note)}</div>` : ''}
+      </div>`;
+  }).join('');
+}
+
+function renderTrace() {
+  const rows = data.visits || [];
+  if (!rows.length) { listEl.innerHTML = '<div class="empty">还没有来访记录。</div>'; return; }
+  listEl.innerHTML = '<div class="trace">' + rows.map(v => {
+    const { base, suffix } = nameParts(v.display_name);
+    const label = v.display_name ? esc(base) + (suffix ? `<span class="suffix">${esc(suffix)}</span>` : '') : '(已删除的访客)';
+    return `
+    <div class="trow">
+      <span class="ttime" title="UTC">${esc(full(v.created_at))}</span>
+      <span class="tname">${label}</span>
+      <span class="tpath">${esc(v.path || '/')}</span>
+    </div>`;
+  }).join('') + '</div>';
+}
+
+function render() {
+  if (!data) return;
+  const people = (data.visitors || []).length;
+  const visits = (data.visits || []).length;
+  const repeat = (data.visitors || []).filter(v => v.visits > 1).length;
+  sumEl.innerHTML = `一共有 <b>${data.totalVisitors}</b> 位访客来访过，累计 <b>${visits}</b> 次记录` +
+    (repeat ? `，其中 <b>${repeat}</b> 位来过不止一次` : '') + '。';
+  if (view === 'people') renderPeople(); else renderTrace();
+}
+
+document.querySelectorAll('.tab').forEach(t => {
+  t.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(x => x.classList.remove('on'));
+    t.classList.add('on');
+    view = t.dataset.v;
+    render();
+  });
+});
+
+(async () => {
+  try {
+    const res = await fetch('/api/visitor?limit=300', { headers: { Accept: 'application/json' } });
+    if (res.status === 401) {
+      // The owner cookie lapsed; the middleware owns re-authentication, so a
+      // plain reload sends her through the password page and back here.
+      listEl.innerHTML = '<div class="empty">需要先登录。<br><a class="back" href="/thoughts.html">去输入密码 →</a></div>';
+      sumEl.textContent = '';
+      return;
+    }
+    data = await res.json();
+    if (!data.ok) throw new Error(data.error || 'failed');
+    render();
+  } catch (e) {
+    sumEl.textContent = '';
+    listEl.innerHTML = '<div class="empty">读取失败，请刷新重试。</div>';
+  }
+})();
+</script>
+</body>
+</html>

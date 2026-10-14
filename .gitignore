@@ -26,6 +26,9 @@ Thumbs.db
 .env
 .env.local
 .env.*.local
+.dev.vars
+.dev.vars.*
+.wrangler/
 
 # personal prompt notes (keep local only)
 提示词.md

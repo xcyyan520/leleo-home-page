@@ -64,3 +64,16 @@ const app = createApp(App);
 app.config.warnHandler = () => {};
 app.use(vuetify).mount('#app')
 
+// Tell the visitor history that someone already introduced came back. The
+// gateway only asks a stranger for her name; a returning guest walks straight
+// in, so this quiet ping is the only thing that records her return. Failures
+// are swallowed on purpose — a visit is never worth breaking the page for.
+if (!location.pathname.startsWith('/welcome')) {
+  fetch('/api/visitor/ping', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ path: location.pathname }),
+    keepalive: true,
+  }).catch(() => {})
+}
+
