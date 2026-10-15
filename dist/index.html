@@ -4,13 +4,18 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/x-icon" href="#">
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- Classic (non-module) so it runs before first paint: a deferred module
+         would let the dark page flash before the light theme is applied. -->
+    <script src="/js/theme.js"></script>
     <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="/css/theme-light.css">
     <meta name="description" content="欢迎来到Leleo的奇妙世界！">
     <meta name="keywords" content="Leleo,leleo,个人主页,个人网站">
+    <meta name="theme-color" content="#07060f">
     <title></title>
-    <script type="module" crossorigin src="/assets/main-8Ck0nc6s.js"></script>
+    <script type="module" crossorigin src="/assets/main-DRLyaIkG.js"></script>
     <link rel="modulepreload" crossorigin href="/assets/_plugin-vue_export-helper-tbTTFssS.js">
-    <link rel="stylesheet" crossorigin href="/assets/main-Cvi35AGC.css">
+    <link rel="stylesheet" crossorigin href="/assets/main-CxQuYFA2.css">
   </head>
   <body>
     <div id="app"></div>
