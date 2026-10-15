@@ -9,6 +9,7 @@ node_modules/.vite/
 
 # agent / local tooling artifacts (never commit these)
 .claude/
+.dsh/
 .dsh-tmp/
 .superpowers/
 .vscode/
