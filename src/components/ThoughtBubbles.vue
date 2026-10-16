@@ -2,7 +2,8 @@
   <div class="memory-chamber" ref="chamber" @pointermove="onPointerMove">
     <!-- ═══ Layer 0: canvas — starfield, drifting dust, reveal accretion ═══ -->
     <canvas ref="fxCanvas" class="fx-canvas"></canvas>
-    <div class="nebula-wash" aria-hidden="true"></div>
+    <div class="nebula-wash" ref="wash" aria-hidden="true"></div>
+    <div class="deep-veil" aria-hidden="true"></div>
     <div class="grain" aria-hidden="true"></div>
 
     <!-- ═══ 星云：只有光点，没有文字 ═══
@@ -227,9 +228,7 @@ function hash01(n) {
    A four-character fragment should skim across the sky and a two-hundred
    character paragraph should barely breathe — the length of the thought is
    what the visitor is reading off the motion, so it has to be legible as
-   speed. sqrt keeps the middle of the range spread out instead of letting the
-   long memories all pile up at the slow end; the clamp stops the extremes
-   from either freezing or strobing.
+   speed.
 
    MOTION_REF sits near the MEDIAN length of the corpus (~26 characters), not
    in the middle of the theoretical 0..∞ range. It used to be 60, which put
@@ -237,15 +236,51 @@ function hash01(n) {
    canvas, the correlation between length and drift came out at only
    rho = -0.21, because the whole corpus was crammed into the top of the
    curve. Anchoring at the median lets the short half actually speed up and
-   the long half actually slow down. */
+   the long half actually slow down.
+
+   The exponent is 0.68 rather than sqrt's 0.5. A square root is the gentler
+   curve, and measured off the canvas it produced a real but quiet ordering:
+   the three length terciles drifted at 3.11 / 2.00 / 1.63 x10⁻² px per frame.
+   Those numbers are correctly ordered and completely invisible — at 120fps
+   the fastest band was moving under 4 px per second, so nothing on screen
+   looked like it was moving at all, let alone like it was moving at a speed
+   that MEANT something. A steeper curve widens the gap the eye actually has
+   to read: over the shipped 4..95 character range it spreads the tempo 8.6x
+   instead of 4.9x.
+
+   The clamps guard against pathological input rather than the real corpus:
+   the shipped texts run 4..95 characters, which lands between 0.41x and
+   3.57x with no clamping at all. */
 const MOTION_REF = 26          // characters at which a memory drifts at 1.0x
-const MOTION_MIN = 0.5
-const MOTION_MAX = 2.4
+const MOTION_MIN = 0.3
+const MOTION_MAX = 4
 function motionScale(text) {
   const n = String(text || '').length
-  const s = Math.sqrt(MOTION_REF / Math.max(4, n))
+  const s = Math.pow(MOTION_REF / Math.max(4, n), 0.68)
   return Math.max(MOTION_MIN, Math.min(MOTION_MAX, s))
 }
+
+/* Peak drift speed, in CSS px per second, for a memory of exactly MOTION_REF
+   characters. Everything else is this number times the memory's own scale.
+
+   Speed is the quantity the visitor is meant to read the length off, so it is
+   the quantity the maths is written in terms of: a light's angular rate is
+   this speed divided by its amplitude, which makes the peak speed exactly
+   `MOTION_SPEED * ms` regardless of how wide that particular light's arc is.
+
+   20 px/s is a calm float at the median — the light crosses its own arc in
+   about eight seconds, which is unhurried but unmistakably alive. The shipped
+   4..95 character corpus spans 0.41x..3.57x around it, so the sky runs from
+   about 8 px/s (a long paragraph, visibly crawling) to 71 px/s (a
+   four-character fragment skimming).
+
+   The first two attempts were both far too timid, and the reason is worth
+   recording: measured off the rendered canvas the previous formulations peaked
+   at under 4 px/s, and at that tempo nothing on screen appeared to move AT ALL
+   — so the length ordering, however correct, could not possibly be read. The
+   number to tune is the FASTEST light, not the average one; the slow end only
+   has to stay above the threshold where a light still looks alive. */
+const MOTION_SPEED = 20
 
 /* The nebula plane is carved into cells of this size. A cell is either empty
    or holds one crystal, and the choice is a pure function of the cell's
@@ -901,10 +936,17 @@ export default {
      * the crystal is drawn at exactly these coordinates every frame.
      *
      * `ms` is the memory's own speed, from its length (see motionScale): a long
-     * memory travels a short distance slowly, a fragment skims. It scales the
-     * PERIOD and not just the amplitude, so the difference reads as tempo —
-     * scaling amplitude alone would make short memories hover in a tiny box and
-     * look stuck rather than quick.
+     * memory travels a short distance slowly, a fragment skims.
+     *
+     * Speed is the quantity the visitor reads the length off, so the maths is
+     * written IN terms of speed: the angular rate is this light's speed divided
+     * by its own amplitude, which makes the peak speed exactly `MOTION_SPEED *
+     * ms` no matter how wide that particular arc happens to be. The earlier
+     * formulation multiplied a base frequency by `ms` instead, and because the
+     * amplitude was also scaled by `ms` a long memory was slowed down twice —
+     * once in tempo and again in how far it had to travel — so the two ends of
+     * the corpus differed by the product of both effects rather than by the one
+     * the visitor is supposed to see.
      */
     pointScreenPos(p, t) {
       const u = p.uid
@@ -913,27 +955,31 @@ export default {
       const d3 = hash01(u * 29 + 11)
       const d4 = hash01(u * 31 + 17)
       const ms = p.ms || 1
-      // The per-light randomness is deliberately NARROW. Length has to be what
-      // a visitor reads the speed off, and an earlier version let d1 drive both
-      // amplitude (12..38px) and frequency (0.09..0.16) — a 5.7x spread from
-      // chance alone, against a 4.4x spread from length. Randomness won, and
-      // measured off the rendered canvas the correlation came out at only
-      // rho = -0.21. Now chance contributes 1.67 x 1.33 = 2.2x and length
-      // contributes 7.8x, so the ordering is visible rather than merely true.
-      const ampX = (18 + d1 * 12) * (0.72 + 0.28 * ms)
-      const ampY = (15 + d2 * 11) * (0.72 + 0.28 * ms)
+      // Amplitude carries per-light variety and NOTHING else. Keep this spread
+      // narrow: length has to be what a visitor reads the speed off, and an
+      // earlier version let d1 drive both amplitude (12..38px) and frequency
+      // (0.09..0.16) — a 5.7x spread from chance alone against a 4.4x spread
+      // from length. Randomness won, and measured off the rendered canvas the
+      // correlation came out at only rho = -0.21.
+      const ampX = 20 + d1 * 12
+      const ampY = 17 + d2 * 11
+      const speed = MOTION_SPEED * ms
       // World → screen. The pan offset is what makes the plane feel endless:
-      // the crystal keeps its place in the world and the viewport moves.
+      // the light keeps its place in the world and the viewport moves.
       const sx = p.wx - this.panX
       const sy = p.wy - this.panY
       return {
-        x: sx + Math.sin(t * (0.105 + d1 * 0.035) * ms + u * 1.7) * ampX,
-        y: sy + Math.cos(t * (0.085 + d2 * 0.030) * ms + u * 2.3) * ampY,
-        // Deliberately slow: the lights should look like they are floating on
-        // their own, not orbiting a shared attractor. The highlight sweeps a
-        // little faster than the drift, so a light reads as turning even while
-        // it is holding still.
-        spin: (0.035 + d3 * 0.045) * (0.75 + 0.5 * ms),
+        x: sx + Math.sin((t * speed) / ampX + u * 1.7) * ampX,
+        // The vertical drift is a little slower than the horizontal so the
+        // motion never reads as a circle.
+        y: sy + Math.cos((t * speed * 0.82) / ampY + u * 2.3) * ampY,
+        // Deliberately restrained: the lights should look like they are floating
+        // on their own, not orbiting a shared attractor. The highlight sweeps
+        // faster than the drift, so a light reads as turning even while it is
+        // holding still, and it is scaled only mildly by `ms` — the highlight is
+        // a material quality, and driving it by length as hard as the drift is
+        // would make the fastest lights strobe.
+        spin: (0.05 + d3 * 0.05) * (0.85 + 0.15 * ms),
         breathe: 0.9 + d4 * 0.5,
       }
     },
@@ -1344,17 +1390,58 @@ export default {
 
     buildStars() {
       const rnd = mulberry32(20261014)
-      const area = window.innerWidth * window.innerHeight
+      const W = window.innerWidth
+      const H = window.innerHeight
       const target = this.isMobile ? 74 : 150
-      const count = Math.max(36, Math.min(target, Math.round(area / 11000)))
+      const count = Math.max(36, Math.min(target, Math.round((W * H) / 11000)))
+      const aspect = W / Math.max(1, H)
+      // The galactic plane, matching the linear-gradient in .nebula-wash: a
+      // unit vector perpendicular to a band rising ~28 degrees to the right.
+      const BX = 0.469
+      const BY = 0.883
       const stars = []
       for (let i = 0; i < count; i++) {
+        // Depth first, and everything else derived from it. A star's radius and
+        // brightness are what the eye actually reads as distance, so letting
+        // them be independent random numbers (as they were) produces a field
+        // that is varied but FLAT — big bright ones and small dim ones mixed at
+        // the same apparent distance. Correlating all three is what turns the
+        // same number of stars into a volume.
+        const d = Math.pow(rnd(), 0.8)          // biased toward the far field
+        const near = 0.35 + 0.65 * d
+
+        // Nearly half the stars are gathered toward the galactic plane and the
+        // rest are scattered evenly. This is the single strongest "this is deep
+        // space" cue there is: a real galaxy is a disc seen at a tilt, and the
+        // density falloff away from that plane is what separates it from a
+        // random sprinkle. Three uniforms summed approximate a bell, so the
+        // band has soft edges rather than a hard seam.
+        let x, y
+        if (rnd() < 0.45) {
+          const u = (rnd() + rnd() + rnd() - 1.5) * 0.20   // offset from the plane
+          const along = (rnd() - 0.5) * 2.4                // position along it
+          let sx = aspect / 2 + (-BY) * along + BX * u
+          let sy = 0.5 + BX * along + BY * u
+          sx /= aspect
+          x = ((sx % 1) + 1) % 1
+          y = ((sy % 1) + 1) % 1
+        } else {
+          x = rnd()
+          y = rnd()
+        }
+
         stars.push({
-          x: rnd(), y: rnd(),
-          r: 0.4 + rnd() * 1.6,
-          base: 0.16 + rnd() * 0.54,
+          x, y, d,
+          // Parallax: near stars slide against the pan, far ones barely move.
+          // Costs one multiply per star per frame and is the depth cue the eye
+          // picks up fastest when the visitor drags the sky.
+          p: 0.012 + d * 0.055,
+          r: (0.32 + rnd() * 1.5) * (0.5 + 0.85 * d),
+          base: (0.10 + rnd() * 0.44) * near + 0.05,
           phase: rnd() * Math.PI * 2,
-          speed: 0.35 + rnd() * 1.05,
+          // Far stars twinkle more slowly, which is also how the atmosphere
+          // behaves — scintillation is a near-field effect.
+          speed: 0.22 + rnd() * 0.7 * (1.5 - d * 0.7),
           warm: rnd() > 0.72,
         })
       }
@@ -1448,11 +1535,17 @@ export default {
       ctx.clearRect(0, 0, w, h)
 
       // ── stars (twinkle is computed, not a DOM animation) ──
+      // Each star is offset by the pan scaled by its own depth, and wrapped into
+      // the viewport so the field is endless in every direction. Near stars move
+      // roughly 5x as far as far ones, which is what makes the plane read as a
+      // volume the visitor is moving THROUGH rather than a flat backdrop.
       if (this.stars.length) for (let i = 0; i < this.stars.length; i++) {
         const s = this.stars[i]
         const tw = 0.55 + 0.45 * Math.sin(t * s.speed + s.phase)
-        const px = s.x * w
-        const py = s.y * h
+        let px = s.x * w - this.panX * s.p
+        let py = s.y * h - this.panY * s.p
+        px = ((px % w) + w) % w
+        py = ((py % h) + h) % h
         if (s.r < 1.05) {
           ctx.globalAlpha = s.base * tw * 0.85
           ctx.fillStyle = s.warm ? '#f0e3c8' : '#dfe6ff'
@@ -1574,7 +1667,13 @@ export default {
   width: 100%;
   height: 100vh;
   height: 100dvh;
-  background: #05050c;
+  /* Near-black, never black. #000 has nowhere further to fall, so nothing drawn
+     on it can read as "behind" anything else — the whole point of the depth
+     layers is that the base still has somewhere deeper to go. The centre is
+     lifted a touch and the corners are not, which gives the void a floor
+     before a single star is drawn. */
+  background:
+    radial-gradient(ellipse 130% 105% at 50% 38%, #0b0a1c 0%, #07061a 38%, #04040e 72%, #020207 100%);
   overflow: hidden;
   font-family: 'Georgia', 'Noto Serif SC', 'Songti SC', serif;
   color: rgba(228, 222, 210, 0.9);
@@ -1591,10 +1690,58 @@ export default {
 .nebula-wash {
   position: absolute; inset: 0; z-index: 0; pointer-events: none;
   background:
+    /* The galactic band. This is the cheapest possible way to give a starfield
+       STRUCTURE: a uniform sprinkle of stars has no far side, so the eye reads
+       it as a texture rather than as space. Drawn as a linear-gradient at an
+       angle rather than a radial ellipse because a radial ellipse is always
+       axis-aligned, and an axis-aligned band reads as a stripe of light rather
+       than as a galaxy seen at a tilt. */
+    linear-gradient(118deg,
+      transparent 26%,
+      rgba(150, 138, 210, 0.040) 38%,
+      rgba(176, 164, 236, 0.105) 50%,
+      rgba(150, 138, 210, 0.040) 62%,
+      transparent 74%),
     radial-gradient(ellipse 70% 55% at 18% 22%, rgba(94, 58, 150, 0.30) 0%, rgba(94, 58, 150, 0.05) 45%, transparent 72%),
     radial-gradient(ellipse 62% 50% at 78% 34%, rgba(38, 74, 138, 0.26) 0%, rgba(38, 74, 138, 0.04) 46%, transparent 74%),
     radial-gradient(ellipse 56% 46% at 46% 78%, rgba(128, 52, 96, 0.20) 0%, transparent 70%),
     radial-gradient(ellipse 40% 34% at 62% 14%, rgba(180, 140, 220, 0.13) 0%, transparent 70%);
+}
+
+/* ═══════════════ 深邃 ═══════════════
+   Depth here is three cheap things, none of which costs a frame:
+
+   1. The base is near-black but NOT black (see .memory-chamber), so the gaps
+      between stars still have somewhere further to fall. On #000 nothing can
+      be deeper than anything else.
+   2. The colour lives BELOW the canvas (this wash) and the dark lives ABOVE it
+      (the veil), so the two never cancel each other out. Tinting the same layer
+      that darkens just muddies it.
+   3. A vignette closes the corners, which is what the eye actually reads as
+      distance — a darkened edge implies the scene continues past it, while a
+      hard cut to black implies a picture frame.
+
+   The canvas starfield sits between these two layers, so it is hazed at the
+   periphery and clear at the centre without any per-star work at all. */
+.deep-veil {
+  position: absolute; inset: 0; z-index: 2; pointer-events: none;
+  background:
+    /* Corner falloff. Starts wide of centre so the middle of the sky — where
+       the memories are actually read — is left completely alone. */
+    radial-gradient(ellipse 118% 88% at 50% 46%, rgba(2, 2, 7, 0) 34%, rgba(2, 2, 7, 0.34) 72%, rgba(1, 1, 4, 0.74) 100%),
+    /* And a top/bottom settle, so the sky reads as a volume the visitor is
+       looking INTO rather than a flat sheet it is printed on. */
+    linear-gradient(180deg, rgba(2, 2, 8, 0.46) 0%, rgba(2, 2, 8, 0) 20%, rgba(2, 2, 8, 0) 72%, rgba(1, 1, 5, 0.58) 100%);
+}
+
+/* A faint far-field haze, drawn UNDER the canvas. It is almost invisible on
+   its own; what it does is keep the corners from being pure base colour, so
+   the vignette above has something to bite into instead of flattening a void. */
+.nebula-wash::after {
+  content: ''; position: absolute; inset: 0;
+  background:
+    radial-gradient(ellipse 80% 60% at 50% 50%, rgba(120, 108, 190, 0.055) 0%, transparent 68%),
+    radial-gradient(ellipse 46% 40% at 12% 86%, rgba(72, 96, 170, 0.05) 0%, transparent 72%);
 }
 
 /* Paper grain — the thing that makes a card read as "remembered" rather
