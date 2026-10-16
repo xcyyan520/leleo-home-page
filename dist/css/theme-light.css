@@ -1183,7 +1183,7 @@ html[data-theme="light"] .vapp-fullscreen-background .loading {
 }
 
 /* ══ thoughts.html ══ */
-html[data-theme="light"] body {
+html[data-theme="light"] body.pg-thoughts {
   background: #f2ede3;
   overflow: hidden;
   font-family: 'Georgia', 'Noto Serif SC', 'Source Han Serif SC', serif;
@@ -1192,7 +1192,7 @@ html[data-theme="light"] body {
 }
 
 /* ══ public/welcome.html ══ */
-html[data-theme="light"] body {
+html[data-theme="light"] body.pg-welcome {
   background: #f2ede3;
   background-image: radial-gradient(900px 620px at 18% -8%, rgba(107, 87, 136, 0.2), transparent 62%),
     radial-gradient(760px 560px at 88% 12%, rgba(82, 102, 148, 0.138), transparent 60%),
@@ -1205,31 +1205,31 @@ html[data-theme="light"] body {
   color: rgba(44, 38, 32, 0.97);
   -webkit-font-smoothing: antialiased;
 }
-html[data-theme="light"] .title {
+html[data-theme="light"] body.pg-welcome .title {
   font-size: 27px;
   color: rgba(44, 38, 32, 0.97);
   letter-spacing: .34em;
   margin-bottom: 6px;
   text-indent: .34em;
 }
-html[data-theme="light"] .sub {
+html[data-theme="light"] body.pg-welcome .sub {
   font-size: 11px;
   color: rgba(44, 38, 32, 0.578);
   letter-spacing: .16em;
   margin-bottom: 34px;
 }
-html[data-theme="light"] .lead {
+html[data-theme="light"] body.pg-welcome .lead {
   font-size: 14px;
   line-height: 2;
   color: rgba(44, 38, 32, 0.774);
   letter-spacing: .06em;
   margin-bottom: 30px;
 }
-html[data-theme="light"] .lead b {
+html[data-theme="light"] body.pg-welcome .lead b {
   color: rgba(154, 124, 52, 0.97);
   font-weight: 400;
 }
-html[data-theme="light"] .field input {
+html[data-theme="light"] body.pg-welcome .field input {
   width: 100%;
   background: rgba(44, 38, 32, 0.042);
   border: 1px solid rgba(44, 38, 32, 0.14);
@@ -1242,15 +1242,15 @@ html[data-theme="light"] .field input {
   outline: none;
   transition: border-color .3s, background .3s;
 }
-html[data-theme="light"] .field input::placeholder {
+html[data-theme="light"] body.pg-welcome .field input::placeholder {
   color: rgba(44, 38, 32, 0.48);
   letter-spacing: .08em;
 }
-html[data-theme="light"] .field input:focus {
+html[data-theme="light"] body.pg-welcome .field input:focus {
   border-color: rgba(107, 87, 136, 0.625);
   background: rgba(44, 38, 32, 0.074);
 }
-html[data-theme="light"] button {
+html[data-theme="light"] body.pg-welcome button {
   width: 100%;
   margin-top: 8px;
   background: rgba(107, 87, 136, 0.175);
@@ -1265,12 +1265,12 @@ html[data-theme="light"] button {
   cursor: pointer;
   transition: background .25s, border-color .25s, color .25s, opacity .25s;
 }
-html[data-theme="light"] button:hover:not(:disabled) {
+html[data-theme="light"] body.pg-welcome button:hover:not(:disabled) {
   background: rgba(107, 87, 136, 0.3);
   border-color: rgba(107, 87, 136, 0.563);
   color: rgba(44, 38, 32, 0.97);
 }
-html[data-theme="light"] .err {
+html[data-theme="light"] body.pg-welcome .err {
   font-size: 12.5px;
   color: rgba(143, 65, 65, 0.865);
   letter-spacing: .06em;
@@ -1278,14 +1278,14 @@ html[data-theme="light"] .err {
   min-height: 17px;
   transition: opacity .25s;
 }
-html[data-theme="light"] .hint {
+html[data-theme="light"] body.pg-welcome .hint {
   font-size: 11px;
   line-height: 1.9;
   color: rgba(44, 38, 32, 0.522);
   letter-spacing: .05em;
   margin-top: 22px;
 }
-html[data-theme="light"] .skip {
+html[data-theme="light"] body.pg-welcome .skip {
   display: inline-block;
   margin-top: 16px;
   font-size: 11.5px;
@@ -1296,35 +1296,35 @@ html[data-theme="light"] .skip {
   padding-bottom: 2px;
   transition: color .25s, border-color .25s;
 }
-html[data-theme="light"] .skip:hover {
+html[data-theme="light"] body.pg-welcome .skip:hover {
   color: rgba(44, 38, 32, 0.725);
   border-color: rgba(44, 38, 32, 0.14);
 }
-html[data-theme="light"] .done-title {
+html[data-theme="light"] body.pg-welcome .done-title {
   font-size: 23px;
   letter-spacing: .2em;
   color: rgba(44, 38, 32, 0.97);
   margin-bottom: 14px;
 }
-html[data-theme="light"] .done-sub {
+html[data-theme="light"] body.pg-welcome .done-sub {
   font-size: 13.5px;
   line-height: 2;
   color: rgba(44, 38, 32, 0.69);
   letter-spacing: .06em;
   margin-bottom: 26px;
 }
-html[data-theme="light"] .done-sub b {
+html[data-theme="light"] body.pg-welcome .done-sub b {
   color: rgba(154, 124, 52, 0.97);
   font-weight: 400;
 }
-html[data-theme="light"] .tip {
+html[data-theme="light"] body.pg-welcome .tip {
   font-size: 11.5px;
   color: rgba(44, 38, 32, 0.564);
   letter-spacing: .04em;
 }
 
 /* ══ public/visitors.html ══ */
-html[data-theme="light"] body {
+html[data-theme="light"] body.pg-visitors {
   background: #f2ede3;
   background-image: radial-gradient(900px 620px at 18% -8%, rgba(107, 87, 136, 0.175), transparent 62%),
     radial-gradient(760px 560px at 88% 12%, rgba(82, 102, 148, 0.112), transparent 60%);
@@ -1334,13 +1334,13 @@ html[data-theme="light"] body {
   padding: 34px 20px 72px;
   -webkit-font-smoothing: antialiased;
 }
-html[data-theme="light"] h1 {
+html[data-theme="light"] body.pg-visitors h1 {
   font-size: 21px;
   font-weight: 400;
   letter-spacing: .22em;
   color: rgba(44, 38, 32, 0.97);
 }
-html[data-theme="light"] .back {
+html[data-theme="light"] body.pg-visitors .back {
   font-size: 12px;
   color: rgba(44, 38, 32, 0.585);
   text-decoration: none;
@@ -1349,21 +1349,21 @@ html[data-theme="light"] .back {
   padding-bottom: 2px;
   transition: color .25s,border-color .25s;
 }
-html[data-theme="light"] .back:hover {
+html[data-theme="light"] body.pg-visitors .back:hover {
   color: rgba(44, 38, 32, 0.795);
   border-color: rgba(44, 38, 32, 0.14);
 }
-html[data-theme="light"] .summary {
+html[data-theme="light"] body.pg-visitors .summary {
   font-size: 12.5px;
   color: rgba(44, 38, 32, 0.62);
   letter-spacing: .06em;
   margin-bottom: 26px;
 }
-html[data-theme="light"] .summary b {
+html[data-theme="light"] body.pg-visitors .summary b {
   color: rgba(154, 124, 52, 0.97);
   font-weight: 400;
 }
-html[data-theme="light"] .tab {
+html[data-theme="light"] body.pg-visitors .tab {
   font-size: 12.5px;
   letter-spacing: .1em;
   font-family: inherit;
@@ -1375,45 +1375,45 @@ html[data-theme="light"] .tab {
   cursor: pointer;
   transition: all .22s;
 }
-html[data-theme="light"] .tab:hover {
+html[data-theme="light"] body.pg-visitors .tab:hover {
   color: rgba(44, 38, 32, 0.9);
 }
-html[data-theme="light"] .tab.on {
+html[data-theme="light"] body.pg-visitors .tab.on {
   background: rgba(107, 87, 136, 0.2);
   border-color: rgba(107, 87, 136, 0.425);
   color: rgba(44, 38, 32, 0.97);
 }
-html[data-theme="light"] .person {
+html[data-theme="light"] body.pg-visitors .person {
   background: rgba(44, 38, 32, 0.14);
   border: 1px solid rgba(44, 38, 32, 0.126);
   border-radius: 14px;
   padding: 15px 18px;
   transition: border-color .25s, transform .25s;
 }
-html[data-theme="light"] .person:hover {
+html[data-theme="light"] body.pg-visitors .person:hover {
   border-color: rgba(44, 38, 32, 0.14);
 }
-html[data-theme="light"] .person.new {
+html[data-theme="light"] body.pg-visitors .person.new {
   border-left: 2px solid rgba(154, 124, 52, 0.625);
 }
-html[data-theme="light"] .pname {
+html[data-theme="light"] body.pg-visitors .pname {
   font-size: 16.5px;
   letter-spacing: .08em;
   color: rgba(44, 38, 32, 0.97);
 }
-html[data-theme="light"] .pname .suffix, html[data-theme="light"] .tname .suffix {
+html[data-theme="light"] body.pg-visitors .pname .suffix, html[data-theme="light"] body.pg-visitors .tname .suffix {
   font-size: 12.5px;
   color: rgba(154, 124, 52, 0.844);
   letter-spacing: .04em;
   margin-left: 2px;
 }
-html[data-theme="light"] .pwhen {
+html[data-theme="light"] body.pg-visitors .pwhen {
   font-size: 11.5px;
   color: rgba(44, 38, 32, 0.578);
   letter-spacing: .05em;
   white-space: nowrap;
 }
-html[data-theme="light"] .chip {
+html[data-theme="light"] body.pg-visitors .chip {
   font-size: 11px;
   letter-spacing: .06em;
   padding: 3px 9px;
@@ -1423,17 +1423,17 @@ html[data-theme="light"] .chip {
   color: rgba(44, 38, 32, 0.704);
   white-space: nowrap;
 }
-html[data-theme="light"] .chip.dev {
+html[data-theme="light"] body.pg-visitors .chip.dev {
   background: rgba(107, 87, 136, 0.125);
   border-color: rgba(107, 87, 136, 0.25);
   color: rgba(107, 87, 136, 0.844);
 }
-html[data-theme="light"] .chip.visit {
+html[data-theme="light"] body.pg-visitors .chip.visit {
   background: rgba(154, 124, 52, 0.125);
   border-color: rgba(154, 124, 52, 0.25);
   color: rgba(154, 124, 52, 0.865);
 }
-html[data-theme="light"] .pnote {
+html[data-theme="light"] body.pg-visitors .pnote {
   margin-top: 10px;
   font-size: 13px;
   line-height: 1.85;
@@ -1442,7 +1442,7 @@ html[data-theme="light"] .pnote {
   padding-left: 10px;
   border-left: 1px solid rgba(107, 87, 136, 0.375);
 }
-html[data-theme="light"] .trow {
+html[data-theme="light"] body.pg-visitors .trow {
   display: flex;
   align-items: baseline;
   gap: 12px;
@@ -1450,23 +1450,23 @@ html[data-theme="light"] .trow {
   border-bottom: 1px solid rgba(44, 38, 32, 0.084);
   font-size: 13px;
 }
-html[data-theme="light"] .ttime {
+html[data-theme="light"] body.pg-visitors .ttime {
   color: rgba(44, 38, 32, 0.564);
   font-size: 11.5px;
   white-space: nowrap;
   min-width: 132px;
   letter-spacing: .03em;
 }
-html[data-theme="light"] .tname {
+html[data-theme="light"] body.pg-visitors .tname {
   color: rgba(44, 38, 32, 0.914);
   letter-spacing: .05em;
 }
-html[data-theme="light"] .tpath {
+html[data-theme="light"] body.pg-visitors .tpath {
   color: rgba(44, 38, 32, 0.55);
   font-size: 11.5px;
   margin-left: auto;
 }
-html[data-theme="light"] .empty, html[data-theme="light"] .loading {
+html[data-theme="light"] body.pg-visitors .empty, html[data-theme="light"] body.pg-visitors .loading {
   text-align: center;
   padding: 52px 20px;
   font-size: 13.5px;
@@ -1474,7 +1474,7 @@ html[data-theme="light"] .empty, html[data-theme="light"] .loading {
   letter-spacing: .1em;
   line-height: 2.2;
 }
-html[data-theme="light"] .empty b {
+html[data-theme="light"] body.pg-visitors .empty b {
   color: rgba(154, 124, 52, 0.865);
   font-weight: 400;
   letter-spacing: .06em;
