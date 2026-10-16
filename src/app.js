@@ -4,6 +4,7 @@ import DiaryEditor from './components/DiaryEditor.vue'
 import CalendarDialog from './components/CalendarDialog.vue'
 import PhotoWall from './components/PhotoWall.vue'
 import ActivityTimeline from './components/ActivityTimeline.vue'
+import AvatarEditor from './components/AvatarEditor.vue'
 import TagsCard from './components/TagsCard.vue'
 import ProjectsCard from './components/ProjectsCard.vue'
 import ControlBar from './components/ControlBar.vue'
@@ -15,17 +16,20 @@ import loader from './components/loader.vue'
 import tab1 from './components/tabs/tab1.vue'
 import tab2 from './components/tabs/tab2.vue'
 import tab3 from './components/tabs/tab3.vue'
+import tab4 from './components/tabs/tab4.vue'
 
 import config from './config.js'
 import { getCookie } from './utils/cookieUtils.js'
 import { setMeta, getFormattedTime, getFormattedDate, dataConsole } from './utils/common.js'
+import { loadAvatar, cachedAvatar, onAvatarChange } from './utils/avatar.js'
 import { useDisplay } from 'vuetify'
 
 export default {
   components: {
     ProfileCard, DiaryCard, DiaryEditor, CalendarDialog, PhotoWall, ActivityTimeline,
+    AvatarEditor,
     TagsCard, ProjectsCard, ControlBar, MiniMusicPlayer,
-    StarfieldBackground, typewriter, loader, tab1, tab2, tab3,
+    StarfieldBackground, typewriter, loader, tab1, tab2, tab3, tab4,
   },
   setup() {
     const { xs, sm, md } = useDisplay()
@@ -56,12 +60,16 @@ export default {
         { icon: 'mdi-pencil-plus', text: '样式预览', value: 'tab-1', component: 'tab1' },
         { icon: 'mdi-wallpaper', text: '背景预览', value: 'tab-2', component: 'tab2' },
         { icon: 'mdi-music-circle-outline', text: '音乐播放', value: 'tab-3', component: 'tab3' },
+        { icon: 'mdi-account-circle-outline', text: '头像', value: 'tab-4', component: 'tab4' },
       ],
       // Diary
       showDiaryEditor: false,
       showCalendar: false,
       showPhotoWall: false,
       showActivity: false,
+      showAvatarEditor: false,
+      // Mirrors the store: null while the bundled config avatar is in use.
+      avatarCustom: null,
       todayDiary: null,
       editingEntry: null,
       diaryLoading: false,
@@ -105,6 +113,13 @@ export default {
 
     this.setMainProperty()
 
+    // Paint whatever was cached before the request resolves, then reconcile.
+    // The store is shared with ProfileCard, so both the card and this dialog
+    // state stay in step without either owning the value.
+    this.avatarCustom = cachedAvatar()
+    this.avatarOff = onAvatarChange((value) => { this.avatarCustom = value })
+    loadAvatar().then((value) => { this.avatarCustom = value })
+
     // Load wallpaper + wait for it
     await this.initBackground()
     this.formattedTime = this.getFormattedTime(new Date())
@@ -122,6 +137,12 @@ export default {
   beforeDestroy() {
     this.$refs.audioPlayer?.removeEventListener('ended', this.nextTrack)
   },
+  // `beforeDestroy` above is the Vue 2 name and never fires under Vue 3, so the
+  // audio listener it removes is in fact never removed. Left alone (out of scope
+  // for the avatar work) but not copied: this hook is the one that runs.
+  beforeUnmount() {
+    if (this.avatarOff) this.avatarOff()
+  },
   watch: {
     isClearScreen(val) {
       if (!this.videosrc) return
@@ -138,6 +159,14 @@ export default {
     },
   },
   methods: {
+    // Opening the cropper from inside the settings dialog would put it BEHIND
+    // Vuetify's overlay (the overlay's z-index is far above any component
+    // layer), so the dialog is dismissed first: two stacked modals is also a
+    // worse experience than one.
+    openAvatarEditor() {
+      this.dialogSettings = false
+      this.showAvatarEditor = true
+    },
     getCookie, setMeta, getFormattedTime, getFormattedDate, dataConsole,
 
     setMainProperty() {

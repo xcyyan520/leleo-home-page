@@ -19,7 +19,7 @@
     <!-- Main canvas -->
     <div v-show="!isloading && !isClearScreen" class="desk-canvas">
       <div class="desk-left" :style="deskLeftStyle">
-        <ProfileCard :configdata="configdata" :formattedTime="formattedTime" :formattedDate="formattedDate" />
+        <ProfileCard :configdata="configdata" :formattedTime="formattedTime" :formattedDate="formattedDate" @edit-avatar="showAvatarEditor = true" />
         <DiaryCard :entry="todayDiary" :loading="diaryLoading" @edit="editDiary" @add="addDiary" />
         <TagsCard :tags="personalizedtags" :socialIcons="socialPlatformIcons" />
       </div>
@@ -62,6 +62,14 @@
     <PhotoWall v-if="showPhotoWall" @close="showPhotoWall = false" />
     <ActivityTimeline v-if="showActivity" @close="showActivity = false" />
 
+    <!-- Avatar cropper (owner only; the card only emits when the server said so) -->
+    <AvatarEditor
+      v-if="showAvatarEditor"
+      :has-custom="!!avatarCustom"
+      @close="showAvatarEditor = false"
+      @saved="avatarCustom = $event"
+    />
+
     <!-- Settings dialog (kept from original, with tabs) -->
     <v-dialog v-model="dialogSettings" width="1000">
       <v-card elevation="3" style="backdrop-filter: blur(10px); background: rgba(20,18,30,0.95);">
@@ -73,6 +81,8 @@
             <v-tabs-window-item :value="item.value" class="pa-4">
               <component v-if="item.value !== 'tab-3' || !musicinfoLoading" :is="item.component"
                 @cancel="dialogSettings = false"
+                @edit-avatar="openAvatarEditor"
+                :fallback="item.value === 'tab-4' ? configdata.avatar : null"
                 :musicinfo="item.value === 'tab-3' ? musicinfo : []"
                 :currentIndex="item.value === 'tab-3' ? playlistIndex : null"
                 :isPlaying="item.value === 'tab-3' ? isPlaying : null"
