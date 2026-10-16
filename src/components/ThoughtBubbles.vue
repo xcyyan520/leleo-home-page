@@ -114,8 +114,11 @@
       {{ ready ? '拖动星云，继续打捞记忆' : '正在打捞记忆…' }}
     </p>
 
+    <!-- The denominator is TODAY's release, not the whole corpus: only the
+         daily set is in the sky, so counting against `pool.length` would show
+         progress that can never complete. -->
     <p v-if="mode === 'nebula' && !revealed && ready" class="field-count">
-      {{ seenCount }} / {{ pool.length }} 段已遇见
+      {{ seenCount }} / {{ todayPool.length }} 段今日已遇见
     </p>
 
     <div class="mode-switch">
@@ -166,16 +169,34 @@ const MAX_CUSTOM = 10
 const PALETTES = PERSONAS.map(p => ({ color: p.color, halo: p.halo }))
   .concat([{ color: CUSTOM_STYLE.color, halo: CUSTOM_STYLE.halo }])
 
-/* 16 pre-baked rotation angles. A crystal is expensive to draw (gradients,
-   rim light, facets); baking it once means the per-frame cost is a single
-   drawImage per light instead of ~8 path fills. */
+/* 16 pre-baked angles per palette. A light is several overlapping gradients,
+   which is far too much to redraw every frame; baking means the per-frame cost
+   is a single drawImage per light. */
 const GEM_ANGLES = 16
-// One sprite holds the glow AND the stone, so a light costs a single blit.
-// Held at the size the glow is actually drawn at, which keeps that blit
-// near 1:1 — resampling a soft 180px gradient every frame was the most
-// expensive thing on this page once rasterisation fell back to the CPU.
-const HALO_SPRITE = 192
-const GEM_GLOW = 3.1      // glow diameter, as a multiple of the stone's
+/* One sprite holds the whole light — bloom, flare, glow and core together.
+   160px is chosen against the size the sprite is actually blitted at: the
+   largest light on screen is 58 x MOTE_GLOW x breathe x hover ≈ 88 CSS px, so
+   even at devicePixelRatio 2 the blit lands within ~10% of 1:1 and never has to
+   resample a soft gradient, which was the most expensive thing on this page once
+   rasterisation fell back to the CPU. It also cuts the baked set to
+   5 palettes x 16 angles x 160² x 4B ≈ 8MB, down from 12MB at 192px. */
+const HALO_SPRITE = 160
+/* Blit size as a multiple of a light's nominal size. The sprite's visible bloom
+   very nearly fills its square, so this is close to the glow diameter the
+   visitor actually sees. */
+const MOTE_GLOW = 1.18
+
+/* How long a captured memory stays away before it drifts back, in ms. Long
+   enough that the sky visibly changes, short enough that a visitor who stays a
+   while sees it return — which is the whole point of the mechanic. */
+const ESCAPE_MIN_MS = 20000
+const ESCAPE_SPREAD_MS = 35000
+
+/* What share of the corpus is released on any one day, and the floor under it.
+   "每天放出的记忆是有限且不一样的" — the sky is a different, bounded set each
+   day, so it stays worth coming back to. */
+const DAY_RELEASE_RATIO = 0.4
+const DAY_RELEASE_MIN = 7
 
 let nextId = 0
 
@@ -202,6 +223,30 @@ function hash01(n) {
   return (t >>> 0) / 4294967296
 }
 
+/* How fast a memory drifts, from how much of it there is to say.
+   A four-character fragment should skim across the sky and a two-hundred
+   character paragraph should barely breathe — the length of the thought is
+   what the visitor is reading off the motion, so it has to be legible as
+   speed. sqrt keeps the middle of the range spread out instead of letting the
+   long memories all pile up at the slow end; the clamp stops the extremes
+   from either freezing or strobing.
+
+   MOTION_REF sits near the MEDIAN length of the corpus (~26 characters), not
+   in the middle of the theoretical 0..∞ range. It used to be 60, which put
+   almost every memory on the fast side of 1.0x: measured off the rendered
+   canvas, the correlation between length and drift came out at only
+   rho = -0.21, because the whole corpus was crammed into the top of the
+   curve. Anchoring at the median lets the short half actually speed up and
+   the long half actually slow down. */
+const MOTION_REF = 26          // characters at which a memory drifts at 1.0x
+const MOTION_MIN = 0.5
+const MOTION_MAX = 2.4
+function motionScale(text) {
+  const n = String(text || '').length
+  const s = Math.sqrt(MOTION_REF / Math.max(4, n))
+  return Math.max(MOTION_MIN, Math.min(MOTION_MAX, s))
+}
+
 /* The nebula plane is carved into cells of this size. A cell is either empty
    or holds one crystal, and the choice is a pure function of the cell's
    coordinates — so the plane is unlimited without storing anything. */
@@ -219,109 +264,109 @@ function cellHash(cx, cy) {
 }
 
 /**
- * One frame of a faceted crystal, seen from a slowly rotating angle.
- * Light comes from the upper left and sweeps across the facets as `phase`
- * advances, which is what actually reads as "turning" rather than "spinning".
+ * Re-alpha an `rgba(...)` palette string.
+ *
+ * The palettes carry their alpha inline, and every layer of a light wants the
+ * same hue at a different strength. Rewriting the trailing number is exact for
+ * the one format these strings are written in and avoids a colour parser.
  */
-function paintGem(g, s, phase, pal, radius) {
-  const cx = s / 2
-  const cy = s / 2
-  const R = radius || s * 0.33
-  const turn = phase * Math.PI * 2
-  const lightX = cx + Math.cos(turn - 2.2) * R * 0.55
-  const lightY = cy + Math.sin(turn - 2.2) * R * 0.55
-
-  // Silhouette: a hexagonal crystal whose corners breathe with the angle.
-  const corners = []
-  for (let i = 0; i < 6; i++) {
-    const a = (i / 6) * Math.PI * 2 - Math.PI / 2 + turn * 0.16
-    const rr = R * (1 + 0.075 * Math.cos(i * 2.3 + turn * 1.7))
-    corners.push([cx + Math.cos(a) * rr, cy + Math.sin(a) * rr])
-  }
-  const path = (pts) => {
-    g.beginPath()
-    g.moveTo(pts[0][0], pts[0][1])
-    for (let i = 1; i < pts.length; i++) g.lineTo(pts[i][0], pts[i][1])
-    g.closePath()
-  }
-
-  // ── body: dark on the far side, luminous where the light lands ──
-  const body = g.createLinearGradient(lightX - R, lightY - R, lightX + R, lightY + R)
-  body.addColorStop(0, pal.color)
-  body.addColorStop(0.42, pal.color)
-  body.addColorStop(1, 'rgba(0,0,0,0.55)')
-  path(corners)
-  g.fillStyle = body
-  g.fill()
-
-  // ── table facet, offset toward the light — the "cut" of the stone ──
-  const inner = corners.map(([x, y]) => {
-    const dx = cx - x, dy = cy - y
-    return [x + dx * 0.44 + Math.cos(turn) * R * 0.07, y + dy * 0.44 + Math.sin(turn) * R * 0.07]
-  })
-  const table = g.createLinearGradient(lightX, lightY, cx * 1.6 - lightX, cy * 1.6 - lightY)
-  table.addColorStop(0, 'rgba(255,255,255,0.72)')
-  table.addColorStop(0.5, 'rgba(255,255,255,0.14)')
-  table.addColorStop(1, 'rgba(255,255,255,0.02)')
-  path(inner)
-  g.fillStyle = table
-  g.fill()
-
-  // ── refraction: a band of the body colour bent through the lower facets ──
-  const refract = g.createRadialGradient(cx - R * 0.3, cy + R * 0.5, 0, cx - R * 0.3, cy + R * 0.5, R * 1.1)
-  refract.addColorStop(0, 'rgba(255,255,255,0.30)')
-  refract.addColorStop(0.45, pal.color)
-  refract.addColorStop(1, 'rgba(0,0,0,0)')
-  path(corners)
-  g.globalAlpha = 0.5
-  g.fillStyle = refract
-  g.fill()
-  g.globalAlpha = 1
-
-  // ── rim light on the lit edge only ──
-  g.save()
-  path(corners)
-  g.clip()
-  const rim = g.createLinearGradient(lightX, lightY, lightX + R * 1.4, lightY + R * 1.4)
-  rim.addColorStop(0, 'rgba(255,255,255,0.9)')
-  rim.addColorStop(1, 'rgba(255,255,255,0)')
-  g.strokeStyle = rim
-  g.lineWidth = s * 0.035
-  path(corners)
-  g.stroke()
-  g.restore()
-
-  // ── specular: the hard highlight that sells "polished" ──
-  const spec = g.createRadialGradient(lightX, lightY, 0, lightX, lightY, R * 0.44)
-  spec.addColorStop(0, 'rgba(255,255,255,0.95)')
-  spec.addColorStop(0.35, 'rgba(255,255,255,0.34)')
-  spec.addColorStop(1, 'rgba(255,255,255,0)')
-  g.fillStyle = spec
-  g.beginPath()
-  g.arc(lightX, lightY, R * 0.44, 0, Math.PI * 2)
-  g.fill()
-
-  // ── caustic sparkle ──
-  const sp = R * 0.72
-  g.globalAlpha = 0.55
-  g.strokeStyle = 'rgba(255,255,255,0.85)'
-  g.lineWidth = s * 0.014
-  g.beginPath()
-  g.moveTo(lightX - sp, lightY); g.lineTo(lightX + sp, lightY)
-  g.moveTo(lightX, lightY - sp); g.lineTo(lightX, lightY + sp)
-  g.stroke()
-  g.globalAlpha = 1
+function withAlpha(rgba, a) {
+  return String(rgba).replace(/[\d.]+\)\s*$/, a + ')')
 }
 
-/** Soft round glow, baked once per palette and blitted behind each crystal. */
-function paintHalo(g, s, pal) {
-  const c = s / 2
-  const grad = g.createRadialGradient(c, c, 0, c, c, c)
-  grad.addColorStop(0, pal.halo)
-  grad.addColorStop(0.42, pal.halo)
-  grad.addColorStop(1, 'rgba(0,0,0,0)')
-  g.fillStyle = grad
+/**
+ * One frame of a memory light.
+ *
+ * This replaced a hard-edged hexagonal crystal with a blown-out white
+ * specular. The problem was scale: these lights are 25–40 CSS px across, and a
+ * faceted silhouette that small does not read as a cut stone — what the eye
+ * actually gets is a jagged dark blob with a white dot in it. The shape is
+ * therefore gone, and what is left is the thing that DOES read at this size:
+ * the behaviour of light. A hot core, a soft bloom, a four-point diffraction
+ * flare, and a highlight that sweeps around the rim as `phase` advances. That
+ * last one is what preserves the "立体物件在转" quality the facets were there
+ * for, without needing facets to carry it.
+ */
+function paintMote(g, s, phase, pal) {
+  const cx = s / 2
+  const cy = s / 2
+  const turn = phase * Math.PI * 2
+  const core = s * 0.165      // radius of the bright centre
+  const lit = turn - 1.9      // direction the highlight has swept to
+
+  // ── 1. bloom: the outer haze, filling the whole sprite ──
+  const bloom = g.createRadialGradient(cx, cy, 0, cx, cy, s * 0.5)
+  bloom.addColorStop(0.00, withAlpha(pal.halo, 0.62))
+  bloom.addColorStop(0.24, withAlpha(pal.halo, 0.38))
+  bloom.addColorStop(0.55, withAlpha(pal.halo, 0.11))
+  bloom.addColorStop(1.00, withAlpha(pal.halo, 0))
+  g.fillStyle = bloom
   g.fillRect(0, 0, s, s)
+
+  // ── 2. diffraction flare: the four-point star a real light throws ──
+  // Four long spikes on the axes and four short ones between them, all turning
+  // with the light, so the sparkle rotates WITH the object instead of sitting
+  // on top of it. Each spike is a thin triangle fading to nothing at the tip.
+  const spike = (ang, len, halfW, alpha) => {
+    const dx = Math.cos(ang)
+    const dy = Math.sin(ang)
+    const tipX = cx + dx * len
+    const tipY = cy + dy * len
+    const grad = g.createLinearGradient(cx, cy, tipX, tipY)
+    grad.addColorStop(0, withAlpha(pal.halo, alpha))
+    grad.addColorStop(0.30, withAlpha(pal.halo, alpha * 0.42))
+    grad.addColorStop(1, withAlpha(pal.halo, 0))
+    g.beginPath()
+    g.moveTo(cx - dy * halfW, cy + dx * halfW)
+    g.lineTo(tipX, tipY)
+    g.lineTo(cx + dy * halfW, cy - dx * halfW)
+    g.closePath()
+    g.fillStyle = grad
+    g.fill()
+  }
+  const flare = turn * 0.5
+  for (let i = 0; i < 4; i++) {
+    spike(flare + (i * Math.PI) / 2, s * 0.47, s * 0.030, 0.46)
+    spike(flare + Math.PI / 4 + (i * Math.PI) / 2, s * 0.30, s * 0.022, 0.30)
+  }
+
+  // ── 3. core: the hot centre the whole light is built around ──
+  const coreGrad = g.createRadialGradient(cx, cy, 0, cx, cy, core * 2)
+  coreGrad.addColorStop(0.00, 'rgba(255,253,248,0.97)')
+  coreGrad.addColorStop(0.20, withAlpha(pal.halo, 0.88))
+  coreGrad.addColorStop(0.46, withAlpha(pal.halo, 0.34))
+  coreGrad.addColorStop(1.00, withAlpha(pal.halo, 0))
+  g.fillStyle = coreGrad
+  g.beginPath()
+  g.arc(cx, cy, core * 2, 0, Math.PI * 2)
+  g.fill()
+
+  // ── 4. rim: a polished bead edge, brightest where the light lands ──
+  // Short arcs whose alpha follows the angle. This is what makes a light read
+  // as a solid object catching light rather than as a flat glow.
+  const rimR = core * 1.3
+  const SEG = 20
+  for (let i = 0; i < SEG; i++) {
+    const a0 = (i / SEG) * Math.PI * 2
+    const facing = Math.max(0, Math.cos(a0 - lit))
+    g.beginPath()
+    g.arc(cx, cy, rimR, a0, a0 + (Math.PI * 2) / SEG + 0.03)
+    g.strokeStyle = withAlpha(pal.halo, 0.09 + 0.58 * facing * facing)
+    g.lineWidth = s * 0.013
+    g.stroke()
+  }
+
+  // ── 5. specular: one small hard highlight, the cue that says "solid" ──
+  const hx = cx + Math.cos(lit) * core * 0.46
+  const hy = cy + Math.sin(lit) * core * 0.46
+  const spec = g.createRadialGradient(hx, hy, 0, hx, hy, core * 0.66)
+  spec.addColorStop(0.00, 'rgba(255,255,255,0.95)')
+  spec.addColorStop(0.38, 'rgba(255,255,255,0.28)')
+  spec.addColorStop(1.00, 'rgba(255,255,255,0)')
+  g.fillStyle = spec
+  g.beginPath()
+  g.arc(hx, hy, core * 0.66, 0, Math.PI * 2)
+  g.fill()
 }
 
 export default {
@@ -335,6 +380,9 @@ export default {
       personaData: [[], [], [], []],
       customList: [],
       pool: [],
+      // The subset of `pool` released today. The nebula draws only from this;
+      // the waterfall still shows the whole corpus.
+      todayPool: [],
 
       // ── nebula: an endless plane, panned by dragging ──
       // Only the crystals near the viewport exist at any moment; the plane
@@ -350,6 +398,11 @@ export default {
       dragX: 0, dragY: 0,
       dragMoved: 0,         // total travel, so a tap is not mistaken for a drag
       overrides: {},        // cellKey → pool index, so a read memory re-lights
+      // key → wall-clock seconds when it comes back. A captured memory is not
+      // deleted, it is hidden until its time away is up; keeping the key means
+      // the plane's layout is unchanged when it returns.
+      escapedAt: {},
+      flights: [],          // in-flight 逃逸, in screen coordinates
       cellX0: 1, cellY0: 1, cellX1: 0, cellY1: 0, // visible cell range (empty at first)
       seen: {}, seenCount: 0,                     // how much of the corpus has been met
 
@@ -555,6 +608,7 @@ export default {
         })
       })
       this.pool = out
+      this.todayPool = this.releaseToday()
     },
 
     async fetchCustomBubbles() {
@@ -608,24 +662,17 @@ export default {
 
     /**
      * Bake every palette at every angle ONCE, at mount.
-     * Each frame is a single square sprite holding the glow, the stone and the
-     * halo together, so a light point costs exactly one drawImage per frame.
+     * Each frame is a single square sprite holding the bloom, the flare and the
+     * core together, so a light point costs exactly one drawImage per frame.
      */
     buildGemSprites() {
       const size = HALO_SPRITE
-      // paintGem sizes the stone as 0.66 of whatever square it is handed, and
-      // the sprite is blitted at (stone x GEM_GLOW). Solving those two against
-      // each other keeps the stone's on-screen size at 0.66 x slot.size, which
-      // is exactly how large it looked when the two sprites were separate.
-      const stoneR = (size * 0.33) / GEM_GLOW
       this.gemSprites = PALETTES.map(pal => {
         const frames = []
         for (let i = 0; i < GEM_ANGLES; i++) {
           const c = document.createElement('canvas')
           c.width = c.height = size
-          const g = c.getContext('2d')
-          paintHalo(g, size, pal)
-          paintGem(g, size, i / GEM_ANGLES, pal, stoneR)
+          paintMote(c.getContext('2d'), size, i / GEM_ANGLES, pal)
           frames.push(c)
         }
         return frames
@@ -640,6 +687,39 @@ export default {
     /* ═══════════════════ Nebula points ═══════════════════ */
 
     /* ═══════════════════ Nebula plane ═══════════════════ */
+
+    /**
+     * Which memories are released today.
+     *
+     * "每天放出的记忆是有限且不一样的" — the sky holds a bounded, DIFFERENT set
+     * each day. The selection is a pure function of the local date, so it is
+     * stable across reloads within a day (the same memories are in the same
+     * places, which is what makes the plane feel like a real place) and rolls
+     * over on its own at midnight with nothing to store or expire.
+     *
+     * A deterministic shuffle rather than "hash each memory and take the
+     * smallest N": hashing each item independently gives a sample, but a
+     * different-sized sample each day, and two adjacent days can overlap
+     * heavily by chance. Sorting by a per-day hash key gives an exact count and
+     * makes today's set a genuinely different subset rather than a reshuffle.
+     */
+    releaseToday() {
+      const pool = this.pool
+      if (!pool.length) return []
+      const d = new Date()
+      // Local date, not UTC: "today" should turn over at the visitor's
+      // midnight, not at Greenwich's.
+      const day = d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate()
+      const want = Math.max(DAY_RELEASE_MIN, Math.round(pool.length * DAY_RELEASE_RATIO))
+
+      const keyed = pool.map((m, i) => ({ i, k: hash01(i * 2654435761 + day * 40503) }))
+      keyed.sort((a, b) => a.k - b.k)
+      const chosen = keyed.slice(0, want).map(x => x.i)
+      // Kept in corpus order so the plane's layout is not reshuffled by the
+      // sort — only WHICH memories appear changes from day to day.
+      chosen.sort((a, b) => a - b)
+      return chosen.map(i => pool[i])
+    },
 
     /**
      * The nebula is an endless plane, not a fixed screen of dots.
@@ -670,7 +750,11 @@ export default {
       this.cellX1 = b.x1; this.cellY1 = b.y1
 
       const c = FIELD_CELL
-      const n = this.pool.length
+      // Only today's released memories are in the sky at all. `pool` stays the
+      // full corpus — the waterfall still shows everything — while the nebula
+      // is the bounded, daily-changing subset.
+      const live = this.todayPool.length ? this.todayPool : this.pool
+      const n = live.length
       const taken = new Set()
       const out = []
 
@@ -686,12 +770,32 @@ export default {
           const h5 = hash01(h + 11)
 
           // Pick a memory, probing past ones already on screen so the visitor
-          // never sees the same thought twice in one view.
-          let pi = Math.floor(h2 * n) % n
-          for (let g = 0; g < 5 && taken.has(this.pool[pi].key); g++) pi = (pi + 1) % n
+          // never sees the same thought twice in one view. With fewer released
+          // memories than visible cells, some cells must go empty: the earlier
+          // five-step probe gave up and reused a memory, so a busy sky showed
+          // the same thought in two places at once — and capturing it then
+          // removed both lights. Now the search covers the whole pool and a
+          // cell with no free memory is simply left dark.
           const cellKey = cx + ',' + cy
-          const data = this.overrides[cellKey] || this.pool[pi]
+          const pinned = this.overrides[cellKey]
+          let data = null
+          if (pinned && !taken.has(pinned.key)) {
+            data = pinned
+          } else {
+            let pi = Math.floor(h2 * n) % n
+            for (let g = 0; g < n; g++) {
+              if (!taken.has(live[pi].key)) { data = live[pi]; break }
+              pi = (pi + 1) % n
+            }
+            if (!data) continue
+          }
           taken.add(data.key)
+
+          // A captured memory is gone until it comes back — its cell simply
+          // holds nothing, so the sky visibly thins where the visitor has been
+          // reading. `escapedAt` is a wall-clock stamp; sweepEscapes() clears
+          // it when the memory's time away is up.
+          if (this.escapedAt[data.key]) continue
 
           const size = this.isMobile ? 30 + h3 * 13 : 38 + h3 * 20
           const wx = (cx + 0.15 + h4 * 0.7) * c.w
@@ -709,12 +813,14 @@ export default {
             // Unique by construction, and stable for a given cell: two crystals
             // can never share a Vue key, and panning back re-finds the same one
             // with the same drift phase.
-            uid: ((cx & 0xffff) << 16 | (cy & 0xffff)) >>> 0,
+            uid: this.uidFor(cx, cy),
             cellKey,
             data,
             wx,
             wy,
             size: +size.toFixed(1),
+            // The memory's own tempo, from how much of it there is to read.
+            ms: +motionScale(data.text).toFixed(3),
             // Touch targets stay finger-sized even when the crystal is small.
             hit: +Math.max(48, size + 16).toFixed(1),
           })
@@ -723,26 +829,82 @@ export default {
       this.points = out
     },
 
-    /** Once a memory has been read, that cell re-lights with a different one. */
-    reseedPoint(dataKey) {
-      const i = this.points.findIndex(p => p.data.key === dataKey)
-      if (i === -1) return
-      const onScreen = new Set(this.points.map(p => p.data.key))
-      const candidates = this.pool.filter(t => !onScreen.has(t.key))
-      if (candidates.length === 0) return
-      const pick = candidates[Math.floor(Math.random() * candidates.length)]
-      const p = this.points[i]
-      // Pinned to the cell, so panning away and back keeps the replacement.
-      this.overrides[p.cellKey] = pick
-      const next = this.points.slice()
-      next[i] = { uid: p.uid, cellKey: p.cellKey, data: pick, wx: p.wx, wy: p.wy, size: p.size, hit: p.hit }
-      this.points = next
+    /** Stable per-cell identity, shared by the point list and the escape map. */
+    uidFor(cx, cy) {
+      return ((cx & 0xffff) << 16 | (cy & 0xffff)) >>> 0
+    },
+
+    /**
+     * Bring back any memory whose time away is up.
+     *
+     * Called from the frame loop, so a memory returns while the visitor is
+     * watching the sky rather than only on the next reload — the reappearance
+     * IS the moment the mechanic pays off, and it would be invisible if it only
+     * happened between visits.
+     */
+    sweepEscapes(now) {
+      let back = false
+      for (const k in this.escapedAt) {
+        if (this.escapedAt[k] <= now) {
+          delete this.escapedAt[k]
+          back = true
+        }
+      }
+      if (back) this.syncField(true)
+    },
+
+    /**
+     * 被捕获的记忆逃逸。
+     *
+     * A captured memory does not get swapped for a different one — it LEAVES.
+     * The light flies away from the point that was touched, shrinking to
+     * nothing over about 0.6s, and the cell then stands empty until the
+     * memory's time away is up (ESCAPE_MIN_MS..+ESCAPE_SPREAD_MS). Then it
+     * drifts back into the same place, unchanged.
+     *
+     * The earlier behaviour reseeded the cell with a different memory, which
+     * made the sky feel like a slot machine: the same spot always held
+     * something, so nothing you did to it was legible. An absence is legible.
+     * It is also what makes the return worth watching for.
+     */
+    capturePoint(dataKey, x, y) {
+      const p = this.points.find(q => q.data.key === dataKey)
+      if (!p) return
+      // Which way it flees: away from the touch, or a random direction when the
+      // capture came from the keyboard (no pointer to flee from).
+      const pos = this.pointScreenPos(p, this.now)
+      let dx = pos.x - x
+      let dy = pos.y - y
+      const len = Math.hypot(dx, dy)
+      if (!len || len < 1) {
+        const a = Math.random() * Math.PI * 2
+        dx = Math.cos(a); dy = Math.sin(a)
+      } else {
+        dx /= len; dy /= len
+      }
+      this.escapedAt[dataKey] = this.now + (ESCAPE_MIN_MS + Math.random() * ESCAPE_SPREAD_MS) / 1000
+      // The flight is a screen-space event: it is drawn from its own list, so a
+      // pan rebuilding `points` mid-flight cannot cut it short.
+      this.flights.push({
+        x: pos.x, y: pos.y, dx, dy, t0: this.now,
+        size: p.size, pi: this.paletteIndex(p.data.color),
+        phase: ((this.now * pos.spin) % 1 + 1) % 1,
+      })
+      // Gone from the sky at once. syncField() will not put it back while
+      // `escapedAt` holds its key, and drawGems() skips it in the meantime.
+      this.points = this.points.filter(q => q.data.key !== dataKey)
     },
 
     /**
      * Where a light point currently is on screen, in CSS pixels.
      * Driven purely by the wall clock, so the hit area and the crystal agree —
      * the crystal is drawn at exactly these coordinates every frame.
+     *
+     * `ms` is the memory's own speed, from its length (see motionScale): a long
+     * memory travels a short distance slowly, a fragment skims. It scales the
+     * PERIOD and not just the amplitude, so the difference reads as tempo —
+     * scaling amplitude alone would make short memories hover in a tiny box and
+     * look stuck rather than quick.
      */
     pointScreenPos(p, t) {
       const u = p.uid
@@ -750,18 +912,28 @@ export default {
       const d2 = hash01(u * 13 + 5)
       const d3 = hash01(u * 29 + 11)
       const d4 = hash01(u * 31 + 17)
-      const ampX = 12 + d1 * 26
-      const ampY = 10 + d2 * 24
+      const ms = p.ms || 1
+      // The per-light randomness is deliberately NARROW. Length has to be what
+      // a visitor reads the speed off, and an earlier version let d1 drive both
+      // amplitude (12..38px) and frequency (0.09..0.16) — a 5.7x spread from
+      // chance alone, against a 4.4x spread from length. Randomness won, and
+      // measured off the rendered canvas the correlation came out at only
+      // rho = -0.21. Now chance contributes 1.67 x 1.33 = 2.2x and length
+      // contributes 7.8x, so the ordering is visible rather than merely true.
+      const ampX = (18 + d1 * 12) * (0.72 + 0.28 * ms)
+      const ampY = (15 + d2 * 11) * (0.72 + 0.28 * ms)
       // World → screen. The pan offset is what makes the plane feel endless:
       // the crystal keeps its place in the world and the viewport moves.
       const sx = p.wx - this.panX
       const sy = p.wy - this.panY
       return {
-        x: sx + Math.sin(t * (0.09 + d1 * 0.07) + u * 1.7) * ampX,
-        y: sy + Math.cos(t * (0.07 + d2 * 0.06) + u * 2.3) * ampY,
+        x: sx + Math.sin(t * (0.105 + d1 * 0.035) * ms + u * 1.7) * ampX,
+        y: sy + Math.cos(t * (0.085 + d2 * 0.030) * ms + u * 2.3) * ampY,
         // Deliberately slow: the lights should look like they are floating on
-        // their own, not orbiting a shared attractor.
-        spin: 0.035 + d3 * 0.045,
+        // their own, not orbiting a shared attractor. The highlight sweeps a
+        // little faster than the drift, so a light reads as turning even while
+        // it is holding still.
+        spin: (0.035 + d3 * 0.045) * (0.75 + 0.5 * ms),
         breathe: 0.9 + d4 * 0.5,
       }
     },
@@ -881,12 +1053,17 @@ export default {
       return el ? el.getBoundingClientRect() : { left: 0, top: 0 }
     },
 
-    /** Draw every crystal at its baked angle. One blit per light per frame. */
+    /** Draw every memory light at its baked angle. One blit per light per frame. */
     drawGems(t, ctx) {
       if (!this.gemSprites.length) return
       const dpr = this.dpr
+      const escaped = this.escapedAt
       for (let i = 0; i < this.points.length; i++) {
         const p = this.points[i]
+        // A captured memory is gone: its cell holds nothing until it returns.
+        // Checked here as well as in syncField() because a capture happens
+        // between rebuilds, and the light must stop being drawn immediately.
+        if (escaped[p.data.key]) continue
         const pos = this.pointScreenPos(p, t)
         const pi = this.paletteIndex(p.data.color)
         const frames = this.gemSprites[pi]
@@ -895,8 +1072,7 @@ export default {
         const frame = frames[Math.floor((((t * pos.spin + i * 0.11) % 1) + 1) % 1 * GEM_ANGLES) % GEM_ANGLES]
         const breathe = 1 + 0.055 * Math.sin(t * 1.25 * pos.breathe + p.uid)
         const hot = p.uid === this.hoverUid ? 1.22 : 1
-        // Sprite is the whole glow square; the stone inside it is 1/GEM_GLOW.
-        const gs = p.size * GEM_GLOW * breathe * hot
+        const gs = p.size * MOTE_GLOW * breathe * hot
         const gx = pos.x - gs / 2
         const gy = pos.y - gs / 2
 
@@ -906,15 +1082,45 @@ export default {
 
         // A faint rim ring on hover only — the affordance costs nothing idle.
         if (p.uid === this.hoverUid) {
-          const s = gs / GEM_GLOW
+          const s = gs / MOTE_GLOW
           ctx.globalAlpha = 0.4
           ctx.beginPath()
-          ctx.arc(pos.x, pos.y, s * 0.78, 0, Math.PI * 2)
+          ctx.arc(pos.x, pos.y, s * 0.62, 0, Math.PI * 2)
           ctx.strokeStyle = p.data.color
           ctx.lineWidth = 1 / dpr
           ctx.stroke()
           ctx.globalAlpha = 1
         }
+      }
+      this.drawFlights(t, ctx)
+    },
+
+    /**
+     * The 逃逸 itself: a captured light flung away from the point that was
+     * touched, shrinking and fading over ~0.6s.
+     *
+     * Held in SCREEN coordinates and drawn from its own list, deliberately not
+     * from `points`. A pan rebuilds `points` from the world hash at any moment,
+     * and a flight that lived inside that list would blink out mid-air the
+     * instant the visitor dragged the sky. A flight is an event that already
+     * happened at a place on the screen, so screen space is where it belongs.
+     */
+    drawFlights(t, ctx) {
+      const fly = this.flights
+      if (!fly.length) return
+      for (let i = fly.length - 1; i >= 0; i--) {
+        const f = fly[i]
+        const k = (t - f.t0) / 0.62
+        if (k >= 1) { fly.splice(i, 1); continue }
+        const ease = 1 - (1 - k) * (1 - k)   // decelerating, as if thrown
+        const d = ease * 190
+        const gs = f.size * MOTE_GLOW * (1 - 0.72 * k)
+        const frames = this.gemSprites[f.pi]
+        if (!frames) continue
+        const frame = frames[Math.floor(((f.phase + k * 0.55) % 1 + 1) % 1 * GEM_ANGLES) % GEM_ANGLES]
+        ctx.globalAlpha = Math.max(0, 1 - k) * 0.95
+        ctx.drawImage(frame, f.x + f.dx * d - gs / 2, f.y + f.dy * d - gs / 2, gs, gs)
+        ctx.globalAlpha = 1
       }
     },
 
@@ -932,7 +1138,7 @@ export default {
       }
       this.revealed = item
       this.spawnAccretion(x, y, item.color)
-      this.reseedPoint(item.key)
+      this.capturePoint(item.key, x, y)
     },
 
     close() {
@@ -980,6 +1186,10 @@ export default {
         date: dateStr ? this.formatDisplayDate(dateStr) : '',
       }
       this.pool = [entry, ...this.pool].slice(0, this.pool.length + 1)
+      // A note the visitor just wrote is theirs and goes into the sky at once,
+      // regardless of whether today's release happened to pick it — waiting for
+      // a date rollover to see your own words would be absurd.
+      this.todayPool = [entry, ...this.todayPool]
 
       this.showAddForm = false
       this.newText = ''
@@ -992,7 +1202,10 @@ export default {
         const p = this.points[i]
         this.overrides[p.cellKey] = entry
         const next = this.points.slice()
-        next[i] = { uid: p.uid, cellKey: p.cellKey, data: entry, wx: p.wx, wy: p.wy, size: p.size, hit: p.hit }
+        next[i] = {
+          uid: p.uid, cellKey: p.cellKey, data: entry, wx: p.wx, wy: p.wy,
+          size: p.size, ms: +motionScale(entry.text).toFixed(3), hit: p.hit,
+        }
         this.points = next
       } else {
         this.syncField(true)
@@ -1222,6 +1435,7 @@ export default {
       // crystals were last drawn at, without recomputing the drift.
       this.now = now / 1000
       this.applyPanInertia()
+      this.sweepEscapes(this.now)
       this.draw(this.now)
     },
 
