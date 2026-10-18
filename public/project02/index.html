@@ -724,7 +724,7 @@ html[data-theme="light"] ::selection{background:rgba(107,87,136,.2) !important;c
 <div class="chapbox" id="chapbox">
   <div class="mask" id="chapMask"></div>
   <nav>
-    <div class="hd">共 12 章 · 点一下切换</div>
+    <div class="hd">共 13 章 · 点一下切换</div>
       <a href="#c0" data-c="0"><span class="ic">0</span><span class="tx"><b>完整学习路线</b><i>从 0 到能讲出来</i></span></a>
       <a href="#c1" data-c="1"><span class="ic">①</span><span class="tx"><b>自我介绍稿</b><i>开场 2~3 分钟</i></span></a>
       <a href="#c2" data-c="2"><span class="ic">②</span><span class="tx"><b>云联-逐字稿</b><i>项目表述主稿</i></span></a>
@@ -737,6 +737,7 @@ html[data-theme="light"] ::selection{background:rgba(107,87,136,.2) !important;c
       <a href="#c9" data-c="9"><span class="ic">⑨</span><span class="tx"><b>面试题 · 老师模拟面</b><i>六问 + 一条建议</i></span></a>
       <a href="#c10" data-c="10"><span class="ic">⑩</span><span class="tx"><b>关联资料</b><i>图解 / 动画 / 原型</i></span></a>
       <a href="#c11" data-c="11"><span class="ic">⑪</span><span class="tx"><b>面试题 · 10/17</b><i>LangGraph 四问</i></span></a>
+      <a href="#c12" data-c="12"><span class="ic">⑫</span><span class="tx"><b>面试题 · 10/18</b><i>MCP / 流式 / 记忆</i></span></a>
   </nav>
 </div>
 
@@ -1038,6 +1039,41 @@ html[data-theme="light"] ::selection{background:rgba(107,87,136,.2) !important;c
         <a class="lv2" href="#a9_46">再结合项目</a>
         <a class="lv2" href="#a9_47">追问预案</a>
         <a class="lv1" href="#a9_48">附：本场四题的红线自查</a>
+      </div>
+      <div class="tocgrp" data-i="12">
+        <a class="lv1" href="#a10_1">2026年10月18日面试题（云联客服工单平台）</a>
+        <a class="lv1" href="#a10_2">第一题：集成 MCP 之后，Agent 调用工具的链路是怎样的？</a>
+        <a class="lv2" href="#a10_3">30 秒版</a>
+        <a class="lv2" href="#a10_4">展开讲：一次 tools/call 从模型到工具的完整路径</a>
+        <a class="lv2" href="#a10_5">★先正面回答：有 MCP 和没 MCP，链路到底差在哪</a>
+        <a class="lv2" href="#a10_6">再结合项目：我们没上 MCP，我们的链路是这五步</a>
+        <a class="lv2" href="#a10_7">追问预案</a>
+        <a class="lv1" href="#a10_8">第二题：简单介绍下 MCP 协议，它在你们项目里解决了什么核心问题？</a>
+        <a class="lv2" href="#a10_9">30 秒版</a>
+        <a class="lv2" href="#a10_10">展开讲</a>
+        <a class="lv2" href="#a10_14">★先正面回答：它到底解决了什么核心问题</a>
+        <a class="lv2" href="#a10_15">再结合项目：我们项目里这个问题是用另一种方式解的</a>
+        <a class="lv2" href="#a10_16">追问预案</a>
+        <a class="lv1" href="#a10_17">第三题：你们项目里 Agent 的流式输出是怎么实现的？用的什么方案？</a>
+        <a class="lv2" href="#a10_18">30 秒版</a>
+        <a class="lv2" href="#a10_19">展开讲</a>
+        <a class="lv2" href="#a10_23">★先正面回答：流式输出的工程难点在哪</a>
+        <a class="lv2" href="#a10_24">再结合项目：我们这三段各自是怎么做的</a>
+        <a class="lv2" href="#a10_25">追问预案</a>
+        <a class="lv1" href="#a10_26">第四题：为什么选 SSE 做 Agent 流式，而不是 WebSocket？</a>
+        <a class="lv2" href="#a10_27">30 秒版</a>
+        <a class="lv2" href="#a10_28">展开讲：逐项对比</a>
+        <a class="lv2" href="#a10_31">★先正面回答：判据、以及什么情况下必须用 WebSocket</a>
+        <a class="lv2" href="#a10_32">再结合项目：我们是按段选的，不是全局选了一个</a>
+        <a class="lv2" href="#a10_33">追问预案</a>
+        <a class="lv1" href="#a10_34">第五题：你们 Agent 的会话记忆是怎么实现的？用的什么存储方案？</a>
+        <a class="lv2" href="#a10_35">30 秒版</a>
+        <a class="lv2" href="#a10_36">展开讲：方案一共有几类</a>
+        <a class="lv2" href="#a10_37">★先正面回答：我会怎么选</a>
+        <a class="lv2" href="#a10_38">再结合项目：三层记忆 + 一套 checkpoint</a>
+        <a class="lv2" href="#a10_42">追问预案</a>
+        <a class="lv1" href="#a10_43">附一：这五题的一页速记</a>
+        <a class="lv1" href="#a10_44">附二：红线自查（出门前扫一眼）</a>
       </div>
       
   </nav>
@@ -1373,7 +1409,7 @@ mvn spring-boot:run      # 启动后端</code></pre>
         <tr><td>五页原型</td><td>界面细节（讲"看页面"用）</td><td>四</td></tr>
         <tr><td>面试题 · 现场版</td><td>同批题的<b>面试现场逐字稿</b>（无内部标记，照着说）</td><td>五</td></tr>
         <tr><td>面试题 · 老师模拟面</td><td>10/13 老师当面六问（意图识别 / 工具参数返回 / 记忆大小 / 明文密文）</td><td>五</td></tr>
-        <tr><td>面试题 · 10/16</td><td>另一场五道题（父子块 / 四环节 / Agent 评估 / 知识来源 / 离职）</td><td>五</td></tr><tr><td>面试题 · 10/17</td><td>LangGraph 四问（原生 Agent 差异 / 自主与可控 / State 机制 / 死循环排查）</td><td>五</td></tr>
+        <tr><td>面试题 · 10/16</td><td>另一场五道题（父子块 / 四环节 / Agent 评估 / 知识来源 / 离职）</td><td>五</td></tr><tr><td>面试题 · 10/17</td><td>LangGraph 四问（原生 Agent 差异 / 自主与可控 / State 机制 / 死循环排查）</td><td>五</td></tr><tr><td>面试题 · 10/18</td><td>MCP 链路与协议 / 流式输出三段 / SSE 与 WebSocket 取舍 / 会话记忆与 checkpoint</td><td>五</td></tr>
         <tr><td>面试题 · 追问备忘</td><td>同批题的深挖底稿（RRF 公式等，被追问时翻）</td><td>五</td></tr>
         <tr><td>历史备份/</td><td>早期版本，<b>不用看</b></td><td>—</td></tr>
         <tr><td>demo\README.md</td><td>跑 Demo 的 6 阶段教程</td><td>六</td></tr>
@@ -2470,6 +2506,270 @@ def route_after_tool(state: AgentState) -&gt; str:
 <ul><li>[ ] ★<b>一上来就拆成两种死循环</b>：<b>「空转型」（撞 <code>recursion_limit</code>）vs「推进型」（永远撞不到，只能靠次数上限 + 语义去重）</b>——<b>这是本题的题眼</b></li><li>[ ] <b>报出了数量级</b>：默认 <b>10007</b> super-step（文档写 1000，错的），一轮 ReAct ≈ 2 步 → <b>默认约 5000 轮才报错</b>，所以「没报错」不等于没死循环</li><li>[ ] 说了 <b><code>GraphRecursionError</code> 继承内置 <code>RecursionError</code></b>，会被宽泛的 <code>except</code> 吞掉</li><li>[ ] <b>第一步是止损</b>，不是直接查日志</li><li>[ ] 两个定位入口说了：<b><code>GraphRecursionError</code> + 自己的 <code>ai_execution</code> 表</b></li><li>[ ] 三件取证工具说了：<b><code>get_state_history</code>（历史）/ <code>get_state</code> 的 <code>next</code>（现在卡哪）/ <code>stream_mode="updates"</code>（每步写了啥）</b></li><li>[ ] ★<b>死循环的指纹说清楚了</b>：<b>「<code>step</code> 在涨但 <code>values</code> 没有实质变化」</b></li><li>[ ] <b>归因那七种根因至少报了四种</b>（条件边写错 / <code>add_messages</code> 缺失 / 工具返回空没语义 / prompt 没出口 / 参数抖动 / <b>工具报错被 <code>ToolNode</code> 吞掉</b>）</li><li>[ ] 提了 <b><code>ToolNode</code> 的 <code>handle_tool_errors</code> 默认会把异常变成一条 <code>Please fix your mistakes.</code> 的普通 <code>ToolMessage</code></b>——<b>监控上错误率是 0，这是最隐蔽的一种</b></li><li>[ ] <b>没有一上来就改模型</b>——先归因再动手；★并点出<b>「换模型是这七种里唯一一个既贵又没用的解法」</b></li><li>[ ] <b>区分了「agent 的病」和「检索的病」</b>：拿 trace 里的原 query 手工打同一个索引看 top-k——<b>这一步能归掉大部分「agent 死循环」</b></li><li>[ ] 修的部分说了<b>三层</b>：state 里的<b>循环计数器做优雅降级</b> + <b>fallback 终态节点</b> + 工具调用<b>幂等/缓存</b></li><li>[ ] 说了<b>计数器挡不住「换个说法的调用」</b>，所以要配 <b>embedding 余弦相似度的软闸</b>（<b>别只比字符串</b>）</li><li>[ ] 提了 <code>ToolCallLimitMiddleware</code> / <code>ModelCallLimitMiddleware</code> 这两个现成的 middleware，并说了 <b><code>exit_behavior="end"</code> 只在单工具场景可用</b></li><li>[ ] 防的部分说了<b>两条</b>：<b>基于工具调用次数的告警</b> + <b>把 case 放进评测集</b>；★并说了<b>「单会话平均步数 P99」比成本更早预警</b></li><li>[ ] ★<b>主动讲了「该调的没调」这个镜像案例</b>，并且点出<b>病根是同一个：条件边的判断逻辑</b></li><li>[ ] ★<b>主动交代了 <code>recursion_limit</code> 没设、<code>get_state_history</code> 没接</b>，并给了四件改进</li><li>[ ] ★<b>说了 time travel 复现要在测试环境做</b>——生产重放会真的重跑 LLM 和工具，<b>等于再烧一次钱</b></li><li>[ ] ★<b>说了「不要把死循环当异常处理，要当成一个正常分支处理」</b>——<code>RemainingSteps</code> + 条件边 vs <code>try/except</code> 的区别</li></ul>
 <p><b>这一场最想让人记住的一句话</b></p>
 <blockquote><p><b>「图负责不许出错，节点负责聪明。」</b></p></blockquote>
+</section>
+
+<section class="cbody" id="c12" data-i="12" data-short="面试题 · 10/18" data-sub="MCP / 流式 / 记忆">
+<span class="anch" id="2026年10月18日面试题-云联客服工单平台"></span><h2 id="a10_1" class="part">2026年10月18日面试题（云联客服工单平台）</h2>
+<blockquote><p><b>这份文件怎么用</b></p>
+<p>★<b>每题都是「先回答问题，再结合项目」两段</b>，顺序不能反：</p>
+<p><b>第一段 = 先回答问题。</b> 脱离云联这套系统也要能答的标准答案 —— 这一题的技术结论是什么、我会怎么选、判据是什么。面试官问"MCP 调用链路是怎样的"，他先要听的是<b>你对这条链路的理解</b>，不是"我们没用过"。 <b>第二段 = 再结合项目。</b> 我们实际是怎么做的、为什么这么选。</p>
+<p><b>为什么顺序不能反</b>：一开口就是"我们没用 MCP"，面试官听到的是"这个人只是背了一套项目说法"；先把链路讲清楚、再说"我们项目里这一段是用另一种方式解的"，<b>你做没做过都站得住</b>。这两道 MCP 题尤其明显 —— 第一题问的是"<b>集成之后</b>链路怎样"，是纯技术推演，跟用没用过没关系。</p>
+<p>每题的结构：<b>30 秒版</b>（脱口而出）→ <b>展开讲</b>（被追问时往上加）→ <b>★先正面回答</b>（正面给结论）→ <b>再结合项目</b>（落到云联这套系统上）→ <b>追问预案</b>。</p>
+<p><b>本场的三条特别提醒</b>：</p>
+<ol><li><b>MCP 这两题我们答案是"没用"</b>，但<b>绝不能只答"没用"</b>。第一题要能<b>完整推演一遍"如果有 MCP，链路是什么样"</b> —— 这题考的是理解，不是经历。</li><li><b>流式输出那题别说成"我们全链路都是 SSE"</b>。我们顾客这一侧本来就是 WebSocket，是<b>分段选的传输</b>（模型侧 SSE / 服务间 SSE / 浏览器侧复用 WebSocket）。这个分层说清楚，比"我们选了 SSE"值钱得多。</li><li><b>会话记忆那题最容易混的是"记忆"和"checkpoint"</b>。它们是两个东西、两套存储、两个 TTL —— 这个区分讲出来，是本题最大的加分点。</li></ol>
+<p><b>表达纪律</b>：</p>
+<ul><li>区分「<b>目前链路中采用</b>」（已实现）和「<b>设计上考虑</b>」（方案设计），不要把设计方案说成已经上线的事实。</li><li>没有评测集就没有准确率数字，不给百分比。</li><li>不给前公司负面评价。</li><li>口头别说"注册 / 试用 / 订阅 / 官网 / 租户"（<code>tenant_id</code>、<code>X-Tenant-Id</code> 是字段名，可以正常念）。</li></ul></blockquote>
+<hr>
+<span class="anch" id="第一题-集成-mcp-之后-agent-调用工具的链路是怎样的"></span><h2 id="a10_2" class="part">第一题：集成 MCP 之后，Agent 调用工具的链路是怎样的？</h2>
+<span class="anch" id="30-秒版-15"></span><h3 id="a10_3" class="sec">30 秒版</h3>
+<blockquote><p>"分两段看：<b>连接和发现</b>在启动时做一次，<b>调用</b>在每一轮对话里做。</p>
+<p><b>启动阶段</b>：Client 连上一个 MCP Server（本地是拉子进程走 stdio，远程是 HTTP），拿到它的<b>能力清单</b> —— 主要是 <code>tools/list</code>，返回每个工具的名字、描述、参数 JSON Schema。Client 把这些清单缓存起来，汇成一张"工具名 → 哪个 Server"的路由表。</p>
+<p><b>每轮对话</b>：把工具定义塞进模型的 <code>tools</code> 参数 → 模型返回要调哪个、参数是什么 → Client 按路由表找到那个 Server → <b>序列化成一个 JSON-RPC 的 <code>tools/call</code> 请求发过去</b> → Server 执行完把结果回来 → Client 包成 tool 结果追加到对话 → 再请求一次模型，循环到它不再要工具。</p>
+<p>和不用 MCP 相比，<b>多出来的是四样东西</b>：一次协议编解码、一个进程或网络边界（超时重试熔断要自己做）、工具清单从<b>运行时返回</b>而不是编译期代码、以及<b>鉴权</b> —— 模型传过来的参数是不可信的，Server 侧必须自己校验。"</p></blockquote>
+<span class="anch" id="展开讲-一次-tools-call-从模型到工具的完整路径"></span><h3 id="a10_4" class="sec">展开讲：一次 <code>tools/call</code> 从模型到工具的完整路径</h3>
+<p><b>角色先分清</b>（这三个词经常被混着说）：</p>
+<div class="tblwrap"><table><thead><tr><th>角色</th><th>是什么</th><th>在我们这套系统里对应什么</th></tr></thead><tbody><tr><td><b>Host</b></td><td>宿主应用，就是跑着 Agent 的那个程序</td><td><code>ai-agent-service</code>（Python）</td></tr><tr><td><b>Client</b></td><td>Host 里负责跟 Server 通信的组件，<b>一个 Server 一条连接</b></td><td>我们<b>没有</b>这一层</td></tr><tr><td><b>Server</b></td><td>真正提供工具的那一端，独立进程或独立服务</td><td>我们<b>没有</b>，工具是进程内的 Python 函数</td></tr></tbody></table></div>
+<p><b>第一步：连接</b></p>
+<p>两种传输，选哪种决定了后面所有的运维形态：</p>
+<div class="tblwrap"><table><thead><tr><th>传输</th><th>形态</th><th>适合</th></tr></thead><tbody><tr><td><b>stdio</b></td><td>Client 把 Server 当<b>子进程</b>拉起来，用标准输入输出通信，按行分隔的 JSON-RPC</td><td>本地工具、跟 Host 同机部署、不需要独立扩缩容</td></tr><tr><td><b>Streamable HTTP</b></td><td>Server 是<b>独立服务</b>，Client 发 HTTP POST 到 <code>/mcp</code> 端点；一个请求的响应可以是单个 JSON，也可以是一段 SSE 流</td><td>远程工具、需要独立部署和独立扩缩容、多个 Host 共享</td></tr></tbody></table></div>
+<blockquote><p>★<b>这里有个常见误解要避开</b>：不要说"用 MCP 一定多一跳网络"。<b>stdio 模式根本不走网络</b>，就是父子进程之间的管道。MCP 的"重"不在网络，在<b>多了一层协议边界和生命周期管理</b>。</p></blockquote>
+<p><b>第二步：发现（<code>tools/list</code>）</b></p>
+<p>Server 返回一张工具清单，每项长这样：</p>
+<pre data-lang="json"><code>{
+  "name": "query_order",
+  "description": "按订单号或手机号查询订单状态",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "orderNo": { "type": "string", "description": "订单号，与手机号二选一" },
+      "phone":   { "type": "string" }
+    }
+  }
+}</code></pre>
+<p>这份 Schema 就是<b>要被原样塞进模型请求 <code>tools</code> 字段</b>的东西。它的质量直接决定工具选得准不准 —— 描述写得含糊，模型就会乱调。</p>
+<p><b>第三步到第六步：一轮调用</b></p>
+<pre><code>LLM 服务商
+    │  ① 请求里带 tools=[...]（来自 tools/list）
+    ▼
+Host(ai-agent-service) 里的 Agent 循环
+    │  ② 模型返回 tool_use：{ name: "query_order", arguments: { orderNo: "S123" } }
+    │  ③ 查路由表：query_order 属于哪个 Server？
+    ▼
+MCP Client ──④ JSON-RPC 序列化──▶ MCP Server
+    { "jsonrpc":"2.0", "id":7,
+      "method":"tools/call",
+      "params":{ "name":"query_order", "arguments":{...} } }
+                                        │  ⑤ Server 侧执行
+                                        │  ⑥ 参数校验（★不信任模型给的参数）
+                                        ▼
+                                  返回 { content:[{type:"text",text:"..."}] }
+    ◀───────────────────────────────────
+    │  ⑦ 包成 tool 结果消息，追加回对话
+    │  ⑧ 再请求模型 → 模型要么继续要工具，要么出最终答案
+    ▼
+循环直到模型不再返回 tool_use（要设最大轮数上限，防止死循环）</code></pre>
+<p><b>第七步之后还必须处理的几件事</b>（这几条是"做过"和"看过博客"的分界线）：</p>
+<div class="tblwrap"><table><thead><tr><th>必须处理</th><th>为什么</th><th>怎么做</th></tr></thead><tbody><tr><td><b>工具名冲突</b></td><td>接了多个 Server，两家都有 <code>search</code></td><td>加命名空间前缀 <code>${server}__${tool}</code>，塞给模型时用前缀名，路由时去掉</td></tr><tr><td><b>超时与重试</b></td><td>Server 是外部进程/服务，可能挂</td><td>每个 <code>tools/call</code> 单独设超时；<b>只有读工具能重试</b>，写工具重试必须带幂等键</td></tr><tr><td><b>错误怎么回给模型</b></td><td>直接抛异常 = Agent 崩了</td><td>把失败包成<b>工具结果</b>（标记 <code>isError</code>）回给模型，让它自己决定是换个参数还是告诉用户"查不到"</td></tr><tr><td><b>鉴权与身份</b></td><td>模型传的 <code>tenantId</code>/<code>userId</code> 是<b>不可信的</b></td><td>Server 侧从连接上下文（token / 网关注入的头）取身份，<b>不读模型给的参数</b></td></tr><tr><td><b>清单变化</b></td><td>Server 升级后工具变了</td><td>订阅清单变更通知，或者定期重拉；不要缓存到进程生命周期结束</td></tr><tr><td><b>轮数上限</b></td><td>模型可能反复调同一个工具</td><td>硬上限（比如 6 轮），超了直接降级兜底话术</td></tr></tbody></table></div>
+<span class="anch" id="★先正面回答-有-mcp-和没-mcp-链路到底差在哪"></span><h3 id="a10_5" class="sec">★先正面回答：有 MCP 和没 MCP，链路到底差在哪</h3>
+<p><b>没有 MCP 时</b>，工具就是<b>你自己代码里的一个函数</b>：</p>
+<pre><code>模型返回 tool_use → 框架在进程内的注册表里按名字找到函数 → 直接调用 → 结果回填</code></pre>
+<p>中间<b>没有序列化、没有边界、没有鉴权问题</b>（因为你就在同一个进程里，身份是已知的）。</p>
+<p><b>接了 MCP 之后</b>，这条链路上多出<b>四个必须由你负责的环节</b>：</p>
+<ol><li><b>一次协议编解码</b> —— 工具参数变成 JSON-RPC，结果再解回来。多了一层"格式对不对"的问题。</li><li><b>一个边界</b> —— 进程边界或网络边界。以前函数调用不会失败，现在会超时、会断、会对端重启。</li><li><b>工具定义从"编译期"变成"运行时"</b> —— 以前工具清单是代码写死的，现在来自 <code>tools/list</code> 的返回。所以要做<b>清单缓存 + 变更处理</b>，还要处理"模型调用了一个上个月就下线的工具"。</li><li><b>身份与权限的重新划界</b> —— 以前工具函数能直接拿到当前登录用户，现在 Server 可能是个独立服务，<b>它凭什么相信这个请求是哪个客户发来的</b>？这是 MCP 落地时最容易被忽略、也最容易出安全事故的一块。</li></ol>
+<p><b>所以一句话答这题</b>：链路本身没变（还是"模型决策 → 执行 → 回填 → 再请求"），<b>变的是执行这一段的边界从"进程内函数调用"变成了"跨进程的协议调用"，并且把工具的所有权从 Agent 应用转移到了工具服务</b>。</p>
+<span class="anch" id="再结合项目-我们没上-mcp-我们的链路是这五步"></span><h3 id="a10_6" class="sec">再结合项目：我们没上 MCP，我们的链路是这五步</h3>
+<blockquote><p><b>先说结论：我们项目没有集成 MCP。</b> 所以下面讲的是我们实际的链路，你可以对着看"MCP 会把哪一段替换掉"。</p></blockquote>
+<pre><code>conversation(Java) ──HTTP──▶ ai-agent-service(Python, LangGraph)
+                                   │
+                          ① 意图路由判定这一轮走 tool_call 分支
+                                   │
+                          ② 框架把 8 个 @tool 的签名 + docstring
+                             自动转成 JSON Schema，塞进模型请求
+                                   │
+                          ③ 模型返回 tool_call：{name, arguments}
+                                   │
+                          ④ 框架在【本进程内】按名字找到那个 Python 函数，直接调
+                                   │
+                          ⑤ 函数内部才跨语言：
+                             httpx.post("http://customer-service/inner/orders/...")
+                                   │
+                          ⑥ 结果回填 → 再请求模型 → 出最终答案</code></pre>
+<p><b>和我们上面讲的 MCP 链路对照，差的是这两处：</b></p>
+<div class="tblwrap"><table><thead><tr><th>环节</th><th>标准 MCP</th><th>我们的做法</th></tr></thead><tbody><tr><td>工具在哪</td><td>独立进程/服务，<code>tools/list</code> 运行时发现</td><td><b>就在 Agent 进程内</b>，LangChain 的 <code>@tool</code> 装饰器注册，启动时静态装载</td></tr><tr><td>调用怎么走</td><td>JSON-RPC 序列化 → 跨进程/网络</td><td><b>进程内直接函数调用</b>，零序列化</td></tr><tr><td>跨语言在哪</td><td>在"调用工具"这一层</td><td><b>在"工具函数内部"</b> —— 函数体里用 <code>httpx</code> 调 Java 的 <code>/inner/*</code></td></tr></tbody></table></div>
+<blockquote><p><b>★这句话是本题最值钱的对比，一定要说出来</b>： "<b>MCP 是把'调用工具'这一层做成跨进程的；我们是在'工具函数内部'做跨进程。</b> 效果上都能让 Python 的 Agent 调到 Java 的业务能力，区别是：MCP 那一层是<b>协议标准化</b>的，谁都能接；我们这一层是<b>手写的薄封装</b>，只有我们自己用。"</p></blockquote>
+<p><b>为什么这么选</b>（详细的四层答法见《面试追问 Q&amp;A》Q34，这里只用一句话带过）：<b>8 个工具、接口稳定、只有我们自己消费</b> —— 引入协议标准化这一层的收益不抵维护成本。<b>注意别说成"一定多一跳网络"，stdio 模式不走网络。</b></p>
+<span class="anch" id="追问预案-16"></span><h3 id="a10_7" class="sec">追问预案</h3>
+<div class="tblwrap"><table><thead><tr><th>追问</th><th>答法</th></tr></thead><tbody><tr><td>"MCP 和 Function Calling 是一回事吗？"</td><td>"<b>不是一层的东西。</b>Function Calling 是<b>模型能力</b> —— 模型能输出'我要调这个函数、参数是这些'；MCP 是<b>协议标准</b> —— 规定工具服务怎么被连接、被列出、被调用。没有 MCP 也能用 Function Calling（我们就是）；有 MCP 也还是要靠 Function Calling 让模型做决策。"</td></tr><tr><td>"MCP Server 一般怎么部署？"</td><td>"两种。<b>stdio</b>：跟着 Host 一起起，Client 把它当子进程拉起来，适合本地工具；<b>Streamable HTTP</b>：独立部署一个服务，暴露一个 <code>/mcp</code> 端点，能独立扩缩容、多个 Host 共享。生产上如果工具要独立运维、要被多个团队用，基本都走后者。"</td></tr><tr><td>"接了多个 Server，工具重名怎么办？"</td><td>"加命名空间前缀。给模型的清单里用 <code>server__tool</code>，路由的时候拆开。另外要注意<b>描述也要保留来源信息</b>，否则模型看到两个 <code>search</code> 还是分不清。"</td></tr><tr><td>"工具执行失败，Agent 会怎么样？"</td><td>"取决于你怎么处理。<b>正确做法是把错误当成工具结果回给模型</b>（标记 <code>isError</code>），让它自己决定是换个参数重试、还是告诉用户查不到。<b>直接抛异常</b>会把整个 Agent 打断，用户那边就是一句'系统错误'。"</td></tr><tr><td>"你项目里这个'薄封装'大概多厚？"</td><td>"一个工具十来行：函数签名 + docstring（描述会被框架转成给模型看的说明）+ 里面一次 <code>httpx</code> 调用 + 返回值裁剪。<b>裁剪这一步挺重要</b> —— Java 接口返回的完整订单对象字段太多，全塞给模型又贵又容易干扰，我们只挑模型需要的几个字段。"</td></tr><tr><td>"如果明天让你们上 MCP，要改什么？"</td><td>"<b>不用动业务代码，动的是注册方式。</b>把现在的 <code>@tool</code> 函数搬到一个独立的 MCP Server 里，暴露 <code>tools/list</code> 和 <code>tools/call</code>；Agent 侧换成 MCP Client，从运行时清单拿工具定义。<b>真正要补的是治理</b>：多个 Server 的名字空间、超时熔断、Server 侧的身份透传、清单变更的通知。<b>业务逻辑本身不用重写。</b>"</td></tr></tbody></table></div>
+<hr>
+<span class="anch" id="第二题-简单介绍下-mcp-协议-它在你们项目里解决了什么核心问题"></span><h2 id="a10_8" class="part">第二题：简单介绍下 MCP 协议，它在你们项目里解决了什么核心问题？</h2>
+<span class="anch" id="30-秒版-16"></span><h3 id="a10_9" class="sec">30 秒版</h3>
+<blockquote><p>"MCP 是 Model Context Protocol，Anthropic 在 2024 年 11 月提出来并开源的，现在是一个开放规范。它解决的是<b>'AI 应用怎么标准化地连接外部能力'</b>这个问题 —— 官方的比喻是 <b>AI 应用的 USB-C 接口</b>。</p>
+<p>技术上它基于 <b>JSON-RPC 2.0</b>，服务端提供三类原语：<b>Tools</b>（可执行、可能有副作用，模型决定调）、<b>Resources</b>（可读的数据，应用决定注入）、<b>Prompts</b>（模板，用户触发）。传输支持 <b>stdio</b> 和 <b>Streamable HTTP</b> 两种。</p>
+<p>它真正解决的是 <b>N×M 问题</b>：N 个 AI 应用要接 M 个工具或数据源，没有标准就是 N 乘 M 套集成；有了协议变成 N 加 M。<b>顺带把工具的所有权解耦了</b> —— 工具可以由别人维护、独立部署、独立升级。</p>
+<p><b>我们项目没用它</b>，因为我们只有 8 个工具、都在 Agent 服务内，这个问题在我们这个量级下不值得引入一层协议。"</p></blockquote>
+<span class="anch" id="展开讲-5"></span><h3 id="a10_10" class="sec">展开讲</h3>
+<span class="anch" id="它是什么"></span><h4 id="a10_11" class="sub">它是什么</h4>
+<div class="tblwrap"><table><thead><tr><th>项</th><th>内容</th></tr></thead><tbody><tr><td>全称</td><td>Model Context Protocol</td></tr><tr><td>提出</td><td>Anthropic，2024 年 11 月，开源</td></tr><tr><td>定位</td><td><b>AI 应用 ↔ 外部能力</b>的标准化接口（"AI 的 USB-C"）</td></tr><tr><td>消息格式</td><td><b>JSON-RPC 2.0</b>（请求 / 响应 / 通知三种消息）</td></tr><tr><td>传输</td><td><b>stdio</b>（子进程管道）、<b>Streamable HTTP</b>（独立服务的 HTTP 端点，响应可以是 JSON 也可以是 SSE 流）</td></tr><tr><td>规范形态</td><td>有版本号（按日期）、有变更提案流程（SEP），在持续演进</td></tr></tbody></table></div>
+<span class="anch" id="三类原语-这是最常被问的"></span><h4 id="a10_12" class="sub">三类原语（这是最常被问的）</h4>
+<p><b>服务端提供的：</b></p>
+<div class="tblwrap"><table><thead><tr><th>原语</th><th>谁决定用它</th><th>有没有副作用</th><th>例子</th></tr></thead><tbody><tr><td><b>Tools</b></td><td><b>模型</b>决定调</td><td>可能有（写操作）</td><td>查订单、建工单、发消息</td></tr><tr><td><b>Resources</b></td><td><b>应用</b>决定注入</td><td>只读</td><td>一份文档、一个配置文件、一张表的结构</td></tr><tr><td><b>Prompts</b></td><td><b>用户</b>触发</td><td>无</td><td>一个预置的提示词模板</td></tr></tbody></table></div>
+<blockquote><p><b>★这三者的区分标准是"谁来触发"</b>，不是"功能像不像"。很多人的理解停在"Tools 就是函数调用"，那只是三分之一。</p></blockquote>
+<p><b>客户端提供的</b>（Server 反过来借用 Host 的能力）：<b>Sampling</b>（Server 借 Host 的模型做一次生成）、<b>Roots</b>（告诉 Server 我能访问哪些目录）、<b>Elicitation</b>（向用户追问补充信息）。</p>
+<blockquote><p>★<b>一个能体现你在跟进的细节</b>：这三个客户端能力在最新的规范修订里已经被标记为<b>弃用方向</b>（推荐改成"通过工具参数传路径""直接对接模型厂商 API"）。<b>规范在主动做减法</b> —— 这是我对 MCP 的一个判断：它在往"更简单、更无状态"走，不是越堆越多。</p></blockquote>
+<span class="anch" id="它在演进中解决的几个真问题"></span><h4 id="a10_13" class="sub">它在演进中解决的几个真问题</h4>
+<ul><li><b>2025-03 那一版</b>用 <b>Streamable HTTP</b> 取代了早期的 "HTTP + SSE" 传输 —— 因为老方案要求先 GET 开一条 SSE 流拿 endpoint，再 POST 发消息，两条连接、还不好过网关。</li><li><b>最新修订</b>进一步<b>去掉了协议级的 session</b>（不再有 <code>Mcp-Session-Id</code> 头）和 <b><code>initialize</code> 握手</b>，改成每个请求自带版本和能力、服务端必须实现 <code>server/discover</code>。<b>变成无状态之后，Server 就能像普通 Web 服务一样水平扩容、放在负载均衡后面了。</b></li></ul>
+<blockquote><p>★<b>这段是加分项，不是必答项。</b> 只在你把主干讲完、对方还在听的时候补一句就行："MCP 这一两年一直在简化，最新版本把 session 和握手都去掉了，走无状态 —— 说明它早期的设计在生产上遇到了扩容的麻烦。" <b>这句话能证明你不是只读过一篇介绍文章。</b></p></blockquote>
+<span class="anch" id="★先正面回答-它到底解决了什么核心问题"></span><h3 id="a10_14" class="sec">★先正面回答：它到底解决了什么核心问题</h3>
+<p><b>一句话：把"N 个 AI 应用 × M 个工具"的集成，从乘法变成加法。</b></p>
+<p>展开是三条：</p>
+<p><b>① 集成的乘法变加法（最根本的）</b></p>
+<pre><code>没有标准：  App1↔Tool1  App1↔Tool2  App2↔Tool1  App2↔Tool2 …  →  N × M 套适配
+有 MCP：    App1、App2 都实现 Client；Tool1、Tool2 都实现 Server  →  N + M 套</code></pre>
+<p><b>② 工具的所有权可以转移（工程上价值最大）</b></p>
+<p>这是比"少写代码"更重要的一条：工具从"写在我的应用里"变成"<b>部署在我能连到的地方</b>"。带来的直接好处是：</p>
+<ul><li>工具可以<b>独立升级</b>，不用重新发布 Agent 应用；</li><li>工具可以<b>独立扩缩容</b>，热点工具多开几个副本；</li><li>工具可以<b>由别的团队维护</b>，只要实现协议，不需要进我的代码库；</li><li>多个 Agent <b>共享同一批工具</b>，不用各写一份。</li></ul>
+<p><b>③ 生态可发现（长期价值）</b></p>
+<p>有了标准，就出现了公共的工具目录/注册中心。用户装一个 Agent，能连哪些工具是可枚举的，而不是"厂商写死了什么就有什么"。</p>
+<p><b>但它不解决的问题（这个边界感很重要）</b>：</p>
+<div class="tblwrap"><table><thead><tr><th>不解决</th><th>为什么</th></tr></thead><tbody><tr><td><b>工具选得准不准</b></td><td>那是模型能力和 Schema 描述质量的问题，跟协议无关</td></tr><tr><td><b>多步任务怎么编排</b></td><td>那是 LangGraph 这类编排框架的事；MCP 只管"单次工具调用怎么发生"</td></tr><tr><td><b>权限模型</b></td><td>协议只定义了鉴权<b>怎么传</b>（OAuth 那套），"谁能调什么"要你自己设计</td></tr><tr><td><b>成本和延迟</b></td><td>多一层就多一层开销，协议不替你优化</td></tr></tbody></table></div>
+<span class="anch" id="再结合项目-我们项目里这个问题是用另一种方式解的"></span><h3 id="a10_15" class="sec">再结合项目：我们项目里这个问题是用另一种方式解的</h3>
+<blockquote><p><b>诚实答法，不要绕</b>："<b>我们项目没有用 MCP。</b> 但这个问题在我们这儿是存在的 —— Python 的 Agent 要调 Java 的业务能力，本质就是'跨语言接工具'。我们是用<b>手写的薄封装层</b>解的。"</p></blockquote>
+<p><b>我们怎么解的（三条）：</b></p>
+<ol><li><b>工具集中托管在 Agent 服务里</b>。8 个工具（6 读 2 写）全部是 <code>ai-agent-service</code> 里的 Python 函数，用 LangChain 的 <code>@tool</code> 装饰器注册。<b>没有独立的工具服务。</b></li><li><b>跨语言发生在函数体内部</b>。每个工具函数里用 <code>httpx</code> 调 Java 侧的 <code>/inner/*</code> 接口，把 HTTP 响应裁剪成模型需要的几个字段返回。</li><li><b>身份不信模型</b>。工具的 <code>tenantId</code> 不从模型给的参数里取，而是从这次请求的上下文（网关透传下来的身份）里取 —— <b>模型可以编一个 <code>tenantId</code> 出来，我们必须不认它</b>。</li></ol>
+<p><b>什么情况下会迁到 MCP（这个"触发条件"必须能说出来，否则显得只是"没做过"）：</b></p>
+<div class="tblwrap"><table><thead><tr><th>触发条件</th><th>为什么这时候 MCP 才值</th></tr></thead><tbody><tr><td>工具数量涨到几十个</td><td>手写封装的维护成本开始指数上升，标准化开始回本</td></tr><tr><td>有多个 Agent 共享同一批工具</td><td>不用为每个 Agent 复制一份封装</td></tr><tr><td>要接第三方提供的工具</td><td>别人不会为你写私有封装，只会实现标准协议</td></tr><tr><td>工具需要独立部署/独立扩缩容</td><td>某些工具很重（比如要跑 OCR、要连内网系统），不适合和 Agent 同进程</td></tr></tbody></table></div>
+<span class="anch" id="追问预案-17"></span><h3 id="a10_16" class="sec">追问预案</h3>
+<div class="tblwrap"><table><thead><tr><th>追问</th><th>答法</th></tr></thead><tbody><tr><td>"那你们为什么不用？"</td><td>"<b>收益不抵成本。</b> 8 个工具、都在我们自己的服务里、接口稳定、只有我们一个消费方 —— 引入一层协议标准化，换来的是多一套连接管理、超时熔断、身份透传，但<b>没有换来任何复用</b>。等触发条件到了会迁。"</td></tr><tr><td>"MCP 和 LangChain 的 Tool 是什么关系？"</td><td>"<b>不冲突，是两层。</b> LangChain 的 <code>@tool</code> 解决'怎么把一个 Python 函数变成模型能调的工具'；MCP 解决'这个工具部署在别的进程/机器上时，怎么被连接和调用'。<b>MCP Server 内部照样可以是用 LangChain 写的工具。</b>"</td></tr><tr><td>"MCP 安全上有什么要注意的？"</td><td>"三条。<b>① 参数不可信</b> —— 模型可能被提示注入操纵，Server 侧必须自己校验，尤其越权（拿 A 客户的 id 查 B 客户的数据）。<b>② 身份从连接上下文取，不从参数取。</b> <b>③ 远程 Server 要验 <code>Origin</code></b>，规范里明确要求，防 DNS rebinding；本地跑的 Server 只绑 127.0.0.1。"</td></tr><tr><td>"Resources 和 Tools 有什么区别？"</td><td>"<b>谁触发</b>。Tools 是模型决定调、可能有副作用；Resources 是应用决定读、只读。实践里我理解 Resources 更多用在 IDE 类场景（把文件、表结构注入上下文），<b>纯 Agent 场景大多数人只用 Tools</b> —— 这也是为什么很多人以为 MCP 只有 Tools。"</td></tr><tr><td>"你觉得 MCP 会成标准吗？"</td><td>"<b>事实上已经是了。</b>主流模型厂商、主流 IDE、主流 Agent 框架都实现了。但我要说一个观察：<b>它在做减法</b> —— 最新的规范把 session、握手、几个客户端能力都去掉或弃用了。<b>一个协议开始删功能，通常说明它开始被大规模用了</b>，因为要面对真实的扩容和运维问题。"</td></tr></tbody></table></div>
+<hr>
+<span class="anch" id="第三题-你们项目里-agent-的流式输出是怎么实现的-用的什么方案"></span><h2 id="a10_17" class="part">第三题：你们项目里 Agent 的流式输出是怎么实现的？用的什么方案？</h2>
+<span class="anch" id="30-秒版-17"></span><h3 id="a10_18" class="sec">30 秒版</h3>
+<blockquote><p>"流式输出要<b>分三段看</b>，因为每段的传输方式不一样：</p>
+<p><b>第一段，模型到 AI 服务</b>：调大模型时开 <code>stream=true</code>，厂商返回的就是 <b>SSE</b>（<code>data:</code> 一行一个 chunk）。我们用 LangGraph 的 <code>astream_events()</code> 消费，能拿到 token 级的增量事件。</p>
+<p><b>第二段，AI 服务到业务服务</b>：Python 侧用 FastAPI 的 <code>StreamingResponse</code> 包一个异步生成器往外吐，Java 侧用 <code>WebClient</code> 消费成流，<b>这一段也是 SSE</b>。</p>
+<p><b>第三段，业务服务到浏览器</b>：<b>这一段不用 SSE，直接复用已有的 WebSocket</b> —— 客服会话本来就是双工的，连接早就在了，没必要再开一条。</p>
+<p>工程上真正麻烦的不是'怎么流'，是<b>四件事</b>：结束标记怎么判、中途断了怎么办、结构化事件怎么排顺序、以及<b>反向代理的缓冲必须关掉</b>。"</p></blockquote>
+<span class="anch" id="展开讲-6"></span><h3 id="a10_19" class="sec">展开讲</h3>
+<span class="anch" id="第一段-模型侧"></span><h4 id="a10_20" class="sub">第一段：模型侧</h4>
+<p>主流大模型的 API 流式都走 SSE。一次请求，响应的 body 是这样一个流：</p>
+<pre><code>data: {"choices":[{"delta":{"content":"您"}}]}
+
+data: {"choices":[{"delta":{"content":"好"}}]}
+
+data: {"choices":[{"delta":{},"finish_reason":"stop"}]}
+
+data: [DONE]</code></pre>
+<p><b>三个必须知道的细节：</b></p>
+<ol><li><b><code>delta</code> 是增量，不是全量</b> —— 要自己拼。拼错了就会出现"您好，您好，您好"。</li><li><b><code>finish_reason</code> 和 <code>[DONE]</code> 不是一回事</b>。<code>finish_reason: "length"</code> 表示<b>被 max_tokens 截断了</b>，这时候回答是不完整的，要么接着要，要么告诉用户。<b>只看 <code>[DONE]</code> 会把截断当成正常结束。</b></li><li><b>工具调用也是流式的</b>。有些厂商的 <code>tool_calls</code> 参数是<b>分片到达</b>的（一个 JSON 字符串被切成好几段），必须先拼完整再 <code>json.loads</code>，否则解析一定失败。</li></ol>
+<span class="anch" id="第二段-服务侧转发"></span><h4 id="a10_21" class="sub">第二段：服务侧转发</h4>
+<p><b>Python（FastAPI）的两种写法：</b></p>
+<pre data-lang="python"><code># 写法一：原生 StreamingResponse，自己按 SSE 格式拼
+async def gen():
+    async for ev in graph.astream_events(inputs, config, version="v2"):
+        if ev["event"] == "on_chat_model_stream":
+            chunk = ev["data"]["chunk"].content
+            if chunk:
+                yield f"data: {json.dumps({'t': chunk}, ensure_ascii=False)}\n\n"
+    yield "data: [DONE]\n\n"
+
+return StreamingResponse(gen(), media_type="text/event-stream")</code></pre>
+<pre data-lang="python"><code># 写法二：用 sse-starlette 的 EventSourceResponse，它帮你处理心跳和格式</code></pre>
+<blockquote><p><b>★SSE 的帧格式有个死规定</b>：<code>data: xxx</code> 后面必须是<b>两个换行</b> <code>\n\n</code> 才算一帧结束。少一个换行，前端就永远收不到这一条 —— 这是手写 SSE 最常见的 bug。</p></blockquote>
+<p><b>Java 侧消费</b>：用 <code>WebClient</code>（响应式）比 <code>RestTemplate</code> 合适，因为它天生能处理"响应体是一串流"：</p>
+<pre data-lang="java"><code>webClient.post().uri("/inner/ai/chat")
+    .accept(MediaType.TEXT_EVENT_STREAM)
+    .bodyValue(req)
+    .retrieve()
+    .bodyToFlux(String.class)      // 一行一行来
+    .subscribe(chunk -&gt; wsSession.send(AI_STREAM, chunk));</code></pre>
+<blockquote><p><b>★为什么这里必须是 <code>WebClient</code> 不是 <code>RestTemplate</code></b>：<code>RestTemplate</code> 是<b>阻塞 + 攒完整个 body 再返回</b>的模型，用它接 SSE 等于把流式退化成一次性响应，白做了。这个问题很典型，答出来说明真写过。</p></blockquote>
+<span class="anch" id="第三段-浏览器侧"></span><h4 id="a10_22" class="sub">第三段：浏览器侧</h4>
+<p>客服场景<b>已经有一条 WebSocket 了</b>（顾客发消息、坐席回复都走它）。所以 AI 的 token 流不新开通道，<b>复用这条连接</b>，加两个消息类型：</p>
+<div class="tblwrap"><table><thead><tr><th>type</th><th>方向</th><th>内容</th></tr></thead><tbody><tr><td><code>AI_STREAM</code></td><td>服务端 → 浏览器</td><td>一个 token 增量</td></tr><tr><td><code>AI_DONE</code></td><td>服务端 → 浏览器</td><td>结束标记 + 完整答案 + 引用 + 是否转人工</td></tr></tbody></table></div>
+<p>前端收到 <code>AI_STREAM</code> 就往当前气泡里追加文本，收到 <code>AI_DONE</code> 就定格。</p>
+<span class="anch" id="★先正面回答-流式输出的工程难点在哪"></span><h3 id="a10_23" class="sec">★先正面回答：流式输出的工程难点在哪</h3>
+<blockquote><p><b>"能流起来"是框架给的，难的是流到一半出事怎么办。</b></p></blockquote>
+<div class="tblwrap"><table><thead><tr><th>难点</th><th>不处理的后果</th><th>正确做法</th></tr></thead><tbody><tr><td><b>结束标记</b></td><td>截断的回答被当成完整回答</td><td>看 <code>finish_reason</code>，<code>length</code> 要单独处理</td></tr><tr><td><b>中途失败</b></td><td>用户看到半句话就没了，以为系统卡死</td><td><b>已经吐出去的内容收不回来</b> → 要么补一句"（回答中断，请重试）"，要么把这条消息整体标记失败</td></tr><tr><td><b>事件顺序</b></td><td>"是否转人工"生成完才知道，用户白等了 3 秒</td><td><b>先发 <code>meta</code>（引用来源 / 是否转人工），再发 token</b> —— 决策要在生成<b>前</b>定</td></tr><tr><td><b>代理缓冲</b></td><td>本地好好的，一上生产就变成"一次性蹦出来"</td><td>服务端加 <code>X-Accel-Buffering: no</code>，Nginx 关 <code>proxy_buffering</code>，响应头带 <code>Cache-Control: no-cache</code></td></tr><tr><td><b>客户端断开</b></td><td>用户关页面了，服务端还在烧 token</td><td>监听 disconnect，<b>主动取消上游请求</b></td></tr><tr><td><b>并发写同一个气泡</b></td><td>两条流交叉，文字乱序</td><td>每个流带 <code>msgId</code>，前端按 id 找容器</td></tr></tbody></table></div>
+<p><b>★<code>X-Accel-Buffering: no</code> 这个头</b>：这是 SSE 上生产必踩的坑 —— 不加它，Nginx 会把响应缓冲到一定大小或连接结束才吐。<b>这个细节连 MCP 官方规范里都专门写了，说明它是普遍问题。</b></p>
+<span class="anch" id="再结合项目-我们这三段各自是怎么做的"></span><h3 id="a10_24" class="sec">再结合项目：我们这三段各自是怎么做的</h3>
+<div class="tblwrap"><table><thead><tr><th>段</th><th>传输</th><th>具体做法</th></tr></thead><tbody><tr><td>模型 → <code>ai-agent-service</code></td><td><b>SSE</b></td><td>调模型时 <code>stream=True</code>；用 LangGraph 的 <code>astream_events(version="v2")</code> 过滤出 <code>on_chat_model_stream</code> 事件拿增量</td></tr><tr><td><code>ai-agent-service</code> → <code>conversation</code>(Java)</td><td><b>SSE</b></td><td>Python 侧 <code>StreamingResponse</code> + httpx 的 <code>client.stream()</code>；Java 侧 <code>WebClient.bodyToFlux(String.class)</code></td></tr><tr><td><code>conversation</code> → 浏览器</td><td><b>WebSocket</b></td><td><b>复用已有的会话连接</b>，新增 <code>AI_STREAM</code> / <code>AI_DONE</code> 两个消息类型，不新开通道</td></tr></tbody></table></div>
+<p><b>为什么第三段不新开 SSE：</b></p>
+<blockquote><p>"客服这个场景，<b>连接本来就在</b>。顾客进来建立一个 WebSocket，之后发消息、收消息、收 AI 的回复，全在这条连接上。这时候为了 AI 的流式再开一条 SSE，等于<b>同一个页面维护两种长连接</b> —— 断线要重连两条、状态要同步两套、服务端要多一套连接管理。<b>没有任何好处。</b>"</p></blockquote>
+<p><b>我们踩过 / 设计上防住的两个点：</b></p>
+<ol><li><b><code>conversation</code> 是转发方，不是终点</b>。它必须一边收 SSE 一边往 WebSocket 写，<b>不能先收完再发</b> —— 一旦写成"收完整再发"，整个流式就白做了。这个错误在 Java 侧特别容易犯，因为习惯性地 <code>return</code> 一个完整对象。</li><li><b><code>AI_DONE</code> 里必须带完整答案</b>。因为流式过程中前端拼出来的文本可能因为丢包/乱序不完整，<b>以 <code>AI_DONE</code> 里的完整版为准</b>覆盖一次。落库也是用这一份。</li></ol>
+<span class="anch" id="追问预案-18"></span><h3 id="a10_25" class="sec">追问预案</h3>
+<div class="tblwrap"><table><thead><tr><th>追问</th><th>答法</th></tr></thead><tbody><tr><td>"流式了，那 RAG 的引用来源什么时候给？"</td><td>"<b>生成前就给。</b> 引用哪几条知识是检索阶段就确定的，跟生成并行不了但也不依赖生成。所以我们先发一个 <code>meta</code> 事件把引用列表和'是否转人工'的判定推下去，前端立刻能渲染'正在参考：xxx'，然后再开始吐 token。"</td></tr><tr><td>"用户看到一半关了页面，会怎么样？"</td><td>"服务端监听到 WebSocket 断开 → 取消上游的 SSE 订阅 → 上游再取消对模型的请求。<b>不取消的话，模型会一直生成到结束</b>，token 是照扣的。这是流式方案里最容易被忽略的成本项。"</td></tr><tr><td>"怎么判断流是正常结束还是断了？"</td><td>"正常结束一定有 <code>AI_DONE</code> 且 <code>finish_reason=stop</code>；收到 <code>length</code> 就是被截断；<b>连接关了但没收到 <code>AI_DONE</code></b> 就是异常中断。前端对这三种要分别处理，不能都当成'结束'。"</td></tr><tr><td>"流式会不会影响后置校验？"</td><td>"<b>会，而且这是个真问题。</b> 如果我们边生成边推给用户，等生成完再检查有没有违规词，那时候用户已经看到了。所以我们的取舍是：<b>敏感词这类硬校验，在推流的同时做增量检查</b>，命中就立刻中断并替换成兜底话术；<b>幻觉/引用校验这类需要完整答案的，只能在生成后做，做的是'标记'而不是'撤回'</b>。"</td></tr><tr><td>"为什么不用 WebSocket 一撸到底，中间也用它？"</td><td>"<b>中间那两段是 HTTP 请求-响应，天然就该用 HTTP 传流。</b> 用 WebSocket 意味着 Python 和 Java 之间要维护长连接、要自己做重连和心跳 —— 而这本来是一次性的服务调用，用 HTTP 最省事，还能天然吃到网关的鉴权、限流、超时和日志。"</td></tr></tbody></table></div>
+<hr>
+<span class="anch" id="第四题-为什么选-sse-做-agent-流式-而不是-websocket"></span><h2 id="a10_26" class="part">第四题：为什么选 SSE 做 Agent 流式，而不是 WebSocket？</h2>
+<span class="anch" id="30-秒版-18"></span><h3 id="a10_27" class="sec">30 秒版</h3>
+<blockquote><p>"<b>我的判据只有一条：这条链路需不需要客户端在同一条连接上往回发东西。</b> 不需要就是单向推送，SSE 更合适；需要双工，才上 WebSocket。</p>
+<p>SSE 的优势是<b>它就是个普通 HTTP 响应</b> —— 走标准端口、过网关不用特殊配置、鉴权复用 HTTP 头、浏览器原生支持自动重连、服务端<b>不持有每连接状态</b>所以好扩容。</p>
+<p>WebSocket 的优势是<b>双工 + 二进制 + 不受浏览器同域连接数限制</b>，代价是你要自己维护连接表、心跳、重连、路由 —— 我们模块一那个'多实例消息路由'的难题，就是因为用了 WebSocket 才有的。</p>
+<p><b>所以在我们项目里，答案不是二选一</b>：模型侧和服务间那两段只用单向推流，用 SSE；浏览器那一侧本来就是双工，本来就是 WebSocket，就复用它。"</p></blockquote>
+<span class="anch" id="展开讲-逐项对比"></span><h3 id="a10_28" class="sec">展开讲：逐项对比</h3>
+<div class="tblwrap"><table><thead><tr><th>维度</th><th>SSE</th><th>WebSocket</th></tr></thead><tbody><tr><td><b>方向</b></td><td>单向：服务端 → 客户端</td><td><b>双向</b></td></tr><tr><td><b>协议</b></td><td>就是 HTTP，<code>Content-Type: text/event-stream</code></td><td>独立协议，HTTP <code>Upgrade</code> 握手后脱离 HTTP</td></tr><tr><td><b>端口</b></td><td>80/443，和普通请求一样</td><td>一般也是 80/443，但网关要支持 Upgrade</td></tr><tr><td><b>数据格式</b></td><td>只能 UTF-8 文本（二进制要 base64）</td><td>文本 + 二进制帧</td></tr><tr><td><b>自动重连</b></td><td><b>原生</b>：<code>EventSource</code> 断了自动重连，还会带 <code>Last-Event-ID</code> 让服务端续传</td><td><b>要自己写</b>：重连策略、重连后补哪些消息、怎么去重</td></tr><tr><td><b>鉴权</b></td><td>复用 HTTP 头 / Cookie，跟普通接口一样</td><td>握手阶段受限 —— <b>浏览器 WebSocket API 不能自定义 header</b>，只能靠 URL 参数、子协议或 Cookie</td></tr><tr><td><b>服务端连接状态</b></td><td><b>无</b>：一次请求一个响应流，结束就完了</td><td><b>有</b>：要维护"谁连在哪台机器上"，这才有了路由表、心跳、僵尸连接</td></tr><tr><td><b>水平扩容</b></td><td>简单，请求打到哪台都行</td><td>麻烦，<b>必须解决"消息要送到持有连接的那台"</b></td></tr><tr><td><b>代理/负载均衡兼容</b></td><td>好（但要注意缓冲）</td><td>要确保每一层都支持 Upgrade 且超时够长</td></tr><tr><td><b>浏览器并发限制</b></td><td>HTTP/1.1 下同域约 <b>6 个连接</b>（HTTP/2 没有这个限制）</td><td>不受这个限制</td></tr><tr><td><b>适合的场景</b></td><td>token 流、进度通知、状态推送、日志尾随</td><td>聊天、协同编辑、实时游戏、需要客户端主动高频上行的场景</td></tr></tbody></table></div>
+<span class="anch" id="sse-的三个真实短板-要能主动说出来"></span><h4 id="a10_29" class="sub">SSE 的三个真实短板（要能主动说出来）</h4>
+<ol><li><b>HTTP/1.1 下同域最多 6 个连接</b>。如果在同一个页面开好几条 SSE，第 7 条会挂起等前面释放。<b>解法</b>：上 HTTP/2（多路复用解决了这个），或者一条 SSE 里用 <code>event:</code> 字段区分多种消息类型（我们用的是后者思路）。</li><li><b><code>EventSource</code> 只支持 GET，不能带自定义 header</b>。所以<b>不能直接用它带 JWT</b>。生产上基本都改用 <code>fetch</code> + <code>ReadableStream</code> 手动解析 SSE 帧 —— 这样能 POST、能加 header、能 <code>AbortController</code> 中断。</li><li><b>只能传文本</b>。传二进制得 base64，会多 33% 体积。</li></ol>
+<span class="anch" id="那-websocket-的代价具体是什么"></span><h4 id="a10_30" class="sub">那 WebSocket 的代价具体是什么</h4>
+<blockquote><p><b>我们模块一踩过的那个坑，就是 WebSocket 的代价本身。</b></p></blockquote>
+<p>用了 WebSocket 之后，服务端必须知道"坐席 A 连在哪台实例上"。多副本一上，就出现了：</p>
+<ul><li><b>消息路由</b>：顾客消息被实例 2 收到，但坐席 A 连在实例 1 上 —— 要有路由表（我们用 Redis）+ 跨实例转发（Redis Pub/Sub）；</li><li><b>僵尸路由</b>：会话结束了但路由 key 没删，消息投给一个不存在的连接；</li><li><b>心跳与重连</b>：要自己定心跳间隔、判活、重连后补拉断线期间的消息；</li><li><b>连接数管理</b>：要限制单实例连接数，才能安全扩缩容。</li></ul>
+<p><b>这些成本，SSE 一个都没有</b> —— 因为 SSE 服务端根本不持有连接状态，它就是一个还没写完的 HTTP 响应。</p>
+<span class="anch" id="★先正面回答-判据-以及什么情况下必须用-websocket"></span><h3 id="a10_31" class="sec">★先正面回答：判据、以及什么情况下必须用 WebSocket</h3>
+<p><b>判据（一句话）：</b></p>
+<blockquote><p><b>"客户端需不需要在同一条已建立的连接上，频繁地往回发数据？"</b> 不需要 → SSE。需要 → WebSocket。</p></blockquote>
+<p>再加三条辅助判据：</p>
+<div class="tblwrap"><table><thead><tr><th>如果……</th><th>选 SSE</th><th>选 WebSocket</th></tr></thead><tbody><tr><td>数据只需要<b>单向</b>流动</td><td>✅</td><td></td></tr><tr><td>客户端要<b>高频、低延迟地上行</b></td><td></td><td>✅</td></tr><tr><td>要传<b>二进制</b>（音视频帧、文件流）</td><td></td><td>✅</td></tr><tr><td>要穿过一堆<b>老网关 / 老负载均衡</b></td><td>✅</td><td></td></tr><tr><td>需要<b>自动重连</b>且不想自己写</td><td>✅</td><td></td></tr><tr><td>一条连接上要<b>多路复用很多种消息</b></td><td></td><td>✅</td></tr></tbody></table></div>
+<p><b>反过来，什么时候 SSE 一定赢：</b></p>
+<ul><li><b>它就是一次"慢一点的 HTTP 响应"</b> —— 不用改任何基础设施；</li><li><b>服务端无状态</b> —— 想扩几个副本就扩几个，不用做连接路由；</li><li><b>失败模型简单</b> —— 断了就是这次请求失败，重发一次即可，不用考虑"重连后状态怎么同步"。</li></ul>
+<p><b>什么时候必须上 WebSocket：</b> 需要<b>双工</b>、需要<b>二进制</b>、或者<b>上行频率高到不值得每次发 HTTP 请求</b>（比如协同编辑、实时游戏、语音流）。</p>
+<span class="anch" id="再结合项目-我们是按段选的-不是全局选了一个"></span><h3 id="a10_32" class="sec">再结合项目：我们是按段选的，不是全局选了一个</h3>
+<div class="tblwrap"><table><thead><tr><th>段</th><th>需不需要双工</th><th>选了什么</th><th>理由</th></tr></thead><tbody><tr><td>模型 → <code>ai-agent-service</code></td><td>不需要（而且<b>没得选</b>）</td><td><b>SSE</b></td><td>厂商 API 给的就是 SSE</td></tr><tr><td><code>ai-agent-service</code> → <code>conversation</code></td><td>不需要</td><td><b>SSE</b></td><td>一次服务调用，走 HTTP 最省事，天然吃网关的鉴权/超时/日志，服务端无状态好扩容</td></tr><tr><td><code>conversation</code> → 浏览器</td><td><b>需要</b></td><td><b>WebSocket</b></td><td>顾客要发消息、坐席要回复，本来就是双工；而且<b>连接已经在了，复用它</b></td></tr></tbody></table></div>
+<blockquote><p><b>★这句是本题的收尾，要说得干脆</b>： "所以在我们的系统里，不存在'SSE 还是 WebSocket'这个二选一。<b>单向的那两段用 SSE，双工的那一段本来就有 WebSocket。</b> 如果在一段只需要服务端推流的地方硬上 WebSocket，那是拿'连接表 + 心跳 + 重连 + 跨实例路由'这一整套复杂度，去换一个根本用不上的上行能力。"</p></blockquote>
+<p><b>一个能体现取舍的点：<code>/api/ai/chat</code> 为什么对外是 SSE？</b></p>
+<blockquote><p>"因为这个接口的调用方<b>不是</b>那个已经连着 WebSocket 的顾客页面，而是<b>坐席工作台的一次性请求</b>（AI 辅助回复、知识推荐）和不支持长连接的外部渠道。这类调用方<b>没有现成的双工连接</b>，为它们专门维护一条 WebSocket 不划算 —— 所以给一个标准 SSE 接口，用完就断。"</p></blockquote>
+<span class="anch" id="追问预案-19"></span><h3 id="a10_33" class="sec">追问预案</h3>
+<div class="tblwrap"><table><thead><tr><th>追问</th><th>答法</th></tr></thead><tbody><tr><td>"SSE 断了怎么办？"</td><td>"<b>轻量场景靠原生能力</b>：<code>EventSource</code> 会自己重连，还会带 <code>Last-Event-ID</code>，服务端可以按它续传。<b>我们这种 token 流不适合续传</b> —— 重连后让服务端<b>重新生成一遍</b>更简单，因为半截的回答本来也没法接着生成。前端把已收到的内容清掉重来。"</td></tr><tr><td>"HTTP/1.1 六连接限制你们怎么处理？"</td><td>"我们<b>顾客侧只有一条 WebSocket，没有 SSE</b>，所以不受影响；对外那个 <code>/api/ai/chat</code> 是坐席工作台调用，一个页面同时最多开一两条。真要开很多条，正解是上 <b>HTTP/2</b>（多路复用）或者把多种消息合并进一条流、用 <code>event:</code> 字段区分类型。"</td></tr><tr><td>"为什么不用 gRPC streaming？"</td><td>"<b>浏览器侧不支持</b> —— gRPC 需要 HTTP/2 + 特定帧格式，浏览器得靠 grpc-web 中间层转，反而更复杂。<b>服务间（Python ↔ Java）如果追求性能和强类型，gRPC streaming 是好选择</b>，但我们这套服务间调用本来就是普通 JSON HTTP，为了一个流改成 gRPC 不划算。"</td></tr><tr><td>"SSE 怎么做心跳？"</td><td>"发注释行。<b>以冒号开头的一行 SSE 注释会被客户端忽略</b>，但能保活、能穿过中间层的空闲超时 —— 定期发一个 <code>:\n\n</code> 就行。规范里对长连接流也是这么建议的。"</td></tr><tr><td>"WebSocket 那边你们怎么保证消息不丢？"</td><td>"<b>WebSocket 本身不保证</b>。我们靠三层：<b>① 消息先落库再推</b>，断了能从库里补；<b>② 重连时按最后一条消息 id 补拉</b>；<b>③ 实时投递走 Redis 路由表 + Pub/Sub 转发到持有连接的那台实例</b> —— 注意<b>实时投递不走 Kafka</b>，Kafka 是消费组模型，保证不了'送到持有连接的那台'，它只负责持久化、回放和异步业务。"</td></tr></tbody></table></div>
+<hr>
+<span class="anch" id="第五题-你们-agent-的会话记忆是怎么实现的-用的什么存储方案"></span><h2 id="a10_34" class="part">第五题：你们 Agent 的会话记忆是怎么实现的？用的什么存储方案？</h2>
+<span class="anch" id="30-秒版-19"></span><h3 id="a10_35" class="sec">30 秒版</h3>
+<blockquote><p>"先分清楚<b>两个容易混的东西</b>：</p>
+<p><b>一是'记忆'</b> —— 给模型看的对话内容，目的是<b>让回答有上下文</b>。 <b>二是'执行状态'</b> —— LangGraph 的 checkpoint，记的是<b>图跑到哪个节点、中间结果是什么</b>，目的是<b>断点恢复、多副本一致、人工介入后能接着跑</b>。</p>
+<p>这两个东西<b>存储不同、TTL 不同、生命周期也不同</b>，不能混着说。</p>
+<p><b>记忆我们是三层</b>：短期 Redis 存最近 10 轮、30 分钟过期；中期会话结束后异步生成<b>结构化摘要</b>写 MySQL；长期全量消息落库、按顾客维度建向量索引，需要时<b>语义召回</b>而不是全塞进去。</p>
+<p><b>执行状态用 Redis Stack 存 checkpoint</b>（它依赖 RedisJSON + RediSearch，普通 Redis 起不来），按 <code>thread_id</code> 隔离、TTL 120 分钟、会话关闭时主动删。</p>
+<p><b>核心一句话：不是'存多久'，是'检索什么'</b> —— 超过上下文窗口的内容靠召回，不靠堆。"</p></blockquote>
+<span class="anch" id="展开讲-方案一共有几类"></span><h3 id="a10_36" class="sec">展开讲：方案一共有几类</h3>
+<div class="tblwrap"><table><thead><tr><th>方案</th><th>做法</th><th>优点</th><th>缺点</th></tr></thead><tbody><tr><td><b>① 全量塞窗口</b></td><td>历史全塞进 Prompt</td><td>最简单，信息无损</td><td>窗口一满就爆；越长越贵越慢</td></tr><tr><td><b>② 滑动窗口</b></td><td>只留最近 N 轮</td><td>成本可控</td><td><b>早期的关键信息直接丢了</b>（顾客 20 轮前说过"我要退货"，第 21 轮就忘了）</td></tr><tr><td><b>③ 窗口 + 滚动摘要</b></td><td>超窗口的部分压成摘要</td><td>保留长程信息</td><td>摘要有损，且<b>摘要本身也要花一次模型调用</b></td></tr><tr><td><b>④ 分层（短/中/长）</b></td><td>热数据、摘要、向量召回分开存</td><td>各取所长，可分别优化</td><td>实现复杂，要处理一致性和生命周期</td></tr><tr><td><b>⑤ 框架托管</b></td><td>LangGraph checkpointer / LangChain <code>ChatMessageHistory</code> / Spring AI <code>ChatMemory</code></td><td>开箱即用，和编排天然集成</td><td>存储格式耦合框架，换框架要迁移</td></tr></tbody></table></div>
+<p><b>存储选型的四个判据</b>（被问"为什么用 Redis 不用 MySQL"就答这个）：</p>
+<div class="tblwrap"><table><thead><tr><th>判据</th><th>指向</th></tr></thead><tbody><tr><td><b>读写频率</b></td><td>每轮对话都要读 → 走内存（Redis）</td></tr><tr><td><b>生命周期</b></td><td>30 分钟就过期 → 天然适合 TTL 的存储</td></tr><tr><td><b>要不要按语义检索</b></td><td>要 → 向量库；不要 → 关系库</td></tr><tr><td><b>要不要断点恢复</b></td><td>要 → 得存整个执行状态，不只是 messages</td></tr></tbody></table></div>
+<span class="anch" id="★先正面回答-我会怎么选"></span><h3 id="a10_37" class="sec">★先正面回答：我会怎么选</h3>
+<blockquote><p><b>"没有一个方案是普适的，看三个问题：对话多长、错一次的代价多大、预算多少。"</b></p></blockquote>
+<div class="tblwrap"><table><thead><tr><th>场景</th><th>我会选</th></tr></thead><tbody><tr><td>一问一答、<b>几乎无多轮</b>（比如查天气）</td><td>不要记忆，<b>每轮独立</b>最省</td></tr><tr><td>短会话、<b>轮数可预期</b>（客服、下单助手）</td><td><b>滑动窗口 + 分层</b>：Redis 存最近 N 轮，超出的做摘要</td></tr><tr><td>长会话、<b>早期信息很关键</b>（法律咨询、技术支持工单）</td><td><b>必须加向量召回</b> —— 靠窗口一定会丢关键信息</td></tr><tr><td>需要<b>人工介入后接着跑</b>、要<b>时间旅行</b>调试</td><td><b>必须用框架的 checkpointer</b>，不能只存 messages</td></tr></tbody></table></div>
+<p><b>几个我认为重要的原则：</b></p>
+<ol><li><b>存的比用的多。</b> 存 10 轮不代表每轮都发 10 轮 —— 发之前要按<b>上下文预算裁剪</b>：系统提示词、召回片段优先，然后才是最近的几轮。</li><li><b>摘要要结构化，不要自由发挥。</b> 让模型输出固定几段（诉求 / 已给方案 / 结论 / 情绪），比让它写一段自然语言摘要更可控、更好检索。</li><li><b>记忆和权限绑在一起。</b> 多客户系统里，<b>记忆的隔离级别必须和数据的隔离级别一致</b> —— 记错了客户就是数据泄露，不是"回答不准"。</li></ol>
+<span class="anch" id="再结合项目-三层记忆-一套-checkpoint"></span><h3 id="a10_38" class="sec">再结合项目：三层记忆 + 一套 checkpoint</h3>
+<span class="anch" id="记忆的三层"></span><h4 id="a10_39" class="sub">记忆的三层</h4>
+<div class="tblwrap"><table><thead><tr><th>层</th><th>存什么</th><th>存哪</th><th>生命周期</th><th>怎么用</th></tr></thead><tbody><tr><td><b>短期</b></td><td>最近 <b>10 轮</b>原文</td><td><b>Redis</b>（业务缓存实例，独立 key 前缀）</td><td><b>TTL 30 分钟</b></td><td>每次调模型直接拼进 Prompt</td></tr><tr><td><b>中期</b></td><td><b>结构化摘要</b>：诉求 / 已给方案 / 结论 / 情绪</td><td><b>MySQL</b> 摘要表</td><td>长期保留</td><td>顾客再次进来时按需加载</td></tr><tr><td><b>长期</b></td><td>全量消息 + 按顾客维度的向量索引</td><td><b>MySQL</b>（消息表）+ <b>PGVector</b></td><td>长期保留</td><td><b>语义检索召回</b>相关历史片段</td></tr></tbody></table></div>
+<p><b>几个数字为什么是这几个数：</b></p>
+<ul><li><b>10 轮</b>：客服场景一次完整咨询大约就是"问规则 → 追问 → 确认 → 结束"，10 轮够用。<b>再多的边际收益很低、成本线性上涨</b>（每多一轮，每次调用都多付一次 token）。<b>这是设计中的经验值，不是调出来的最优值。</b></li><li><b>30 分钟</b>：顾客中途走开再回来，通常在这个时间内；超时说明是新的一次咨询，<b>接着上一轮的上下文反而会误导</b>。</li><li><b>内存量级</b>：单会话 10 轮约 <b>12~15KB</b>（文本约 6KB + JSON 结构 + Redis 对象开销），峰值同时缓存约 <b>1600 个会话 ≈ 20~25MB</b>。<b>对 Redis 来说是零头，所以这里不需要做任何存储优化。</b></li></ul>
+<blockquote><p>★这几个数在《面试题-2026-10-13-老师模拟面》第六题里有完整算法（含 UTF-8 字节数、JSON 开销比例、Redis 对象头、峰值系数），<b>被追问时翻那一份</b>。</p></blockquote>
+<span class="anch" id="执行状态-langgraph-的-checkpointer"></span><h4 id="a10_40" class="sub">执行状态：LangGraph 的 checkpointer</h4>
+<div class="tblwrap"><table><thead><tr><th>项</th><th>我们的做法</th></tr></thead><tbody><tr><td><b>存什么</b></td><td>整个图状态：走到哪个节点、中间结果、待执行的工具调用、messages</td></tr><tr><td><b>存哪</b></td><td><b>Redis Stack</b>（RedisJSON + RediSearch）—— 普通 Redis 起不来，<code>setup()</code> 建索引那步就会报错</td></tr><tr><td><b>隔离维度</b></td><td><code>thread_id = {tenant_id}:{session_id}</code> —— <b>必须带客户前缀</b>，否则不同客户的相同 sessionId 会串台</td></tr><tr><td><b>TTL</b></td><td><b>120 分钟</b>，并且开 <code>refresh_on_read</code>（读到就续期）</td></tr><tr><td><b>清理</b></td><td><b>两层</b>：TTL 兜底 + 会话 <code>close</code> 时主动 <code>delete_thread</code></td></tr><tr><td><b>并发</b></td><td>按 <code>thread_id</code> 加分布式锁，防止同会话两个请求互相覆盖</td></tr></tbody></table></div>
+<p><b>★为什么 TTL 是 120 分钟，不是和记忆的 30 分钟一样？</b></p>
+<blockquote><p>"因为<b>它们是两个东西</b>。记忆的 30 分钟是'顾客走开就当他没来过'；checkpoint 的 120 分钟是'顾客去做别的事了，回来还想从上次的断点接着跑'。<b>恢复一个执行状态的时限，本来就比继续一段对话要宽。</b> 而且 checkpoint 里还有工具调用的中间结果，那些东西丢了就得重跑，<b>重跑意味着再花一次工具调用和一次模型调用的钱</b>，所以给它更长的窗口。"</p></blockquote>
+<p><b>为什么清理必须是两层：</b></p>
+<blockquote><p>"<b>只靠 TTL</b>：长会话中途被清掉，Agent 会突然'失忆' —— 顾客咨询到第 150 分钟、中间一直没人说话，超过 120 分钟没被读，checkpoint 过期了。 <b>只靠主动清理</b>：异常断开的会话永远不会走 <code>close</code>，Redis 会被撑爆。 <b>两个都要。</b>"</p></blockquote>
+<span class="anch" id="★记忆和-checkpoint-的重叠与区别-本题最值钱的一段"></span><h4 id="a10_41" class="sub">★记忆和 checkpoint 的重叠与区别（本题最值钱的一段）</h4>
+<div class="tblwrap"><table><thead><tr><th></th><th>三层记忆</th><th>checkpoint</th></tr></thead><tbody><tr><td><b>目的是什么</b></td><td>给模型提供对话上下文</td><td>让图能<b>断点恢复 / 多副本一致 / 人工介入后继续</b></td></tr><tr><td><b>里面有什么</b></td><td>对话轮次、摘要、向量索引</td><td>图状态 + messages + 中间结果 + 待执行节点</td></tr><tr><td><b>谁会读它</b></td><td>拼 Prompt 的那段代码</td><td>LangGraph 运行时</td></tr><tr><td><b>丢了会怎样</b></td><td>回答变笨、重复提问</td><td><b>执行中断，要重跑，可能重复调用工具</b></td></tr><tr><td><b>TTL</b></td><td>30 分钟</td><td>120 分钟</td></tr></tbody></table></div>
+<blockquote><p>"它们<b>有重叠</b>（checkpoint 里也存了 messages），但<b>目的和生命周期不同</b>。<b>把 checkpoint 当成'会话记忆'用是能跑，但那是搭便车</b> —— 一旦你要换编排框架，记忆全在里面，迁移成本很高。我们这两套是分开的。"</p></blockquote>
+<span class="anch" id="追问预案-20"></span><h3 id="a10_42" class="sec">追问预案</h3>
+<div class="tblwrap"><table><thead><tr><th>追问</th><th>答法</th></tr></thead><tbody><tr><td>"多副本部署，同一个会话的两次请求打到不同实例，会怎样？"</td><td>"<b>会互相覆盖。</b> 两个实例都读同一个 <code>thread_id</code> 的 checkpoint，都从同一状态开始跑，后写的覆盖先写的，<b>一条消息的执行结果就丢了</b>。所以按 <code>thread_id</code> 加分布式锁，拿不到的排队等前一个跑完。<b>这和模块一'消息按 sessionId 分区保序'是同一个思想：凡是同一会话内必须有序的地方，都要串行化。</b>"</td></tr><tr><td>"Redis 挂了，记忆和 checkpoint 都没了？"</td><td>"<b>记忆没事，checkpoint 会丢正在跑的那一轮。</b> 记忆的原文是<b>先落 MySQL 再写 Redis</b> 的，Redis 挂了能从库里重建最近几轮；checkpoint 是纯执行状态，挂了就是这一轮要重跑 —— 所以我们的写工具（建工单、登记回访）<b>必须带幂等键</b>，否则重跑会重复建单。"</td></tr><tr><td>"10 轮是每次都全塞进 Prompt 吗？"</td><td>"<b>不是，10 轮是留存上限，不是发送量。</b> 发之前按上下文预算裁剪：系统提示词和召回片段优先，然后才是最近的几轮。"</td></tr><tr><td>"顾客聊了 50 轮怎么办？"</td><td>"<b>靠三层记忆接住。</b> 短期那 10 轮是热数据；中间的部分会话结束时压成结构化摘要；<b>更早的进向量索引，需要时语义召回</b>。关键是<b>不是'存多久'，是'检索什么'</b> —— 顾客提一句'我上次说的那个退货'，靠语义检索能把 30 轮前那条捞回来，靠窗口永远捞不到。"</td></tr><tr><td>"为什么不用官方的 MemorySaver？"</td><td>"<b>MemorySaver 是纯内存的，只适合本地开发。</b> 多副本一上就丢 —— 请求落到另一个实例，状态就没了，Agent 会莫名其妙'从头开始'。生产必须换 Redis 或 PostgreSQL 的 checkpointer。"</td></tr><tr><td>"换成 MySQL 存 checkpoint 行不行？"</td><td>"<b>行，官方有 Postgres 的实现，MySQL 要自己写或找社区版。</b> 取舍是：<b>Redis 快、天然带 TTL，适合高频读写</b>；<b>关系库好做审计和查询，但每次状态读写都是一次 IO</b>。我们选 Redis 是因为它同时还是业务缓存，运维面少一套。"</td></tr><tr><td>"记忆里存的东西合规吗？"</td><td>"<b>判定标准不是'明密文'，是《个人信息保护法》那五条</b> —— 告知同意、最小必要、目的限定、保留期限、访问控制。我们做的是：<b>按保留期清理</b>（30 分钟 TTL 就是保留期限的体现）、<b>访问控制</b>（记忆 key 带客户前缀，业务层强制按身份过滤）、<b>进 Prompt 前脱敏</b>（手机号、地址打码）。<b>加密是安全保障的一条手段，不是合规的判定标准。</b>"</td></tr></tbody></table></div>
+<hr>
+<span class="anch" id="附一-这五题的一页速记"></span><h2 id="a10_43" class="part">附一：这五题的一页速记</h2>
+<div class="tblwrap"><table><thead><tr><th>题</th><th>一句话骨架</th><th>必须说出口的那句</th></tr></thead><tbody><tr><td><b>1. MCP 调用链路</b></td><td>启动发现（<code>tools/list</code>）→ 每轮 <code>tools/call</code> → JSON-RPC 跨进程 → 回填 → 循环</td><td><b>"链路没变，变的是执行那一段从'进程内函数调用'变成了'跨进程协议调用'。"</b></td></tr><tr><td><b>2. MCP 解决什么</b></td><td>N×M 变 N+M；工具所有权解耦；生态可发现</td><td><b>"它不解决工具选得准不准 —— 那是模型和 Schema 的事。"</b></td></tr><tr><td><b>3. 流式怎么实现</b></td><td>模型侧 SSE → 服务间 SSE → 浏览器复用 WebSocket；四件事：结束标记 / 中途失败 / 事件顺序 / 关缓冲</td><td><b>"能流起来是框架给的，难的是流到一半出事怎么办。"</b></td></tr><tr><td><b>4. 为什么 SSE 不用 WS</b></td><td>判据 = 要不要双工；SSE 是无状态 HTTP 响应，WS 要维护连接表</td><td><b>"我们不是二选一：单向的两段用 SSE，双工的那段本来就是 WebSocket。"</b></td></tr><tr><td><b>5. 会话记忆</b></td><td>三层记忆（Redis 10 轮 / MySQL 摘要 / 向量召回）+ 一套 checkpoint</td><td><b>"记忆和执行状态是两个东西，两套存储、两个 TTL。"</b></td></tr></tbody></table></div>
+<hr>
+<span class="anch" id="附二-红线自查-出门前扫一眼"></span><h2 id="a10_44" class="part">附二：红线自查（出门前扫一眼）</h2>
+<ul><li>[ ] 第一题<b>没有</b>一开口就说"我们没用 MCP"，而是先把链路推演完。</li><li>[ ] 提到 MCP 传输时<b>说了 stdio</b>，<b>没有</b>说"用 MCP 一定多一跳网络"。</li><li>[ ] 第二题讲了 <b>Tools / Resources / Prompts 三类</b>，不是只讲 Tools。</li><li>[ ] 第三题<b>没有</b>说"我们全链路都是 SSE"，三段分开讲了。</li><li>[ ] 第三题提到了 <b><code>X-Accel-Buffering: no</code></b> 或"代理缓冲"这个坑。</li><li>[ ] 第三题<b>没有</b>说 Java 侧用 <code>RestTemplate</code> 收 SSE（那是退化成一次性响应）。</li><li>[ ] 第四题<b>没有</b>把 SSE 和 WebSocket 说成对立面，讲的是<b>按段选</b>。</li><li>[ ] 第四题<b>主动</b>说了 SSE 的短板（6 连接限制 / EventSource 不能带 header / 只能传文本）。</li><li>[ ] 第五题<b>主动</b>区分了"记忆"和"checkpoint"。</li><li>[ ] 第五题解释了<b>为什么两个 TTL 不一样</b>（30 分钟 vs 120 分钟）。</li><li>[ ] 所有数字都<b>没有</b>编：10 轮、30 分钟、120 分钟、12~15KB、8 个工具、0.72、0.60。</li><li>[ ] 没有出现"注册 / 试用 / 订阅 / 官网 / 租户"（说的是"客户"）。</li><li>[ ] 没有给前公司负面评价。</li></ul>
 </section>
 
 </div>
