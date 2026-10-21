@@ -21,7 +21,8 @@ import tab4 from './components/tabs/tab4.vue'
 import config from './config.js'
 import { getCookie } from './utils/cookieUtils.js'
 import { setMeta, getFormattedTime, getFormattedDate, dataConsole } from './utils/common.js'
-import { loadAvatar, cachedAvatar, onAvatarChange } from './utils/avatar.js'
+import { loadAvatar, cachedAvatar, canEditAvatar, onAvatarChange } from './utils/avatar.js'
+import { wallpaperUrl, WALLPAPER_WAIT_MS } from './utils/wallpaper.js'
 import { useDisplay } from 'vuetify'
 
 export default {
@@ -120,20 +121,28 @@ export default {
     this.avatarOff = onAvatarChange((value) => { this.avatarCustom = value })
     loadAvatar().then((value) => { this.avatarCustom = value })
 
-    // Load wallpaper + wait for it
+    // Load wallpaper + wait for it (bounded by WALLPAPER_WAIT_MS)
     await this.initBackground()
     this.formattedTime = this.getFormattedTime(new Date())
     this.formattedDate = this.getFormattedDate(new Date())
-    setTimeout(() => { this.isloading = false }, 500)
+    // `initBackground()` already caps how long the desk waits for the picture.
+    // The old unconditional 500ms parked on top of that was pure padding: on a
+    // phone it meant half a second of blank navy after everything was ready.
+    this.isloading = false
 
     setInterval(() => {
       this.formattedTime = this.getFormattedTime(new Date())
     }, 1000)
 
-    await this.getMusicInfo()
     this.setupAudioListener()
-    await this.loadTodayDiary()
+    // The playlist comes from a third-party host (api.i-meto.com) and is
+    // routinely the slowest request on a phone. Nothing on the first screen
+    // needs it, so it waits until the desk is up instead of competing for a
+    // connection slot with the CSS/JS that actually paint the page.
+    this.whenIdle(() => this.getMusicInfo())
+    this.loadTodayDiary()
   },
+
   beforeDestroy() {
     this.$refs.audioPlayer?.removeEventListener('ended', this.nextTrack)
   },
@@ -159,6 +168,14 @@ export default {
     },
   },
   methods: {
+    /** Run work once the first screen is up and the main thread is free. */
+    whenIdle(fn) {
+      if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
+        window.requestIdleCallback(fn, { timeout: 2500 })
+      } else {
+        setTimeout(fn, 1200)
+      }
+    },
     // Opening the cropper from inside the settings dialog would put it BEHIND
     // Vuetify's overlay (the overlay's z-index is far above any component
     // layer), so the dialog is dismissed first: two stacked modals is also a
@@ -192,31 +209,40 @@ export default {
       const device = this.xs ? 'mobile' : 'pc'
 
       if (bg?.[device]?.type === 'pic') {
-        root.style.setProperty('--leleo-background-image-url', `url('${bg[device].datainfo.url}')`)
-        this.imageurl = bg[device].datainfo.url
+        const url = wallpaperUrl(bg[device].datainfo.url, device)
+        root.style.setProperty('--leleo-background-image-url', `url('${url}')`)
+        this.imageurl = url
       } else if (bg?.[device]?.type === 'video') {
         this.videosrc = bg[device].datainfo.url
       }
 
-      // Wait for background to load
-      if (this.imageurl) {
-        await new Promise((resolve) => {
-          const img = new Image()
-          img.onload = resolve
-          img.onerror = resolve
-          img.src = this.imageurl
-          setTimeout(resolve, 2500)
-        })
-      } else if (this.videosrc) {
-        await new Promise((resolve) => {
-          const video = this.$refs.VdPlayer
-          if (video) {
-            video.onloadedmetadata = () => setTimeout(resolve, 200)
-            video.onerror = resolve
-          }
-          setTimeout(resolve, 2500)
-        })
-      }
+      // The wallpaper used to be awaited before the loading overlay came off,
+      // with a 2.5s timeout. It is 690 KB behind a brightness filter — on a
+      // phone that is several seconds of empty screen for a picture the visitor
+      // can barely see through. It now gets a bounded head start and then the
+      // desk appears regardless; the browser keeps painting it in as it arrives.
+      const ready = this.imageurl ? this.preloadImage(this.imageurl) : this.videoReady()
+      await Promise.race([ready, new Promise((r) => setTimeout(r, WALLPAPER_WAIT_MS))])
+    },
+
+    /** Resolve when the picture has decoded, or immediately if it fails. */
+    preloadImage(url) {
+      return new Promise((resolve) => {
+        const img = new Image()
+        img.onload = resolve
+        img.onerror = resolve
+        img.src = url
+      })
+    },
+
+    /** Same idea for a video wallpaper: metadata only, never the whole file. */
+    videoReady() {
+      const video = this.$refs.VdPlayer
+      if (!video) return Promise.resolve()
+      return new Promise((resolve) => {
+        video.addEventListener('loadedmetadata', resolve, { once: true })
+        video.addEventListener('error', resolve, { once: true })
+      })
     },
 
     // Music (kept from original)
@@ -226,9 +252,14 @@ export default {
         const response = await fetch(`https://api.i-meto.com/meting/api?server=${this.configdata.musicPlayer.server}&type=${this.configdata.musicPlayer.type}&id=${this.configdata.musicPlayer.id}`)
         if (!response.ok) throw new Error('Network error')
         this.musicinfo = await response.json()
-        this.musicinfoLoading = false
       } catch (error) {
         console.error('Music load failed:', error)
+      } finally {
+        // App.vue mounts tab-3 only when this flag is false (`v-if=
+        // "item.value !== 'tab-3' || !musicinfoLoading"`), so leaving it
+        // stuck on the error path meant a failed playlist call blanked the
+        // music tab forever. Clear it either way.
+        this.musicinfoLoading = false
       }
     },
     setupAudioListener() {
@@ -275,6 +306,15 @@ export default {
 
     // Diary
     async loadTodayDiary() {
+      // The diary API sits behind the owner gate, so for a visitor this request
+      // is a guaranteed 401 — a full round trip (and a session check at the
+      // edge) to learn something the browser can be told for free. The avatar
+      // request already asks the server who we are; wait for that answer.
+      await loadAvatar()
+      if (!canEditAvatar()) {
+        this.diaryLoading = false
+        return
+      }
       this.diaryLoading = true
       const today = new Date().toISOString().slice(0, 10)
       try {

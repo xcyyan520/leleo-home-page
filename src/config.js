@@ -4,10 +4,13 @@ const config = {
 		title: 'xcyyan的小家',
 		description: '欢迎来到xcyyan世界！',
 		keywords: 'xcyyan,个人主页,个人网站,微服务学习路线',
-		icon: '/favicon.ico'   //网页图标，支持外链
+		icon: '/favicon.svg'   //网页图标，支持外链
 	},
 
-	avatar: "/img/avatar.jpg", // 头像
+	// 头像。220px 的 webp 是同一张图的缩略版：它最大只画到 110 CSS px（设置里的预览），
+	// 220 正好覆盖 2x 屏，而原图 828x813 / 160 KB 在手机上要多花将近一秒。
+	// 换图时记得同步重新生成这个缩略图。
+	avatar: "/img/avatar-220.webp", // 头像
 	welcometitle: "Hi, I'm xcyyan", // 标题
 
 	// 颜色配置
