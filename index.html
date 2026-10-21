@@ -4,15 +4,18 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg">
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <!-- Classic (non-module) so it runs before first paint: a deferred module
-         would let the dark page flash before the theme attribute is set. This
-         page is ALWAYS night — only the project02 deck offers a light mode —
-         so theme-light.css is not loaded here at all. -->
-    <script src="/js/theme.js"></script>
+    <!-- No /js/theme.js here on purpose. That script exists for the project02
+         deck's day/night switch; this page and its CSS never read data-theme,
+         XTheme or color-scheme (grep: zero hits in src/ and in the built CSS),
+         so loading it was one render-blocking request that could only ever set
+         "dark" — which is the only mode this page has anyway. -->
     <link rel="stylesheet" href="/css/style.css">
     <meta name="description" content="欢迎来到Leleo的奇妙世界！">
     <meta name="keywords" content="Leleo,leleo,个人主页,个人网站">
     <meta name="theme-color" content="#07060f">
+    <!-- Declares the same color-scheme the removed theme.js used to set at
+         runtime, so native controls and scrollbars keep their dark defaults. -->
+    <meta name="color-scheme" content="dark">
     <title></title>
   </head>
   <body>

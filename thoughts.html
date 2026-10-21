@@ -4,14 +4,14 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#07060f">
+    <meta name="color-scheme" content="dark">
     <link rel="icon" type="image/svg+xml" href="/favicon.svg">
-    <!-- Classic (non-module) so it runs before first paint. This page is ALWAYS
-         night: 思绪 IS the starfield, so a paper mode would delete the whole
-         point of it. Only the project02 deck offers a light mode. -->
-    <script src="/js/theme.js"></script>
+    <!-- No /js/theme.js: 思绪 is always night and never reads data-theme or
+         XTheme. Only the project02 deck has a light mode. -->
     <title>思绪</title>
     <style>
       * { margin: 0; padding: 0; box-sizing: border-box; }
+      html { color-scheme: dark; }
       body {
         background: #08080f;
         overflow: hidden;

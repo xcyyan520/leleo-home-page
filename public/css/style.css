@@ -35,6 +35,14 @@
     background-color: var(--main_bg_color, linear-gradient(50deg, #a2d0ff, #ffffff));
 }
 
+html {
+	/* This page is always night. Declared in CSS rather than only in the
+	   <meta name="color-scheme"> so native controls, form fields and scrollbars
+	   render dark from the first frame; the theme.js script that used to set it
+	   at runtime is gone because nothing here ever reads data-theme. */
+	color-scheme: dark;
+}
+
 body {
 	/* Star Desk base. The app frame is inset (see appFrameStyle in src/app.js),
 	   so this colour is what shows in the ring around it. It used to be the
