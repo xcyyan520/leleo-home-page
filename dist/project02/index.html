@@ -759,7 +759,7 @@ figure.flow{margin:18px 0}
    24 个变量，4 组关键帧）。没有搬 95 KB 字体 CSS / 404 KB viewer JS。
    颜色两套：deck 默认暗色；html[data-theme="light"] 才切到 viewer 原本的亮色。 */
 .archify-embed{--grid:#15233a;--text:#f5fbff;--text-muted:#9eb0c7;--text-dim:#7c8fa3;--lane-fill:rgba(9, 22, 40, 0.5);--lane-stroke:#2c4564;--arrow:#7890ad;--arrow-emphasis:#2dd4bf;--mask:#07101e;--frontend-fill:rgba(6, 182, 212, 0.14);--frontend-stroke:#67e8f9;--backend-fill:rgba(16, 185, 129, 0.14);--backend-stroke:#5eead4;--database-fill:rgba(139, 92, 246, 0.16);--database-stroke:#c4b5fd;--cloud-fill:rgba(245, 158, 11, 0.13);--cloud-stroke:#fcd34d;--security-fill:rgba(244, 63, 94, 0.13);--security-stroke:#fda4af;--messagebus-fill:rgba(249, 115, 22, 0.13);--messagebus-stroke:#fdba74;--external-fill:rgba(71, 85, 105, 0.24);--external-stroke:#a5b4c7}
-html[data-theme="light"] .archify-embed{--grid:#d4e5ee;--text:#102638;--text-muted:#526a7d;--text-dim:#546d80;--lane-fill:rgba(232, 243, 248, 0.62);--lane-stroke:#a9c5d5;--arrow:#526a7d;--arrow-emphasis:#0d9488;--mask:#ffffff;--frontend-fill:rgba(6, 182, 212, 0.09);--frontend-stroke:#0789a1;--backend-fill:rgba(5, 150, 105, 0.09);--backend-stroke:#087f69;--database-fill:rgba(124, 58, 237, 0.09);--database-stroke:#7254c7;--cloud-fill:rgba(217, 119, 6, 0.08);--cloud-stroke:#b9670b;--security-fill:rgba(225, 29, 72, 0.08);--security-stroke:#c53a59;--messagebus-fill:rgba(234, 88, 12, 0.08);--messagebus-stroke:#c65f27;--external-fill:rgba(100, 116, 139, 0.1);--external-stroke:#607a8c}
+html[data-theme="light"] .archify-embed{--grid:#d4e5ee;--text:#102638;--text-muted:#526a7d;--text-dim:#546d80;--lane-fill:rgba(232, 243, 248, 0.62);--lane-stroke:#a9c5d5;--arrow:#526a7d;--arrow-emphasis:#0a7166;--mask:#ffffff;--frontend-fill:rgba(6, 182, 212, 0.09);--frontend-stroke:#0789a1;--backend-fill:rgba(5, 150, 105, 0.09);--backend-stroke:#087f69;--database-fill:rgba(124, 58, 237, 0.09);--database-stroke:#7254c7;--cloud-fill:rgba(217, 119, 6, 0.08);--cloud-stroke:#b9670b;--security-fill:rgba(225, 29, 72, 0.08);--security-stroke:#b23150;--messagebus-fill:rgba(234, 88, 12, 0.08);--messagebus-stroke:#c65f27;--external-fill:rgba(100, 116, 139, 0.1);--external-stroke:#607a8c}
 .archify-embed{margin:18px 0;padding:10px;border:1px solid var(--line,#2a2740);border-radius:12px;background:rgba(255,255,255,.022);overflow-x:auto}
 .archify-embed svg{display:block;width:100%;height:auto;min-width:620px;max-width:1085px;margin:0 auto}
 @media (max-width:600px){.archify-embed{padding:6px}.archify-embed svg{min-width:520px}}
@@ -3932,13 +3932,171 @@ RRF     → 产出融合分，但只用来排名；★它不是语义相似度�
           </g>
         </g>
       </svg>
-</figure><p><b>★为什么走 Kafka 异步（一定会被追问）</b>：一个 10MB 的 PDF，解析加几十个 chunk 的向量化，跑完要<b>几十秒</b>。同步做会把上传接口卡死，运营以为页面挂了。所以上传接口只做"存原文 + 落记录 + 发消息"，<b>秒回</b>；后台消费者慢慢算。<b>失败能重试，事务也不会被长耗时操作占着。</b></p><p><b>两个容易漏但很值钱的点</b>：</p><ul><li><b>增量更新</b>：文档改了，按 <code>doc_id</code> <b>覆盖对应的 chunk</b>（先删旧再写新）+ 版本号，不是全量重建。</li><li><b>换 Embedding 模型必须全量重建索引</b>：新旧模型的<b>向量空间不兼容</b>，混在一起检索结果是错的。这条要能主动说出来。</li></ul><span class="anch" id="追问预案-2"></span><h3 id="a7_18" class="sec">追问预案</h3><div class="tblwrap"><table><thead><tr><th>追问</th><th>怎么答</th></tr></thead><tbody><tr><td>"为什么要转 Markdown 再切？直接切文本不行吗？"</td><td>"直接切会丢掉两个东西：一是<b>标题层级</b>，切分就没有结构依据了；二是<b>表格和列表的结构</b>，检索回来的片段会散架。而且 Markdown 本身<b>又短又结构化，模型也熟</b>，塞进 prompt 的效果比纯文本好。"</td></tr><tr><td>"PDF 解析最容易出什么问题？"</td><td>"<b>双栏串行</b>和<b>页眉页脚污染</b>。尤其是页眉页脚——它会在每个 chunk 里都出现一遍，向量表示会被这些无意义的重复内容带偏。还有 PDF 的<b>硬换行</b>，不合并的话一个完整句子会被切碎。"</td></tr><tr><td>"扫描件怎么办？"</td><td>"走 OCR。但要接受 OCR 一定会有错字，所以<b>OCR 出来的内容我会单独标记来源</b>，运营审核后才入库——政策类文档答错是有法律风险的。"</td></tr><tr><td>"表格怎么处理？"</td><td>"小的转成 Markdown 表格。<b>特别大或者特别复杂的表，我会考虑把每一行单独作为一个 chunk</b>，带上表头信息——因为'某型号的保修期是多久'这种问题，答案其实在表的一行里。"</td></tr><tr><td>"两个库的一致性怎么保证？"</td><td>见上面的「双库一致性」段：<b>chunk_id 做幂等键 + 状态机 + 失败重试</b>，真正的分布式事务没上。</td></tr></tbody></table></div><hr><span class="anch" id="第三题你怎么评估-agent-项目好坏"></span><h2 id="a7_19" class="part">第三题：你怎么评估 Agent 项目好坏？</h2><span class="anch" id="30-秒版-3"></span><h3 id="a7_20" class="sec">30 秒版</h3><blockquote><p>"<b>我不会只看一个准确率，因为 Agent 是"过程型"的，不是"输入输出型"的。</b> 评估要分四层：<b>效果、效率、工程、业务</b>。</p><p>效果看答案对不对、工具选没选对；效率看延迟和 token 成本；工程看可观测性和稳定性；业务看解决率和人工成本。</p><p>这四层里<b>我现在最看重两层，而且是反直觉的</b>：<b>一是工程层的可观测性</b>——Agent 出问题往往不是模型不行，是<b>中间某一步错了</b>，没有链路留痕连锅都找不到；<b>二是业务层的解决率</b>——它是唯一能向老板解释的指标。</p><p>而且 Agent 评估有个特殊难点——<b>同一个问题可以走不同的路径都对</b>，所以不能只评最终答案，还要评中间过程。</p><p><b>最后一条是我的判断标准：有没有一套人工标注的评测集。</b> 没有评测集，任何'效果提升了多少'的数字都是不可信的。而且<b>评测集的价值不只是打分，它还能当回归测试用</b>——改一版 prompt 跑一遍，就知道是变好还是变坏。"</p></blockquote><span class="anch" id="★先正面回答四层怎么评指标各是什么"></span><h3 id="a7_21" class="sec">★先正面回答：四层怎么评、指标各是什么</h3><p><b>① 效果层——答得对不对</b></p><div class="tblwrap"><table><thead><tr><th>指标</th><th>衡量什么</th></tr></thead><tbody><tr><td><b>任务完成率</b></td><td>端到端有没有把事办成</td></tr><tr><td><b>工具调用正确率</b></td><td>拆两个：<b>选对工具</b>（该查物流的时候没去查知识库）+ <b>参数填对</b>（订单号没传错）</td></tr><tr><td><b>忠实度（Faithfulness）</b></td><td>答案是不是都能从召回资料里找到依据——<b>这是衡量幻觉的核心指标</b></td></tr><tr><td><b>答案相关性</b></td><td>有没有答到点上，而不是答了一堆正确但没用的话</td></tr><tr><td><b>上下文精度 / 召回</b></td><td>精度=召回的片段里几条真相关；召回=该召回的有没有被召回到</td></tr></tbody></table></div><p><b>② 效率层——花多大代价</b></p><ul><li><b>端到端延迟（尤其 P99）</b>：Agent 是多轮调用，一轮慢就全慢</li><li><b>单次成本 / token 消耗</b>：<b>输出 token 的单价更高，但输入 token 的总量大得多，所以成本大头往往在输入侧</b>——因为要反复塞上下文</li><li><b>工具调用轮数</b>：<b>步数越少通常越好</b>——同一个任务用 2 步和用 8 步，能力和成本差很多</li></ul><p><b>③ 工程层——靠不靠得住</b></p><ul><li><b>可观测性</b>：每一步（意图、检索、工具、生成）有没有留痕，出问题能不能回放</li><li><b>幂等</b>：工具被重复调用会不会产生副作用（重复建单、重复发短信）</li><li><b>降级能力</b>：模型超时、限流的时候有没有兜底</li><li><b>可复现性</b>：同一套题跑两次，结果稳不稳</li></ul><p><b>④ 业务层——值不值</b></p><ul><li><b>解决率 / 转人工率</b>：这是最直接的业务指标</li><li><b>人工成本节省</b>：省了多少人力</li><li><b>用户满意度（CSAT）</b>：有没有投诉、有没有答错导致的工单</li></ul><span class="anch" id="agent-评估的特殊难点"></span><h3 id="a7_22" class="sec">Agent 评估的特殊难点</h3><p><b>难点一：路径不唯一。</b></p><p>传统模型评估是"输入 → 输出 → 对答案"。Agent 不一样，<b>同一个问题走不同的工具链都可能是对的</b>。所以要看<b>轨迹（trajectory）</b>，不只看最终答案：</p><blockquote><p>"评估 Agent 要比评估普通模型多一维——<b>不但要看结果对不对，还要看过程合不合理</b>。比如同一句『我的订单怎么还没到』，正常路径是先查订单再查物流；如果它先去翻了十遍知识库、最后才想起来查订单，答案可能对，但<b>这个 Agent 的设计是有问题的</b>。"</p></blockquote><p><b>难点二：没有标准答案的任务怎么办。</b></p><p>有些任务是开放式的（"帮我整理这份材料"）。这时候要么人工打分，要么<b>用大模型当裁判（LLM-as-a-Judge）</b>，但要注意裁判本身有偏差，得抽样人工复核。</p><p><b>难点三：评测集从哪来。</b></p><ul><li>从<b>真实线上问题</b>里抽（最有价值）</li><li>人工标注"<b>应该命中哪个片段</b>""<b>应该调哪个工具</b>"</li><li>规模不用大，<b>100~200 条就能看出方案差异</b></li><li>关键是<b>标注要落在可验证的东西上</b>（命中的 chunk_id、调用的工具名），而不是"这个回答好不好"这种主观判断</li></ul><span class="anch" id="再结合项目怎么讲"></span><h3 id="a7_23" class="sec">再结合项目怎么讲</h3><p><b>★注意顺序：上面的四层和三个难点是"我对 Agent 评估的理解"，回答时要先讲完，再讲我们项目。这一段用"诚实档"，因为我们的评估确实不严谨 —— 但先给通用框架，再说自己做到哪一步，听起来是"知道该怎么做"，不是"没做好"。</b></p><blockquote><p>"我们这个项目，<b>评估做得分两部分：有的做得还行，有的不够。</b></p><p><b>做得还行的是可观测性。</b> 我们有一张 <code>ai_execution</code> 表，每一次 AI 调用都会记：<b>识别出的意图、路由到哪条分支、召回了哪些 chunk、调了哪些工具、消耗了多少 token、耗时多少、最后有没有转人工。</b> 有了这张表，改一版 prompt 能直接对比前后的解决率和 token 消耗，不用凭感觉。</p><p>另外还有一张 <code>ai_unanswered</code> 表，专门记<b>没答上来的问题</b>——运营按提问次数降序看，哪些问题问得多又答不好，就去补知识。<b>这两张表合起来，其实就是一个粗糙的'失败样本集'。</b></p><p><b>做得不够的是效果评估。</b> 我们目前只有『机器人解决率』这一个代理指标，<b>它衡量的是'没转人工'，不完全等于'问题真的解决了'</b>——有些问题顾客懒得追问，也算在里面了。</p><p><b>如果让我重新设计，我会做三件事：</b><br>第一，<b>建人工标注的评测集</b>——从真实会话里抽 100 到 200 条问题，人工标注应该命中哪个 chunk、应该调哪个工具；<br>第二，<b>分开评检索和生成</b>——检索用 Hit@5 和 MRR，生成看忠实度和答案相关性，这样出问题能定位到是哪一段的锅，而不是只知道'整体不好'；<br>第三，<b>做 A/B 对比</b>——固定其他变量，只换一个东西（比如换分块策略、换重排模型），跑同一套题。</p><p>现在能做的是<b>弱证据</b>：人工抽查召回片段完不完整、看兜底率有没有异常升高、看 <code>ai_unanswered</code> 里有没有『知识库里明明有却答不出来』的问题。<b>这些是信号，不是测量结果，我不会把它说成准确率。</b>"</p></blockquote><p><b>这段为什么加分</b>：</p><ul><li>主动说"我们这块不严谨"——<b>面试官最怕的是候选人不知道自己不知道什么</b>。</li><li>但马上给出<b>具体的、可执行的改进方案</b>（评测集怎么建、指标怎么选、A/B 怎么做）——说明你<b>不是没做好，是知道该怎么做还没做</b>。</li><li>用 <code>ai_execution</code> 和 <code>ai_unanswered</code> 落到项目实处，<b>证明你真的用过这套东西</b>，而不是背了一套评估理论。</li></ul><span class="anch" id="追问预案-3"></span><h3 id="a7_24" class="sec">追问预案</h3><div class="tblwrap"><table><thead><tr><th>追问</th><th>怎么答</th></tr></thead><tbody><tr><td>"LLM-as-a-Judge 你觉得可靠吗？"</td><td>"<b>能省人力，但不能当唯一依据。</b> 它本身有偏差——比如偏向更长的回答、偏向和自己风格接近的回答。我的用法是<b>用它做粗筛，人工抽样复核</b>，而且裁判用的模型最好和被测模型不是同一个。"</td></tr><tr><td>"Agent 的延迟怎么优化？"</td><td>"三个方向：<b>① 能并行的工具调用并行</b>——比如同时查订单和查物流，不要串行；<b>② 减少不必要的轮数</b>——把常用信息放进 System Prompt 或者缓存；<b>③ 流式输出</b>——用户能早点看到第一个字，感知延迟会好很多。"</td></tr><tr><td>"怎么衡量幻觉？"</td><td>"<b>忠实度</b>：把生成的答案拆成若干断言，看每一条能不能在召回片段里找到依据。工程上更简单的做法是<b>强制模型输出引用</b>，然后校验引用是不是真的来自召回内容。"</td></tr><tr><td>"如果模型答错了，你怎么定位是哪一步的锅？"</td><td>"<b>看链路留痕。</b> 意图识别错了、检索没召回对、召回对了但模型没用、还是生成本身胡说——这四种情况的修法完全不一样。所以 <code>ai_execution</code> 里要把每一步的中间结果都记下来。"</td></tr></tbody></table></div><hr><span class="anch" id="第四题知识的入库这个数据的来源于哪里"></span><h2 id="a7_25" class="part">第四题：知识的入库，这个数据的来源于哪里？</h2><span class="anch" id="30-秒版-4"></span><h3 id="a7_26" class="sec">30 秒版</h3><blockquote><p>"<b>知识库的数据来源，一般按权威性和更新频率排，是四类。</b></p><p><b>一是官方文档和政策文件</b>——权威性最高、更新最慢，由业务方提供；<br><b>二是人工维护的 FAQ 和知识条目</b>——质量最高、更新最频繁，运营每周都在补；<br><b>三是历史服务记录回流的问题</b>——AI 没答上来的被记下来，运营看到问得多的就补一条，这是个闭环；<br><b>四是一线人员沉淀的解决方案</b>——必须审核后才生效，因为个案不能直接当通用规则。</p><p>这四类我一般会分开存、分开管，因为<b>权威性和更新频率是反相关的</b>——越权威的改得越慢，混在一张表里用同一套流程就管不好。</p><p><b>核心不是'从哪来'，而是'谁负责、谁审核、什么时候失效'。</b> 没有版本和失效机制的知识库，内容越多越不可信。"</p></blockquote><span class="anch" id="★先正面回答知识库的数据一般有哪些来源"></span><h3 id="a7_27" class="sec">★先正面回答：知识库的数据一般有哪些来源</h3><p><b>这题先答"通用有哪几类"，再答"我们项目用的是哪几类"</b>。通用的分法是<b>按权威性和更新频率</b>排：</p><div class="tblwrap"><table><thead><tr><th>来源</th><th>权威性</th><th>更新频率</th><th>谁负责</th></tr></thead><tbody><tr><td><b>① 官方文档 / 政策文件</b></td><td>最高</td><td>最低（季度、年度）</td><td>业务方提供，<b>我们只负责入库，不判断内容对错</b></td></tr><tr><td><b>② 人工维护的 FAQ / 知识条目</b></td><td>高</td><td>最高（每周）</td><td>运营</td></tr><tr><td><b>③ 历史服务记录回流的问题</b></td><td>中</td><td>持续</td><td>系统收集 + 运营补录</td></tr><tr><td><b>④ 一线人员沉淀的解决方案</b></td><td>中</td><td>中</td><td><b>必须审核后才生效</b>——个案不能直接当通用规则</td></tr><tr><td>（⑤ 公开资料爬取）</td><td><b>低</b></td><td>—</td><td><b>有法律和时效风险，一般不做</b></td></tr></tbody></table></div><p><b>我的判断（这句是这题的加分点）</b>：</p><blockquote><p>"知识来源这件事，<b>难点从来不是'从哪来'，而是'谁负责、谁审核、什么时候失效'。</b> 前三个问题是流程问题，第四个是治理问题——<b>没有版本和失效机制的知识库，内容越多越不可信</b>，因为它会把三年前的规则和现在的规则一起召回给模型。"</p></blockquote><p><b>分类的依据</b>：<b>权威性和更新频率是反相关的</b> —— 越权威的（政策文件）改得越慢，改得越勤的（FAQ）越好维护。所以这两类要<b>分开存、分开管</b>，不能混在一张表里用同一套流程。</p><span class="anch" id="再结合项目我们这四类具体是什么"></span><h3 id="a7_28" class="sec">再结合项目：我们这四类具体是什么</h3><p><b>续上：我们项目用的就是上面 ①~④ 这四类</b>，落到系统里是这么分的：</p><p><b>① 客户提供的政策文档（PDF / Word / Excel）</b></p><ul><li><b>谁给</b>：签约后由客户方的业务部门提供，我们只负责入库，<b>不负责判断内容的正确性</b>。</li><li><b>特点</b>：结构化程度低、<b>更新频率低</b>（季度或年度）、<b>权威性最高</b>。答错有法律风险。</li><li><b>处理</b>：走完整的解析 → Markdown 优化 → 切分 → 双库入库流水线。</li></ul><p><b>② 运营整理的 FAQ</b></p><ul><li><b>谁维护</b>：客户方的客服运营，我们提供管理后台。</li><li><b>结构</b>：「标准问题 + 相似问法（JSON 数组）+ 标准答案 + 生效范围」。</li><li><b>特点</b>：<b>质量最高、直接可用</b>，而且<b>更新最频繁</b>——运营每周都在补。</li><li><b>处理</b>：<b>不切分</b>。一问一答本身就是完整语义单元，把"问题 + 相似问法"合成一份向量。</li></ul><p><b>③ 历史会话回流的高频问题（这是闭环）</b></p><figure class="flow" role="img" aria-label="流程图：顾客提问 → AI 没召回/答不好 → 记进 ai_unan…">
-<div class="flow-body">
-<div class="flow-step"><span class="flow-dot"></span><span class="flow-t">顾客提问 → AI 没召回/答不好 → 记进 ai_unanswered 表</span></div>
-<div class="flow-step"><span class="flow-dot"></span><span class="flow-t">运营在后台按【提问次数】降序看</span></div>
-<div class="flow-step"><span class="flow-dot"></span><span class="flow-t">看到一个问了很多次又答不好的问题 → 补一条答案</span></div>
-<div class="flow-step"><span class="flow-dot"></span><span class="flow-t">补完之后，这类问题的命中率回升</span></div>
-</div>
+</figure><p><b>★为什么走 Kafka 异步（一定会被追问）</b>：一个 10MB 的 PDF，解析加几十个 chunk 的向量化，跑完要<b>几十秒</b>。同步做会把上传接口卡死，运营以为页面挂了。所以上传接口只做"存原文 + 落记录 + 发消息"，<b>秒回</b>；后台消费者慢慢算。<b>失败能重试，事务也不会被长耗时操作占着。</b></p><p><b>两个容易漏但很值钱的点</b>：</p><ul><li><b>增量更新</b>：文档改了，按 <code>doc_id</code> <b>覆盖对应的 chunk</b>（先删旧再写新）+ 版本号，不是全量重建。</li><li><b>换 Embedding 模型必须全量重建索引</b>：新旧模型的<b>向量空间不兼容</b>，混在一起检索结果是错的。这条要能主动说出来。</li></ul><span class="anch" id="追问预案-2"></span><h3 id="a7_18" class="sec">追问预案</h3><div class="tblwrap"><table><thead><tr><th>追问</th><th>怎么答</th></tr></thead><tbody><tr><td>"为什么要转 Markdown 再切？直接切文本不行吗？"</td><td>"直接切会丢掉两个东西：一是<b>标题层级</b>，切分就没有结构依据了；二是<b>表格和列表的结构</b>，检索回来的片段会散架。而且 Markdown 本身<b>又短又结构化，模型也熟</b>，塞进 prompt 的效果比纯文本好。"</td></tr><tr><td>"PDF 解析最容易出什么问题？"</td><td>"<b>双栏串行</b>和<b>页眉页脚污染</b>。尤其是页眉页脚——它会在每个 chunk 里都出现一遍，向量表示会被这些无意义的重复内容带偏。还有 PDF 的<b>硬换行</b>，不合并的话一个完整句子会被切碎。"</td></tr><tr><td>"扫描件怎么办？"</td><td>"走 OCR。但要接受 OCR 一定会有错字，所以<b>OCR 出来的内容我会单独标记来源</b>，运营审核后才入库——政策类文档答错是有法律风险的。"</td></tr><tr><td>"表格怎么处理？"</td><td>"小的转成 Markdown 表格。<b>特别大或者特别复杂的表，我会考虑把每一行单独作为一个 chunk</b>，带上表头信息——因为'某型号的保修期是多久'这种问题，答案其实在表的一行里。"</td></tr><tr><td>"两个库的一致性怎么保证？"</td><td>见上面的「双库一致性」段：<b>chunk_id 做幂等键 + 状态机 + 失败重试</b>，真正的分布式事务没上。</td></tr></tbody></table></div><hr><span class="anch" id="第三题你怎么评估-agent-项目好坏"></span><h2 id="a7_19" class="part">第三题：你怎么评估 Agent 项目好坏？</h2><span class="anch" id="30-秒版-3"></span><h3 id="a7_20" class="sec">30 秒版</h3><blockquote><p>"<b>我不会只看一个准确率，因为 Agent 是"过程型"的，不是"输入输出型"的。</b> 评估要分四层：<b>效果、效率、工程、业务</b>。</p><p>效果看答案对不对、工具选没选对；效率看延迟和 token 成本；工程看可观测性和稳定性；业务看解决率和人工成本。</p><p>这四层里<b>我现在最看重两层，而且是反直觉的</b>：<b>一是工程层的可观测性</b>——Agent 出问题往往不是模型不行，是<b>中间某一步错了</b>，没有链路留痕连锅都找不到；<b>二是业务层的解决率</b>——它是唯一能向老板解释的指标。</p><p>而且 Agent 评估有个特殊难点——<b>同一个问题可以走不同的路径都对</b>，所以不能只评最终答案，还要评中间过程。</p><p><b>最后一条是我的判断标准：有没有一套人工标注的评测集。</b> 没有评测集，任何'效果提升了多少'的数字都是不可信的。而且<b>评测集的价值不只是打分，它还能当回归测试用</b>——改一版 prompt 跑一遍，就知道是变好还是变坏。"</p></blockquote><span class="anch" id="★先正面回答四层怎么评指标各是什么"></span><h3 id="a7_21" class="sec">★先正面回答：四层怎么评、指标各是什么</h3><p><b>① 效果层——答得对不对</b></p><div class="tblwrap"><table><thead><tr><th>指标</th><th>衡量什么</th></tr></thead><tbody><tr><td><b>任务完成率</b></td><td>端到端有没有把事办成</td></tr><tr><td><b>工具调用正确率</b></td><td>拆两个：<b>选对工具</b>（该查物流的时候没去查知识库）+ <b>参数填对</b>（订单号没传错）</td></tr><tr><td><b>忠实度（Faithfulness）</b></td><td>答案是不是都能从召回资料里找到依据——<b>这是衡量幻觉的核心指标</b></td></tr><tr><td><b>答案相关性</b></td><td>有没有答到点上，而不是答了一堆正确但没用的话</td></tr><tr><td><b>上下文精度 / 召回</b></td><td>精度=召回的片段里几条真相关；召回=该召回的有没有被召回到</td></tr></tbody></table></div><p><b>② 效率层——花多大代价</b></p><ul><li><b>端到端延迟（尤其 P99）</b>：Agent 是多轮调用，一轮慢就全慢</li><li><b>单次成本 / token 消耗</b>：<b>输出 token 的单价更高，但输入 token 的总量大得多，所以成本大头往往在输入侧</b>——因为要反复塞上下文</li><li><b>工具调用轮数</b>：<b>步数越少通常越好</b>——同一个任务用 2 步和用 8 步，能力和成本差很多</li></ul><p><b>③ 工程层——靠不靠得住</b></p><ul><li><b>可观测性</b>：每一步（意图、检索、工具、生成）有没有留痕，出问题能不能回放</li><li><b>幂等</b>：工具被重复调用会不会产生副作用（重复建单、重复发短信）</li><li><b>降级能力</b>：模型超时、限流的时候有没有兜底</li><li><b>可复现性</b>：同一套题跑两次，结果稳不稳</li></ul><p><b>④ 业务层——值不值</b></p><ul><li><b>解决率 / 转人工率</b>：这是最直接的业务指标</li><li><b>人工成本节省</b>：省了多少人力</li><li><b>用户满意度（CSAT）</b>：有没有投诉、有没有答错导致的工单</li></ul><span class="anch" id="agent-评估的特殊难点"></span><h3 id="a7_22" class="sec">Agent 评估的特殊难点</h3><p><b>难点一：路径不唯一。</b></p><p>传统模型评估是"输入 → 输出 → 对答案"。Agent 不一样，<b>同一个问题走不同的工具链都可能是对的</b>。所以要看<b>轨迹（trajectory）</b>，不只看最终答案：</p><blockquote><p>"评估 Agent 要比评估普通模型多一维——<b>不但要看结果对不对，还要看过程合不合理</b>。比如同一句『我的订单怎么还没到』，正常路径是先查订单再查物流；如果它先去翻了十遍知识库、最后才想起来查订单，答案可能对，但<b>这个 Agent 的设计是有问题的</b>。"</p></blockquote><p><b>难点二：没有标准答案的任务怎么办。</b></p><p>有些任务是开放式的（"帮我整理这份材料"）。这时候要么人工打分，要么<b>用大模型当裁判（LLM-as-a-Judge）</b>，但要注意裁判本身有偏差，得抽样人工复核。</p><p><b>难点三：评测集从哪来。</b></p><ul><li>从<b>真实线上问题</b>里抽（最有价值）</li><li>人工标注"<b>应该命中哪个片段</b>""<b>应该调哪个工具</b>"</li><li>规模不用大，<b>100~200 条就能看出方案差异</b></li><li>关键是<b>标注要落在可验证的东西上</b>（命中的 chunk_id、调用的工具名），而不是"这个回答好不好"这种主观判断</li></ul><span class="anch" id="再结合项目怎么讲"></span><h3 id="a7_23" class="sec">再结合项目怎么讲</h3><p><b>★注意顺序：上面的四层和三个难点是"我对 Agent 评估的理解"，回答时要先讲完，再讲我们项目。这一段用"诚实档"，因为我们的评估确实不严谨 —— 但先给通用框架，再说自己做到哪一步，听起来是"知道该怎么做"，不是"没做好"。</b></p><blockquote><p>"我们这个项目，<b>评估做得分两部分：有的做得还行，有的不够。</b></p><p><b>做得还行的是可观测性。</b> 我们有一张 <code>ai_execution</code> 表，每一次 AI 调用都会记：<b>识别出的意图、路由到哪条分支、召回了哪些 chunk、调了哪些工具、消耗了多少 token、耗时多少、最后有没有转人工。</b> 有了这张表，改一版 prompt 能直接对比前后的解决率和 token 消耗，不用凭感觉。</p><p>另外还有一张 <code>ai_unanswered</code> 表，专门记<b>没答上来的问题</b>——运营按提问次数降序看，哪些问题问得多又答不好，就去补知识。<b>这两张表合起来，其实就是一个粗糙的'失败样本集'。</b></p><p><b>做得不够的是效果评估。</b> 我们目前只有『机器人解决率』这一个代理指标，<b>它衡量的是'没转人工'，不完全等于'问题真的解决了'</b>——有些问题顾客懒得追问，也算在里面了。</p><p><b>如果让我重新设计，我会做三件事：</b><br>第一，<b>建人工标注的评测集</b>——从真实会话里抽 100 到 200 条问题，人工标注应该命中哪个 chunk、应该调哪个工具；<br>第二，<b>分开评检索和生成</b>——检索用 Hit@5 和 MRR，生成看忠实度和答案相关性，这样出问题能定位到是哪一段的锅，而不是只知道'整体不好'；<br>第三，<b>做 A/B 对比</b>——固定其他变量，只换一个东西（比如换分块策略、换重排模型），跑同一套题。</p><p>现在能做的是<b>弱证据</b>：人工抽查召回片段完不完整、看兜底率有没有异常升高、看 <code>ai_unanswered</code> 里有没有『知识库里明明有却答不出来』的问题。<b>这些是信号，不是测量结果，我不会把它说成准确率。</b>"</p></blockquote><p><b>这段为什么加分</b>：</p><ul><li>主动说"我们这块不严谨"——<b>面试官最怕的是候选人不知道自己不知道什么</b>。</li><li>但马上给出<b>具体的、可执行的改进方案</b>（评测集怎么建、指标怎么选、A/B 怎么做）——说明你<b>不是没做好，是知道该怎么做还没做</b>。</li><li>用 <code>ai_execution</code> 和 <code>ai_unanswered</code> 落到项目实处，<b>证明你真的用过这套东西</b>，而不是背了一套评估理论。</li></ul><span class="anch" id="追问预案-3"></span><h3 id="a7_24" class="sec">追问预案</h3><div class="tblwrap"><table><thead><tr><th>追问</th><th>怎么答</th></tr></thead><tbody><tr><td>"LLM-as-a-Judge 你觉得可靠吗？"</td><td>"<b>能省人力，但不能当唯一依据。</b> 它本身有偏差——比如偏向更长的回答、偏向和自己风格接近的回答。我的用法是<b>用它做粗筛，人工抽样复核</b>，而且裁判用的模型最好和被测模型不是同一个。"</td></tr><tr><td>"Agent 的延迟怎么优化？"</td><td>"三个方向：<b>① 能并行的工具调用并行</b>——比如同时查订单和查物流，不要串行；<b>② 减少不必要的轮数</b>——把常用信息放进 System Prompt 或者缓存；<b>③ 流式输出</b>——用户能早点看到第一个字，感知延迟会好很多。"</td></tr><tr><td>"怎么衡量幻觉？"</td><td>"<b>忠实度</b>：把生成的答案拆成若干断言，看每一条能不能在召回片段里找到依据。工程上更简单的做法是<b>强制模型输出引用</b>，然后校验引用是不是真的来自召回内容。"</td></tr><tr><td>"如果模型答错了，你怎么定位是哪一步的锅？"</td><td>"<b>看链路留痕。</b> 意图识别错了、检索没召回对、召回对了但模型没用、还是生成本身胡说——这四种情况的修法完全不一样。所以 <code>ai_execution</code> 里要把每一步的中间结果都记下来。"</td></tr></tbody></table></div><hr><span class="anch" id="第四题知识的入库这个数据的来源于哪里"></span><h2 id="a7_25" class="part">第四题：知识的入库，这个数据的来源于哪里？</h2><span class="anch" id="30-秒版-4"></span><h3 id="a7_26" class="sec">30 秒版</h3><blockquote><p>"<b>知识库的数据来源，一般按权威性和更新频率排，是四类。</b></p><p><b>一是官方文档和政策文件</b>——权威性最高、更新最慢，由业务方提供；<br><b>二是人工维护的 FAQ 和知识条目</b>——质量最高、更新最频繁，运营每周都在补；<br><b>三是历史服务记录回流的问题</b>——AI 没答上来的被记下来，运营看到问得多的就补一条，这是个闭环；<br><b>四是一线人员沉淀的解决方案</b>——必须审核后才生效，因为个案不能直接当通用规则。</p><p>这四类我一般会分开存、分开管，因为<b>权威性和更新频率是反相关的</b>——越权威的改得越慢，混在一张表里用同一套流程就管不好。</p><p><b>核心不是'从哪来'，而是'谁负责、谁审核、什么时候失效'。</b> 没有版本和失效机制的知识库，内容越多越不可信。"</p></blockquote><span class="anch" id="★先正面回答知识库的数据一般有哪些来源"></span><h3 id="a7_27" class="sec">★先正面回答：知识库的数据一般有哪些来源</h3><p><b>这题先答"通用有哪几类"，再答"我们项目用的是哪几类"</b>。通用的分法是<b>按权威性和更新频率</b>排：</p><div class="tblwrap"><table><thead><tr><th>来源</th><th>权威性</th><th>更新频率</th><th>谁负责</th></tr></thead><tbody><tr><td><b>① 官方文档 / 政策文件</b></td><td>最高</td><td>最低（季度、年度）</td><td>业务方提供，<b>我们只负责入库，不判断内容对错</b></td></tr><tr><td><b>② 人工维护的 FAQ / 知识条目</b></td><td>高</td><td>最高（每周）</td><td>运营</td></tr><tr><td><b>③ 历史服务记录回流的问题</b></td><td>中</td><td>持续</td><td>系统收集 + 运营补录</td></tr><tr><td><b>④ 一线人员沉淀的解决方案</b></td><td>中</td><td>中</td><td><b>必须审核后才生效</b>——个案不能直接当通用规则</td></tr><tr><td>（⑤ 公开资料爬取）</td><td><b>低</b></td><td>—</td><td><b>有法律和时效风险，一般不做</b></td></tr></tbody></table></div><p><b>我的判断（这句是这题的加分点）</b>：</p><blockquote><p>"知识来源这件事，<b>难点从来不是'从哪来'，而是'谁负责、谁审核、什么时候失效'。</b> 前三个问题是流程问题，第四个是治理问题——<b>没有版本和失效机制的知识库，内容越多越不可信</b>，因为它会把三年前的规则和现在的规则一起召回给模型。"</p></blockquote><p><b>分类的依据</b>：<b>权威性和更新频率是反相关的</b> —— 越权威的（政策文件）改得越慢，改得越勤的（FAQ）越好维护。所以这两类要<b>分开存、分开管</b>，不能混在一张表里用同一套流程。</p><span class="anch" id="再结合项目我们这四类具体是什么"></span><h3 id="a7_28" class="sec">再结合项目：我们这四类具体是什么</h3><p><b>续上：我们项目用的就是上面 ①~④ 这四类</b>，落到系统里是这么分的：</p><p><b>① 客户提供的政策文档（PDF / Word / Excel）</b></p><ul><li><b>谁给</b>：签约后由客户方的业务部门提供，我们只负责入库，<b>不负责判断内容的正确性</b>。</li><li><b>特点</b>：结构化程度低、<b>更新频率低</b>（季度或年度）、<b>权威性最高</b>。答错有法律风险。</li><li><b>处理</b>：走完整的解析 → Markdown 优化 → 切分 → 双库入库流水线。</li></ul><p><b>② 运营整理的 FAQ</b></p><ul><li><b>谁维护</b>：客户方的客服运营，我们提供管理后台。</li><li><b>结构</b>：「标准问题 + 相似问法（JSON 数组）+ 标准答案 + 生效范围」。</li><li><b>特点</b>：<b>质量最高、直接可用</b>，而且<b>更新最频繁</b>——运营每周都在补。</li><li><b>处理</b>：<b>不切分</b>。一问一答本身就是完整语义单元，把"问题 + 相似问法"合成一份向量。</li></ul><p><b>③ 历史会话回流的高频问题（这是闭环）</b></p><figure class="archify-embed" role="img" aria-label="云联 · FAQ 闭环：答不好的问题怎么回到知识库">
+<svg viewBox="0 0 892 404" data-layout-contract="readable-v2" role="img" lang="zh-CN" aria-labelledby="dgm9-f5-archify-diagram-title dgm9-f5-archify-diagram-description" data-preset="classic" data-quality-profile="showcase">
+        <title id="dgm9-f5-archify-diagram-title">云联 · FAQ 闭环：答不好的问题怎么回到知识库</title>
+        <desc id="dgm9-f5-archify-diagram-description">由 Archify 生成的工作流图。</desc>
+        <!-- Definitions -->
+        <defs>
+          <marker id="dgm9-f5-arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+            <polygon points="0 0, 10 3.5, 0 7" class="m-default" />
+          </marker>
+          <marker id="dgm9-f5-arrowhead-emphasis" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+            <polygon points="0 0, 10 3.5, 0 7" class="m-emphasis" />
+          </marker>
+          <marker id="dgm9-f5-arrowhead-security" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+            <polygon points="0 0, 10 3.5, 0 7" class="m-security" />
+          </marker>
+          <marker id="dgm9-f5-arrowhead-dashed" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+            <polygon points="0 0, 10 3.5, 0 7" class="m-dashed" />
+          </marker>
+          <pattern id="dgm9-f5-grid" width="40" height="40" patternUnits="userSpaceOnUse">
+            <path d="M 40 0 L 0 0 0 40" class="c-grid" stroke-width="0.5"/>
+          </pattern>
+        </defs>
+
+        <!-- Background Grid -->
+        <rect width="100%" height="100%" fill="url(#dgm9-f5-grid)" />
+
+        <!-- Swimlanes -->
+        <rect data-graph-role="structural-frame" data-composition-frame-kind="lane" data-composition-frame-id="lane-0" x="40" y="52" width="836" height="104" rx="10" class="c-lane" stroke-width="1"/>
+        <text x="54" y="74" class="t-dim" font-size="10" font-weight="600">01 / 线上 · AI 接待</text>
+
+        <rect data-graph-role="structural-frame" data-composition-frame-kind="lane" data-composition-frame-id="lane-1" x="40" y="176" width="836" height="104" rx="10" class="c-lane" stroke-width="1"/>
+        <text x="54" y="198" class="t-dim" font-size="10" font-weight="600">02 / 运营后台 · 人工补充</text>
+
+        <!-- Phase headers -->
+
+
+        <!-- Workflow groups -->
+
+
+        <!-- Edge paths -->
+        <path data-edge-from="add" data-edge-to="up" data-edge-label="生效" data-edge-key="0" data-composition-routing="workflow-v2-auto" data-edge-role="" data-composition-points="697.6,217;697.6,119;771.6,119" d="M 697.6 217 L 697.6 119 L 771.6 119" class="a-default" stroke-width="1.4" marker-end="url(#dgm9-f5-arrowhead)"/>
+        <path data-edge-from="ask" data-edge-to="miss" data-edge-label="先尝试回答" data-edge-key="1" data-composition-routing="workflow-v2-auto" data-edge-role="" data-composition-points="140,119;206,119" d="M 140 119 L 206 119" class="a-default" stroke-width="1.4" marker-end="url(#dgm9-f5-arrowhead)"/>
+        <path data-edge-from="log" data-edge-to="rank" data-edge-label="运营巡检" data-edge-key="2" data-composition-routing="workflow-v2-auto" data-edge-role="" data-composition-points="410,145;410,243;484,243" d="M 410 145 L 410 243 L 484 243" class="a-default" stroke-width="1.4" marker-end="url(#dgm9-f5-arrowhead)"/>
+        <path data-edge-from="miss" data-edge-to="log" data-edge-label="兜底不硬答" data-edge-key="3" data-composition-routing="workflow-v2-auto" data-edge-role="" data-composition-points="298,119;364,119" d="M 298 119 L 364 119" class="a-default" stroke-width="1.4" marker-end="url(#dgm9-f5-arrowhead)"/>
+        <path data-edge-from="rank" data-edge-to="add" data-edge-label="挑影响面大的" data-edge-key="4" data-composition-routing="workflow-v2-auto" data-edge-role="" data-composition-points="576,243;651.6,243" d="M 576 243 L 651.6 243" class="a-default" stroke-width="1.4" marker-end="url(#dgm9-f5-arrowhead)"/>
+
+        <!-- Nodes -->
+        <g id="dgm9-f5-node-ask" data-node-id="ask" data-node-label="顾客提问" tabindex="0" role="button" aria-label="聚焦顾客提问，任意渠道, 线上 · AI 接待" aria-pressed="false" data-node-kind="frontend" data-node-sublabel="任意渠道" data-node-context="线上 · AI 接待">
+          <title>顾客提问 · 任意渠道 · 线上 · AI 接待</title>
+          <rect x="48" y="93" width="92" height="52" rx="6" class="c-mask"/>
+          <rect x="48" y="93" width="92" height="52" rx="6" class="c-frontend" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="frontend" class="semantic-sigil s-frontend" transform="translate(54 99) scale(0.6875)">
+            <rect x="2" y="3" width="12" height="10" rx="2"/>
+            <path d="M2 6.5h12"/>
+            <circle cx="4.1" cy="4.8" r=".7" class="sigil-fill"/>
+            <circle cx="6.3" cy="4.8" r=".7" class="sigil-fill"/>
+          </g>
+          <text data-node-label="" data-detail-anchor="" x="94" y="114" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">顾客提问</text>
+          <text data-detail="context" x="94" y="131" class="t-muted" font-size="8" text-anchor="middle">任意渠道</text>
+        </g>
+
+        <g id="dgm9-f5-node-miss" data-node-id="miss" data-node-label="没召回/答不好" tabindex="0" role="button" aria-label="聚焦没召回/答不好，阈值不达标或工具失败, 线上 · AI 接待" aria-pressed="false" data-node-kind="frontend" data-node-sublabel="阈值不达标或工具失败" data-node-context="线上 · AI 接待">
+          <title>没召回/答不好 · 阈值不达标或工具失败 · 线上 · AI 接待</title>
+          <rect x="206" y="93" width="92" height="52" rx="6" class="c-mask"/>
+          <rect x="206" y="93" width="92" height="52" rx="6" class="c-frontend" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="frontend" class="semantic-sigil s-frontend" transform="translate(212 99) scale(0.6875)">
+            <rect x="2" y="3" width="12" height="10" rx="2"/>
+            <path d="M2 6.5h12"/>
+            <circle cx="4.1" cy="4.8" r=".7" class="sigil-fill"/>
+            <circle cx="6.3" cy="4.8" r=".7" class="sigil-fill"/>
+          </g>
+          <text data-node-label="" data-detail-anchor="" x="252" y="124.9" class="t-primary" font-size="10.7" font-weight="600" text-anchor="middle">没召回/答不好</text>
+          <text data-detail="context" x="252" y="138.6" class="t-muted" font-size="7" text-anchor="middle">阈值不达标或工具失败</text>
+        </g>
+
+        <g id="dgm9-f5-node-log" data-node-id="log" data-node-label="落未命中表" tabindex="0" role="button" aria-label="聚焦落未命中表，问题 + 意图 + 提问次数, 线上 · AI 接待" aria-pressed="false" data-node-kind="database" data-node-sublabel="问题 + 意图 + 提问次数" data-node-context="线上 · AI 接待">
+          <title>落未命中表 · 问题 + 意图 + 提问次数 · 线上 · AI 接待</title>
+          <rect x="364" y="93" width="92" height="52" rx="6" class="c-mask"/>
+          <rect x="364" y="93" width="92" height="52" rx="6" class="c-database" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="database" class="semantic-sigil s-database" transform="translate(370 99) scale(0.6875)">
+            <ellipse cx="8" cy="4" rx="5" ry="2"/>
+            <path d="M3 4v8c0 1.1 2.2 2 5 2s5-.9 5-2V4M3 8c0 1.1 2.2 2 5 2s5-.9 5-2"/>
+          </g>
+          <text data-node-label="" data-detail-anchor="" x="416" y="114" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">落未命中表</text>
+          <text data-detail="context" x="410" y="131" class="t-muted" font-size="6.3" text-anchor="middle">问题 + 意图 + 提问次数</text>
+        </g>
+
+        <g id="dgm9-f5-node-up" data-node-id="up" data-node-label="命中率回升" tabindex="0" role="button" aria-label="聚焦命中率回升，问得多的先补, 线上 · AI 接待" aria-pressed="false" data-node-kind="backend" data-node-sublabel="问得多的先补" data-node-context="线上 · AI 接待">
+          <title>命中率回升 · 问得多的先补 · 线上 · AI 接待</title>
+          <rect x="771.6" y="93" width="92" height="52" rx="6" class="c-mask"/>
+          <rect x="771.6" y="93" width="92" height="52" rx="6" class="c-backend" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(777.6 99) scale(0.6875)">
+            <path d="M6 3 3 8l3 5M10 3l3 5-3 5"/>
+          </g>
+          <text data-node-label="" data-detail-anchor="" x="823.6" y="114" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">命中率回升</text>
+          <text data-detail="context" x="817.6" y="131" class="t-muted" font-size="8" text-anchor="middle">问得多的先补</text>
+        </g>
+
+        <g id="dgm9-f5-node-rank" data-node-id="rank" data-node-label="按提问次数排序" tabindex="0" role="button" aria-label="聚焦按提问次数排序，不是按最近时间, 运营后台 · 人工补充" aria-pressed="false" data-node-kind="external" data-node-sublabel="不是按最近时间" data-node-context="运营后台 · 人工补充">
+          <title>按提问次数排序 · 不是按最近时间 · 运营后台 · 人工补充</title>
+          <rect x="484" y="217" width="92" height="52" rx="6" class="c-mask"/>
+          <rect x="484" y="217" width="92" height="52" rx="6" class="c-external" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="external" class="semantic-sigil s-external" transform="translate(490 223) scale(0.6875)">
+            <rect x="2.5" y="5" width="8.5" height="8" rx="1.5"/>
+            <path d="M8 2.5h5.5V8M13.5 2.5 7.5 8.5"/>
+          </g>
+          <text data-node-label="" data-detail-anchor="" x="530" y="248" class="t-primary" font-size="10" font-weight="600" text-anchor="middle">按提问次数排序</text>
+          <text data-detail="context" x="530" y="262.6" class="t-muted" font-size="8" text-anchor="middle">不是按最近时间</text>
+        </g>
+
+        <g id="dgm9-f5-node-add" data-node-id="add" data-node-label="补一条答案" tabindex="0" role="button" aria-label="聚焦补一条答案，进 knowledge_faq, 运营后台 · 人工补充" aria-pressed="false" data-node-kind="external" data-node-sublabel="进 knowledge_faq" data-node-context="运营后台 · 人工补充">
+          <title>补一条答案 · 进 knowledge_faq · 运营后台 · 人工补充</title>
+          <rect x="651.6" y="217" width="92" height="52" rx="6" class="c-mask"/>
+          <rect x="651.6" y="217" width="92" height="52" rx="6" class="c-external" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="external" class="semantic-sigil s-external" transform="translate(657.6 223) scale(0.6875)">
+            <rect x="2.5" y="5" width="8.5" height="8" rx="1.5"/>
+            <path d="M8 2.5h5.5V8M13.5 2.5 7.5 8.5"/>
+          </g>
+          <text data-node-label="" data-detail-anchor="" x="703.6" y="238" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">补一条答案</text>
+          <text data-detail="context" x="697.6" y="255" class="t-muted" font-size="8" text-anchor="middle">进 knowledge_faq</text>
+        </g>
+
+        <!-- Edge labels -->
+        <g data-detail="context" data-edge-from="add" data-edge-to="up" data-edge-label="生效" data-edge-key="0">
+          <rect x="719.6" y="99" width="30" height="14" rx="3" class="c-mask"/>
+          <text x="734.6" y="109" class="t-edge-default" font-size="8" text-anchor="middle">生效</text>
+        </g>
+        <g data-detail="context" data-edge-from="ask" data-edge-to="miss" data-edge-label="先尝试回答" data-edge-key="1">
+          <rect x="144" y="99" width="58" height="14" rx="3" class="c-mask"/>
+          <text x="173" y="109" class="t-edge-default" font-size="8" text-anchor="middle">先尝试回答</text>
+        </g>
+        <g data-detail="context" data-edge-from="log" data-edge-to="rank" data-edge-label="运营巡检" data-edge-key="2">
+          <rect x="422.8" y="223" width="48.4" height="14" rx="3" class="c-mask"/>
+          <text x="447" y="233" class="t-edge-default" font-size="8" text-anchor="middle">运营巡检</text>
+        </g>
+        <g data-detail="context" data-edge-from="miss" data-edge-to="log" data-edge-label="兜底不硬答" data-edge-key="3">
+          <rect x="302" y="99" width="58" height="14" rx="3" class="c-mask"/>
+          <text x="331" y="109" class="t-edge-default" font-size="8" text-anchor="middle">兜底不硬答</text>
+        </g>
+        <g data-detail="context" data-edge-from="rank" data-edge-to="add" data-edge-label="挑影响面大的" data-edge-key="4">
+          <rect x="580" y="223" width="67.6" height="14" rx="3" class="c-mask"/>
+          <text x="613.8" y="233" class="t-edge-default" font-size="8" text-anchor="middle">挑影响面大的</text>
+        </g>
+
+        <!-- Legend -->
+        <g data-legend="" data-legend-bridge="">
+          <text x="20" y="304" class="t-primary" font-size="12" font-weight="650">图例</text>
+          <g data-legend-semantic-kind="frontend" data-legend-kind="frontend" data-legend-label="用户界面" data-legend-x="20" data-legend-baseline="324" data-legend-width="78">
+            <rect x="20" y="316" width="14" height="9" rx="2" class="c-frontend" stroke-width="1"/>
+            <text x="42" y="324" class="t-muted" font-size="7.5" font-weight="500">用户界面</text>
+          </g>
+          <g data-legend-semantic-kind="backend" data-legend-kind="backend" data-legend-label="Agent 逻辑" data-legend-x="105" data-legend-baseline="324" data-legend-width="87">
+            <rect x="105" y="316" width="14" height="9" rx="2" class="c-backend" stroke-width="1"/>
+            <text x="127" y="324" class="t-muted" font-size="7.5" font-weight="500">Agent 逻辑</text>
+          </g>
+          <g data-legend-semantic-kind="database" data-legend-kind="database" data-legend-label="上下文 / 追踪" data-legend-x="199" data-legend-baseline="324" data-legend-width="100">
+            <rect x="199" y="316" width="14" height="9" rx="2" class="c-database" stroke-width="1"/>
+            <text x="221" y="324" class="t-muted" font-size="7.5" font-weight="500">上下文 / 追踪</text>
+          </g>
+          <g data-legend-semantic-kind="external" data-legend-kind="external" data-legend-label="外部系统" data-legend-x="306" data-legend-baseline="324" data-legend-width="78">
+            <rect x="306" y="316" width="14" height="9" rx="2" class="c-external" stroke-width="1"/>
+            <text x="328" y="324" class="t-muted" font-size="7.5" font-weight="500">外部系统</text>
+          </g>
+        </g>
+      </svg>
 </figure><p><b>为什么按"提问次数"而不是"最近时间"排序</b>：<b>问得多的说明影响面大，补一条的收益最高。</b> 这是把有限的运营精力花在刀刃上。</p><p><b>④ 坐席在工单里沉淀的解决方案</b></p><ul><li>坐席处理完工单之后，写的解决方案如果被标记为"可入知识库"，进审核队列。</li><li><b>必须经过运营审核才生效</b>——因为坐席写的是<b>针对某一个客户的具体处理</b>，直接入库可能把个案当通用规则。</li></ul><span class="anch" id="落到表结构和话术上"></span><h3 id="a7_29" class="sec">落到表结构和话术上</h3><p><b>表结构上怎么体现（这段能证明你真设计过）</b>：</p><pre><code>knowledge_base       知识库（名称、类型、Embedding 模型）
 knowledge_document   文档（原文 URL、类型、分段数、解析状态、版本）
 knowledge_chunk      切片（内容、token 数、vector_id 指向向量库）
