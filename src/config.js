@@ -136,7 +136,7 @@ const config = {
 	//首页只留「微服务学习路线」一张：其余页面都能从 project02 的目录/章节抽屉跳进去，
 	//没必要在首页再铺一遍导航。想放回来的话，把 hide 删掉即可。
 	projectcards: [
-		{ go: "📚 前往", img: "/img/projects/micro.svg", title: "微服务学习路线", subtitle: "14 章 · 架构 / 动画 / 原型", text: "一条能从头跑到尾的微服务入门路线：自我介绍稿、云联逐字稿、项目表述逐字稿、7 大模块技术手册、64 题追问预案，外加架构动态图、4 场景动画与 5 页高保真原型。", url: "/project02/", show: true },
+		{ go: "📚 前往", img: "/img/projects/micro.svg", title: "微服务学习路线", subtitle: "15 章 · 架构 / 动画 / 原型", text: "一条能从头跑到尾的微服务入门路线：自我介绍稿、云联逐字稿、项目表述逐字稿、7 大模块技术手册、64 题追问预案、8 张架构图，外加架构动态图、4 场景动画与 5 页高保真原型。", url: "/project02/", show: true },
 		{ go: "🧭 前往", img: "/img/projects/gem.svg", title: "架构总览 · Canvas 动态图", subtitle: "服务拓扑与调用链路", text: "用 Canvas 实时绘制的微服务拓扑：网关、注册中心、各服务与数据流向一目了然。", url: "/project02/架构/1-架构总览（Canvas动态图）.html", show: true, hide: true },
 		{ go: "📝 前往", img: "/img/projects/note.svg", title: "架构课件 · 10 章速记", subtitle: "零基础也能看懂", text: "把微服务拆成 10 个章节的速记课件，每个概念配一张图，适合面试前快速过一遍。", url: "/project02/架构/2-架构课件（10章速记）.html", show: true, hide: true },
 		{ go: "🎬 前往", img: "/img/projects/palette.svg", title: "微服务动画 · 4 场景", subtitle: "动起来才看得懂", text: "服务注册、负载均衡、熔断降级、链路追踪——四段动画把抽象流程演一遍。", url: "/project02/动画/1-微服务动画（4场景）.html", show: true, hide: true },

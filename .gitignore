@@ -12,6 +12,9 @@ node_modules/.vite/
 .dsh/
 .dsh-tmp/
 .superpowers/
+# archify build output — the rendered viewers are copied into
+# public/project02/图/ and their specs are kept in docs/archify/
+.archify/
 .vscode/
 .idea/
 

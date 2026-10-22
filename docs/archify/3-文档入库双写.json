@@ -1,0 +1,84 @@
+{
+  "schema_version": 1,
+  "diagram_type": "sequence",
+  "meta": {
+    "title": "云联 · 双库入库的顺序",
+    "subtitle": "先拿幂等键，再双写，最后改状态",
+    "locale": "zh-CN",
+    "output": ".archify/sequence-ingest-20261022-120000/dual-store-write.html",
+    "viewBox": [1085, 698],
+    "animation": "trace",
+    "visual_preset": "signal-flow",
+    "quality_profile": "showcase"
+  },
+  "participants": [
+    { "id": "op", "type": "external", "label": "运营", "sublabel": "上传文档" },
+    { "id": "kb", "type": "backend", "label": "知识库服务", "sublabel": "Python" },
+    { "id": "mq", "type": "messagebus", "label": "Kafka", "sublabel": "异步队列" },
+    { "id": "wk", "type": "backend", "label": "向量化 Worker", "sublabel": "消费者" },
+    { "id": "db", "type": "database", "label": "MySQL", "sublabel": "chunk 权威副本" },
+    { "id": "emb", "type": "cloud", "label": "Embedding", "sublabel": "通义" },
+    { "id": "pgv", "type": "database", "label": "PGVector", "sublabel": "向量库" },
+    { "id": "es", "type": "database", "label": "Elasticsearch", "sublabel": "全文索引" }
+  ],
+  "segments": [
+    { "from": 150, "to": 250, "label": "① 接受 · 秒回" },
+    { "from": 258, "to": 400, "label": "② 先写关系库" },
+    { "from": 408, "to": 480, "label": "③ 算向量" },
+    { "from": 488, "to": 560, "label": "④ 双写 → 状态机" }
+  ],
+  "messages": [
+    { "from": "op", "to": "kb", "y": 160, "label": "上传文档 + 租户", "variant": "emphasis" },
+    { "from": "kb", "to": "db", "y": 194, "label": "写 document（解析中）", "variant": "emphasis" },
+    { "from": "kb", "to": "mq", "y": 228, "label": "发向量化任务 doc_id", "variant": "emphasis" },
+    { "from": "kb", "to": "op", "y": 262, "label": "秒回：已收到", "variant": "return" },
+    { "from": "mq", "to": "wk", "y": 296, "label": "消费任务", "variant": "emphasis" },
+    { "from": "wk", "to": "db", "y": 330, "label": "① 先写 chunk，拿 chunk_id", "variant": "emphasis" },
+    { "from": "db", "to": "wk", "y": 364, "label": "chunk_id 列表", "variant": "return" },
+    { "from": "wk", "to": "emb", "y": 398, "label": "批量算向量", "variant": "default" },
+    { "from": "emb", "to": "wk", "y": 432, "label": "向量", "variant": "return" },
+    { "from": "wk", "to": "pgv", "y": 466, "label": "② 写向量库（带 chunk_id）", "variant": "emphasis" },
+    { "from": "wk", "to": "es", "y": 500, "label": "③ 写全文索引（中文分词）", "variant": "emphasis" },
+    { "from": "wk", "to": "db", "y": 534, "label": "④ 两库都成功 → 已生效", "variant": "dashed" }
+  ],
+  "activations": [
+    { "participant": "kb", "from": 154, "to": 268, "type": "backend" },
+    { "participant": "db", "from": 188, "to": 200, "type": "database" },
+    { "participant": "mq", "from": 222, "to": 302, "type": "messagebus" },
+    { "participant": "wk", "from": 296, "to": 540, "type": "backend" },
+    { "participant": "db", "from": 324, "to": 370, "type": "database" },
+    { "participant": "emb", "from": 392, "to": 438, "type": "cloud" },
+    { "participant": "pgv", "from": 460, "to": 472, "type": "database" },
+    { "participant": "es", "from": 494, "to": 506, "type": "database" },
+    { "participant": "db", "from": 528, "to": 540, "type": "database" }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "为什么先写关系库",
+      "items": [
+        "chunk_id 是两个检索库的幂等键，先有它才能保证重试不重复",
+        "重试按 chunk_id 覆盖写（先删旧再写新），不用查重",
+        "关系库是 chunk 的权威副本，检索库丢了能重建"
+      ]
+    },
+    {
+      "dot": "orange",
+      "title": "为什么秒回",
+      "items": [
+        "10MB 的 PDF 解析 + 几十个 chunk 向量化要几十秒",
+        "同步做会卡死上传接口，运营以为页面挂了",
+        "失败可重试，事务不被长耗时操作占着"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "状态机才是真的事务",
+      "items": [
+        "「解析中」是给双写可能失败留的位置，不是装饰",
+        "两库都成功才改「已生效」，任一步失败就留着等重试",
+        "没上分布式事务：靠幂等 + 状态机，比两阶段提交便宜得多"
+      ]
+    }
+  ]
+}

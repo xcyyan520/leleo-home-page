@@ -1,0 +1,59 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "云联 · LangGraph StateGraph 是有环的",
+    "subtitle": "调完工具要回到 LLM 再判一次",
+    "locale": "zh-CN",
+    "output": ".archify/architecture-stategraph-20261022-132500/stategraph-loop.html"
+  },
+  "components": [
+    { "id": "start", "type": "external", "label": "收到消息", "sublabel": "conversation 调进来", "pos": [40, 260] },
+    { "id": "intent", "type": "backend", "label": "意图识别", "sublabel": "规则 + 模型双引擎", "pos": [230, 260] },
+    { "id": "route", "type": "backend", "label": "意图路由", "sublabel": "知识 / 实时 / 组合", "pos": [420, 260] },
+    { "id": "rag", "type": "cloud", "label": "RAG 召回", "sublabel": "受阈值约束", "pos": [610, 120] },
+    { "id": "tool", "type": "backend", "label": "Tool 调用", "sublabel": "8 个内建工具", "pos": [610, 400] },
+    { "id": "llm", "type": "cloud", "label": "LLM 生成", "sublabel": "只依据资料回答", "pos": [810, 260] },
+    { "id": "check", "type": "security", "label": "后置校验", "sublabel": "引用 / 违规 / 长度", "pos": [1000, 260] },
+    { "id": "log", "type": "database", "label": "写 ai_execution", "sublabel": "审计与成本", "pos": [1000, 60] }
+  ],
+  "connections": [
+    { "id": "c1", "from": "start", "to": "intent" },
+    { "id": "c2", "from": "intent", "to": "route" },
+    { "id": "c3", "from": "route", "to": "rag" },
+    { "id": "c4", "from": "route", "to": "tool" },
+    { "id": "c5", "from": "rag", "to": "llm" },
+    { "id": "c6", "from": "tool", "to": "llm" },
+    { "id": "c7", "from": "llm", "to": "check" },
+    { "id": "c8", "from": "check", "to": "log" }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "为什么它必须是图",
+      "items": [
+        "调完工具要带着结果回到 LLM 节点再判一次，这是环，不是直线",
+        "StateGraph 本质是「节点 + 边 + 共享 state」",
+        "线性链（LCEL）表达不了「回到上一步」"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "state 里放什么",
+      "items": [
+        "messages 用 add_messages reducer，只追加不覆盖",
+        "工具结果当成一条 ToolMessage 追加回去，下一轮模型就看得到",
+        "没有 reducer 的字段是覆盖语义，误以为会累积是最常见的坑"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "环的风险",
+      "items": [
+        "没有终止条件就会撞 recursion_limit",
+        "推进型死循环不报错，只表现为又慢又贵",
+        "对策：state 里放迭代计数 + 工具调用次数上限"
+      ]
+    }
+  ]
+}

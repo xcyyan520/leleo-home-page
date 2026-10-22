@@ -1,0 +1,230 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "云联 · 核心业务流程（8 步）",
+    "subtitle": "从顾客进线到工单闭环",
+    "locale": "zh-CN",
+    "quality_profile": "showcase",
+    "output": ".archify/workflow-core-flow-20261022-110000/core-flow.html"
+  },
+  "lanes": [
+    {
+      "id": "ch",
+      "label": "顾客与渠道"
+    },
+    {
+      "id": "ai",
+      "label": "AI 机器人（Python）"
+    },
+    {
+      "id": "ret",
+      "label": "检索与工具"
+    },
+    {
+      "id": "human",
+      "label": "人工坐席与工单"
+    }
+  ],
+  "mainPath": [
+    "entry",
+    "intent",
+    "handoff",
+    "router",
+    "ragq",
+    "gen"
+  ],
+  "nodes": [
+    {
+      "id": "entry",
+      "lane": "ch",
+      "col": 0,
+      "type": "external",
+      "icon": "person",
+      "label": "顾客进线",
+      "sublabel": "网页 / 公众号 / 小程序 / 抖音",
+      "tag": "第 1 步",
+      "width": 180
+    },
+    {
+      "id": "intent",
+      "lane": "ai",
+      "col": 1,
+      "type": "backend",
+      "label": "意图识别",
+      "sublabel": "售前 / 售后 / 物流 / 投诉",
+      "tag": "第 2 步",
+      "width": 180
+    },
+    {
+      "id": "handoff",
+      "lane": "ai",
+      "col": 2,
+      "type": "security",
+      "label": "转人工判定",
+      "sublabel": "四个条件取「或」",
+      "tag": "第 3 步",
+      "width": 180
+    },
+    {
+      "id": "router",
+      "lane": "ai",
+      "col": 3,
+      "type": "backend",
+      "label": "意图路由",
+      "sublabel": "知识 / 实时 / 组合",
+      "tag": "第 4 步",
+      "width": 180
+    },
+    {
+      "id": "ragq",
+      "lane": "ret",
+      "col": 4,
+      "type": "database",
+      "label": "RAG 召回",
+      "sublabel": "向量 + BM25 → RRF → 重排 Top5",
+      "tag": "第 5 步",
+      "width": 180
+    },
+    {
+      "id": "gen",
+      "lane": "ai",
+      "col": 5,
+      "type": "backend",
+      "label": "生成回答",
+      "sublabel": "带依据 / 带实时数据",
+      "width": 180
+    },
+    {
+      "id": "toolq",
+      "lane": "ret",
+      "col": 5,
+      "type": "cloud",
+      "label": "Tool 调用",
+      "sublabel": "查订单 / 物流 / 工单",
+      "tag": "第 6 步",
+      "width": 180
+    },
+    {
+      "id": "agent",
+      "lane": "human",
+      "col": 2,
+      "type": "frontend",
+      "icon": "person",
+      "label": "人工接待",
+      "sublabel": "Redis 路由表定位坐席",
+      "tag": "第 7 步",
+      "width": 180
+    },
+    {
+      "id": "ticket",
+      "lane": "human",
+      "col": 4,
+      "type": "backend",
+      "label": "建工单 + SLA",
+      "sublabel": "按优先级挂时限",
+      "tag": "第 8 步",
+      "width": 180
+    }
+  ],
+  "edges": [
+    {
+      "id": "e_intake",
+      "from": "entry",
+      "to": "intent",
+      "label": "进线咨询",
+      "role": "main",
+      "variant": "emphasis"
+    },
+    {
+      "id": "e_identify",
+      "from": "intent",
+      "to": "handoff",
+      "label": "意图 + 置信度",
+      "role": "main"
+    },
+    {
+      "id": "e_continue",
+      "from": "handoff",
+      "to": "router",
+      "label": "机器人继续",
+      "role": "main",
+      "variant": "emphasis"
+    },
+    {
+      "id": "e_route_rag",
+      "from": "router",
+      "to": "ragq",
+      "label": "知识问答类",
+      "role": "main",
+      "variant": "emphasis"
+    },
+    {
+      "id": "e_route_tool",
+      "from": "router",
+      "to": "toolq",
+      "label": "实时查询类",
+      "role": "branch"
+    },
+    {
+      "id": "e_rag_gen",
+      "from": "ragq",
+      "to": "gen",
+      "label": "Top5 达标",
+      "role": "main"
+    },
+    {
+      "id": "e_tool_gen",
+      "from": "toolq",
+      "to": "gen",
+      "label": "拿到实时数据",
+      "role": "branch"
+    },
+    {
+      "id": "e_force",
+      "from": "handoff",
+      "to": "agent",
+      "label": "四条件之任一成立",
+      "role": "branch",
+      "variant": "security"
+    },
+    {
+      "id": "e_ticket",
+      "from": "agent",
+      "to": "ticket",
+      "label": "人工也解决不了",
+      "role": "main"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "rose",
+      "title": "★ 第 4 步为什么在 RAG 前面",
+      "items": [
+        "原设计先 RAG 再判断要不要调工具",
+        "顾客问「快递到哪了」，知识库没有这单物流 → 召回为空 → 兜底转人工",
+        "查物流的工具根本没机会被调用",
+        "修正：先按问题性质路由，不看 RAG 分数"
+      ]
+    },
+    {
+      "dot": "cyan",
+      "title": "转人工四条件（取「或」）",
+      "items": [
+        "意图是投诉",
+        "连续 2 次没识别出来",
+        "命中关键词（人工 / 投诉 / 找领导）",
+        "顾客主动要求"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "阈值只约束知识问答类",
+      "items": [
+        "召回为空或重排不达标 → 禁止生成，兜底 + 转人工",
+        "Tool 分支与 RAG 分数无关",
+        "Top20~30 → 重排 → Top5"
+      ]
+    }
+  ]
+}

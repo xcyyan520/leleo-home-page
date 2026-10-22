@@ -1,0 +1,80 @@
+{
+  "schema_version": 1,
+  "diagram_type": "sequence",
+  "meta": {
+    "title": "云联 · 一次请求的完整调用链",
+    "subtitle": "Nginx → 网关 → conversation → ai-agent → 模型 → 日志 → 回程",
+    "locale": "zh-CN",
+    "output": ".archify/sequence-request-20261022-124000/request-chain.html",
+    "viewBox": [1085, 698],
+    "animation": "trace",
+    "visual_preset": "signal-flow",
+    "quality_profile": "showcase"
+  },
+  "participants": [
+    { "id": "c", "type": "external", "label": "顾客", "sublabel": "微信 / 网页" },
+    { "id": "ng", "type": "backend", "label": "Nginx", "sublabel": "入口" },
+    { "id": "gw", "type": "security", "label": "Gateway", "sublabel": "JWT + 上下文" },
+    { "id": "nc", "type": "cloud", "label": "Nacos", "sublabel": "注册中心" },
+    { "id": "cs", "type": "backend", "label": "conversation", "sublabel": "Java 会话" },
+    { "id": "mq", "type": "database", "label": "MySQL + Redis", "sublabel": "落库 · 上下文" },
+    { "id": "ai", "type": "cloud", "label": "ai-agent", "sublabel": "Python · LangGraph" },
+    { "id": "llm", "type": "cloud", "label": "大模型", "sublabel": "通义 / DeepSeek" }
+  ],
+  "segments": [
+    { "from": 150, "to": 300, "label": "① 接入与鉴权" },
+    { "from": 308, "to": 436, "label": "② 会话落库 → 转 Python" },
+    { "from": 444, "to": 566, "label": "③ 编排与生成" }
+  ],
+  "messages": [
+    { "from": "c", "to": "ng", "y": 160, "label": "发消息", "variant": "emphasis" },
+    { "from": "ng", "to": "gw", "y": 194, "label": "转发", "variant": "default" },
+    { "from": "gw", "to": "nc", "y": 228, "label": "拿实例列表", "variant": "dashed" },
+    { "from": "gw", "to": "cs", "y": 262, "label": "JWT 通过 + 注入客户上下文", "variant": "emphasis" },
+    { "from": "cs", "to": "mq", "y": 316, "label": "落消息 + 取近几轮上下文", "variant": "emphasis" },
+    { "from": "cs", "to": "ai", "y": 350, "label": "HTTP 调（RestTemplate）", "variant": "emphasis" },
+    { "from": "ai", "to": "llm", "y": 404, "label": "意图 → 检索 → 生成", "variant": "emphasis" },
+    { "from": "llm", "to": "ai", "y": 438, "label": "回答 + 引用", "variant": "return" },
+    { "from": "ai", "to": "cs", "y": 472, "label": "answer + ai_execution 已写", "variant": "return" },
+    { "from": "cs", "to": "mq", "y": 506, "label": "回写会话", "variant": "dashed" },
+    { "from": "cs", "to": "c", "y": 540, "label": "原路返回", "variant": "return" }
+  ],
+  "activations": [
+    { "participant": "gw", "from": 154, "to": 268, "type": "security" },
+    { "participant": "nc", "from": 222, "to": 234, "type": "cloud" },
+    { "participant": "cs", "from": 256, "to": 546, "type": "backend" },
+    { "participant": "mq", "from": 310, "to": 322, "type": "database" },
+    { "participant": "ai", "from": 344, "to": 478, "type": "cloud" },
+    { "participant": "llm", "from": 398, "to": 444, "type": "cloud" },
+    { "participant": "mq", "from": 500, "to": 512, "type": "database" }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "三段边界要能分清",
+      "items": [
+        "Java 管业务与状态，Python 只管编排和生成",
+        "网关不算在那 7 个服务里，它是横切的",
+        "Java 调 Python 用 RestTemplate/WebClient，不用 Feign —— Feign 只服务 Java 之间"
+      ]
+    },
+    {
+      "dot": "orange",
+      "title": "为什么上下文要 Redis",
+      "items": [
+        "近几轮上下文放 Redis，别每轮都全量查 MySQL",
+        "MySQL 落全量消息，是权威副本",
+        "ai_execution 记一次 AI 调用的输入输出，排查和算成本都靠它"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "多实例时怎么找对机器",
+      "items": [
+        "Nacos 给实例列表，网关按负载选一个",
+        "同一会话的后续消息要落回同一实例，靠路由表 + 实例间定向转发",
+        "Kafka 是消费组模型：一个分区只被一个实例消费，处理不了就丢消息"
+      ]
+    }
+  ]
+}

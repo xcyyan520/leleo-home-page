@@ -902,6 +902,22 @@ html[data-theme="light"] ::-webkit-scrollbar-track{background:#f2ede3 !important
 html[data-theme="light"] ::-webkit-scrollbar-thumb{background:#d8cfbe !important}
 html[data-theme="light"] ::selection{background:rgba(107,87,136,.2) !important;color:#241f2e !important}
 </style>
+<style id="sd-gallery">
+/* ── 架构图册（c14）──────────────────────────────
+   Scoped colours: 路线.html's :root has no --bright, so relying on a var()
+   fallback would paint dark-theme ink in the light theme. */
+:root{--dgm-bg:rgba(255,255,255,.022);--dgm-bd:#2a2740;--dgm-tt:#e8e2d8;--dgm-ds:#8d8779;--dgm-no:#7a7468;--dgm-go:#8b7aaa;--dgm-hov:rgba(139,122,170,.07)}
+html[data-theme="light"]{--dgm-bg:#ffffff;--dgm-bd:#ded7c9;--dgm-tt:#241f2e;--dgm-ds:#5b5468;--dgm-no:#6b6478;--dgm-go:#6b5788;--dgm-hov:#f8f5ee}
+.dgm-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px;margin:18px 0 22px}
+.dgm{margin:0}
+.dgm-link{display:flex;flex-direction:column;gap:6px;padding:14px 16px;border:1px solid var(--dgm-bd);border-radius:12px;background:var(--dgm-bg);text-decoration:none;transition:border-color .18s,transform .18s,background .18s}
+.dgm-link:hover{border-color:var(--dgm-go);background:var(--dgm-hov);transform:translateY(-2px)}
+.dgm-no{font:600 11px/1 ui-monospace,Consolas,monospace;letter-spacing:.12em;color:var(--dgm-no)}
+.dgm-tt{font-size:14.5px;font-weight:700;color:var(--dgm-tt);line-height:1.45}
+.dgm-ds{font-size:12.5px;color:var(--dgm-ds);line-height:1.6}
+.dgm-go{margin-top:2px;font-size:11.5px;color:var(--dgm-go);letter-spacing:.04em}
+@media (max-width:600px){.dgm-grid{grid-template-columns:1fr;gap:10px}.dgm-link{padding:12px 14px}}
+</style>
 </head>
 <body>
 
@@ -919,7 +935,7 @@ html[data-theme="light"] ::selection{background:rgba(107,87,136,.2) !important;c
 <div class="chapbox" id="chapbox">
   <div class="mask" id="chapMask"></div>
   <nav>
-    <div class="hd">共 14 章 · 点一下切换</div>
+    <div class="hd">共 15 章 · 点一下切换</div>
       <a href="#c0" data-c="0"><span class="ic">0</span><span class="tx"><b>完整学习路线</b><i>从 0 到能讲出来</i></span></a>
       <a href="#c1" data-c="1"><span class="ic">①</span><span class="tx"><b>自我介绍稿</b><i>开场 2~3 分钟</i></span></a>
       <a href="#c2" data-c="2"><span class="ic">②</span><span class="tx"><b>云联-逐字稿</b><i>项目表述主稿</i></span></a>
@@ -934,6 +950,7 @@ html[data-theme="light"] ::selection{background:rgba(107,87,136,.2) !important;c
       <a href="#c11" data-c="11"><span class="ic">⑪</span><span class="tx"><b>面试题 · 10/17</b><i>LangGraph 四问</i></span></a>
       <a href="#c12" data-c="12"><span class="ic">⑫</span><span class="tx"><b>面试题 · 10/18</b><i>MCP / 流式输出 / 会话记忆</i></span></a>
       <a href="#c13" data-c="13"><span class="ic">⑬</span><span class="tx"><b>项目表述逐字稿</b><i>9~11 分钟 · 脱稿讲这一份</i></span></a>
+<a href="#c14" data-c="14"><span class="ic">⑭</span><span class="tx"><b>架构图册</b><i>8 张图看完整条链路</i></span></a>
   </nav>
 </div>
 
@@ -1287,7 +1304,17 @@ html[data-theme="light"] ::selection{background:rgba(107,87,136,.2) !important;c
         <a class="lv2" href="#a11_7">【附录 A】脱稿练习要点</a>
         <a class="lv2" href="#a11_8">【附录 B】追问预案</a>
       </div>
-      
+      <div class="tocgrp" data-i="14">
+        <a class="lv1" href="#a12_1">架构图册</a>
+        <a class="lv2" href="图/1-核心业务流程.html">核心业务流程（8 步）</a>
+        <a class="lv2" href="图/2-RAG全链路.html">RAG 全链路</a>
+        <a class="lv2" href="图/3-文档入库双写.html">文档入库与双库双写</a>
+        <a class="lv2" href="图/4-意图识别分流.html">意图识别与三级分流</a>
+        <a class="lv2" href="图/5-一次请求调用链.html">一次请求的完整调用链</a>
+        <a class="lv2" href="图/6-工具调用与MCP.html">工具调用：项目现状 vs MCP</a>
+        <a class="lv2" href="图/7-微服务拓扑.html">7 个微服务与横切</a>
+        <a class="lv2" href="图/8-StateGraph环.html">StateGraph 是有环的</a>
+      </div>
   </nav>
 </div>
 
@@ -2964,6 +2991,82 @@ return StreamingResponse(gen(), media_type="text/event-stream")</code></pre><pre
 <div class="tblwrap"><table><thead><tr><th>面试官问</th><th>你的答法</th><th>⚠️ 绝对不能说</th></tr></thead><tbody><tr><td>"官网发我看看 / 有上线页面吗？"</td><td>"这套系统是交付给客户的，跑在客户自己的域名和环境里，我离职后权限已经回收了，确实没法给您看。不过界面上每个模块我都能说清楚，您想从哪块开始？"</td><td>不要说"我回去发您"，发不出来等于自曝</td></tr><tr><td>"你们公司叫什么？"</td><td>"一家做企业软件定制开发的中小公司，四十多人。"（<b>不主动报全称</b>；被追问再说一个真实存在、查得到的普通小公司名）</td><td>不要编一个不存在的公司名</td></tr><tr><td>"客户是谁？"</td><td>"一家区域性的连锁零售企业，另外两家是做电商的中小企业。"</td><td><b>不要说真实大品牌</b>（一查就穿）</td></tr><tr><td>"怎么拿到这个项目的？"</td><td>"商务和售前谈的，我们在零售行业有几个老客户。"</td><td>不要说是"网上注册购买"</td></tr><tr><td>"上线后谁运维？"</td><td>"交付后客户自己运维，我们留了两个月陪跑，之后走工单支持，我处理过两次线上问题。"→ 顺势讲 Kafka 那个例子</td><td>不要说"我随时能登上去看"</td></tr><tr><td>"你一个中级开发，这些架构是你定的？"</td><td>"架构是架构师定的，但方案讨论我全程参与，我负责的四个模块的表结构和接口是我自己设计的。"</td><td>不要把架构功劳全揽了</td></tr></tbody></table></div>
 <span class="anch" id="b3-讲之前必须自查的一致性-数字-口径对不上最容易被抓"></span><h4 id="a11_11" class="sub">B3. 讲之前必须自查的一致性（数字/口径对不上最容易被抓）</h4>
 <ul><li>[ ] 全篇<b>没有</b>出现"注册""试用""官网""订阅""租户"这些词（一说就引出"给我看看"）</li><li>[ ] <b>双栈口径自洽</b>：业务侧说 Java（Spring Boot <b>3.x</b> + JDK <b>17</b>），智能侧说 Python（<b>LangChain + LangGraph</b>） —— <b>不能出现 "Boot 2.7" 或 "JDK 8"</b></li><li>[ ] <b>Spring AI 只在"为什么不用它"的语境里出现</b>，绝不能把它说成"我们用的框架" （否则和"AI 侧是 Python"直接矛盾，一问就穿）</li><li>[ ] <b>不要说 LangChain4j</b>——那是 Java 侧框架，和双栈口径冲突。被问"了解 LangChain4j 吗"就答 "了解过，但我们是双栈架构，AI 侧直接用 Python 的 LangChain 生态，没走 Java 侧方案"</li><li>[ ] <b>两处最容易被抓的追问必须准备好</b>：①"为什么 AI 用 Python 不用 Spring AI"（附录 B1 第二行） ②"双栈不是更复杂吗"（附录 B1 第四行）——这两题答不好，双栈会显得像跟风</li><li>[ ] 客户数量 = <b>3 家</b>，员工规模 = <b>40 多人</b>，二者在任何地方都不矛盾</li><li>[ ] 数据量按<b>最大单客户</b>口径说（日均 3000 会话），不是三家相加</li><li>[ ] <b>速率口径</b>：说的必须是「<b>内部处理速率【估算】约 10 次/秒</b>」，并且能当场算出这个数（2 万条消息 ÷ 10 小时 ≈ 0.56 条/秒 → 按每条消息触发的内部处理动作估，平均约 2.6 次/秒 → 再乘约 4 倍峰值系数 ≈ 10）——★<b>它不是网关入口 QPS，也不是压测实测值</b>，被追问时要主动说清</li><li>[ ] "租户"这个词如果嘴快说出来了，立刻改口成"客户"，不要一会儿说租户一会儿说客户</li><li>[ ] 项目名建议再改一次（"云联"也偏通用），<b>面试前确认这个名字搜不出一个明显的同名成熟产品</b></li><li>[ ] <b>"我们是不是 SaaS"这题要主动排除</b>：只说"交付型 / 私有化交付 / 一套底座多处交付"，<b>不说"SaaS""平台""订阅""租户"</b>。讲了"平台化"三个字，面试官下一句就是"你们平台上有多少家客户"</li><li>[ ] 行业背景那句只讲一次，别反复提 IDC 数据（会显得在背稿）</li></ul>
+</section>
+<section class="cbody" id="c14" data-i="14" data-short="架构图册" data-sub="8 张图看完整条链路">
+<span class="anch" id="架构图册"></span><h2 id="a12_1" class="part">架构图册</h2>
+<blockquote><p>这一章是<b>图</b>，不念。讲项目时打开对应那张，边指着边讲，比背稿子省力得多。每张都是独立页面，可以在新标签页里放大、切深浅色、导出图片。</p>
+<p>用法建议：<b>自我介绍后先开 1 号图</b>讲主链路，讲到你负责的模块时开 3 号（双库）或 6 号（工具调用）。被追问「怎么保证一致」就开 3 号；被问「MCP 你们用了吗」就开 6 号。</p></blockquote>
+
+<div class="dgm-grid">
+<figure class="dgm" data-kind="workflow">
+<a class="dgm-link" href="图/1-核心业务流程.html" target="_blank" rel="noopener">
+<span class="dgm-no">01</span>
+<span class="dgm-tt">核心业务流程（8 步）</span>
+<span class="dgm-ds">c2 的八步主链，含修正过后的人工介入判定顺序</span>
+<span class="dgm-go">打开 →</span>
+</a>
+</figure>
+<figure class="dgm" data-kind="dataflow">
+<a class="dgm-link" href="图/2-RAG全链路.html" target="_blank" rel="noopener">
+<span class="dgm-no">02</span>
+<span class="dgm-tt">RAG 全链路</span>
+<span class="dgm-ds">离线构建 → 双库入库 → 在线召回 → 生成与拦截</span>
+<span class="dgm-go">打开 →</span>
+</a>
+</figure>
+<figure class="dgm" data-kind="sequence">
+<a class="dgm-link" href="图/3-文档入库双写.html" target="_blank" rel="noopener">
+<span class="dgm-no">03</span>
+<span class="dgm-tt">文档入库与双库双写</span>
+<span class="dgm-ds">先拿幂等键，再双写，状态机才是真事务</span>
+<span class="dgm-go">打开 →</span>
+</a>
+</figure>
+<figure class="dgm" data-kind="workflow">
+<a class="dgm-link" href="图/4-意图识别分流.html" target="_blank" rel="noopener">
+<span class="dgm-no">04</span>
+<span class="dgm-tt">意图识别与三级分流</span>
+<span class="dgm-ds">规则先挡 → 模型兜底 → RAG / Tool 两条出口</span>
+<span class="dgm-go">打开 →</span>
+</a>
+</figure>
+<figure class="dgm" data-kind="sequence">
+<a class="dgm-link" href="图/5-一次请求调用链.html" target="_blank" rel="noopener">
+<span class="dgm-no">05</span>
+<span class="dgm-tt">一次请求的完整调用链</span>
+<span class="dgm-ds">Nginx → 网关 → conversation → ai-agent → 模型</span>
+<span class="dgm-go">打开 →</span>
+</a>
+</figure>
+<figure class="dgm" data-kind="sequence">
+<a class="dgm-link" href="图/6-工具调用与MCP.html" target="_blank" rel="noopener">
+<span class="dgm-no">06</span>
+<span class="dgm-tt">工具调用：项目现状 vs MCP</span>
+<span class="dgm-ds">跨语言发生在工具函数内部，不在调用这一层</span>
+<span class="dgm-go">打开 →</span>
+</a>
+</figure>
+<figure class="dgm" data-kind="architecture">
+<a class="dgm-link" href="图/7-微服务拓扑.html" target="_blank" rel="noopener">
+<span class="dgm-no">07</span>
+<span class="dgm-tt">7 个微服务与横切</span>
+<span class="dgm-ds">Java 5 个管业务，Python 2 个管大脑</span>
+<span class="dgm-go">打开 →</span>
+</a>
+</figure>
+<figure class="dgm" data-kind="architecture">
+<a class="dgm-link" href="图/8-StateGraph环.html" target="_blank" rel="noopener">
+<span class="dgm-no">08</span>
+<span class="dgm-tt">StateGraph 是有环的</span>
+<span class="dgm-ds">调完工具回到 LLM 再判一次</span>
+<span class="dgm-go">打开 →</span>
+</a>
+</figure>
+</div>
+
+<div class="note"><b>⚠️ 图里没有的东西</b><br>
+这些图只画<b>已经实现</b>的部分。云联的 MCP 是"没集成、但知道该怎么集成"，所以 6 号图画的是「现状 vs MCP」的对比，不是一条已经跑通的 MCP 链路 —— 面试时也要这么说，别把对比图讲成架构图。<br>
+另外：图的配色和深浅色由 Archify 生成，与本站主题<b>互不影响</b>；从深色主题点进去图是深色，从浅色点进去还是图自己的默认色，这是正常的。</div>
 </section>
 
 </div>

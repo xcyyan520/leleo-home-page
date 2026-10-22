@@ -1,0 +1,212 @@
+{
+  "schema_version": 1,
+  "diagram_type": "dataflow",
+  "meta": {
+    "title": "云联 · RAG 全链路",
+    "subtitle": "离线构建 → 双库入库 → 在线召回 → 生成",
+    "locale": "zh-CN",
+    "quality_profile": "showcase",
+    "viewBox": [
+      1080,
+      620
+    ],
+    "output": ".archify/dataflow-rag-20261022-110000/rag-pipeline.html"
+  },
+  "stages": [
+    {
+      "label": "① 上传"
+    },
+    {
+      "label": "② 解析"
+    },
+    {
+      "label": "③ 切分"
+    },
+    {
+      "label": "④ 向量化与入库"
+    },
+    {
+      "label": "⑤ 召回与生成"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "upload",
+      "type": "external",
+      "label": "运营上传文档",
+      "sublabel": "PDF / Word / Excel",
+      "stage": 0,
+      "row": 0,
+      "width": 108
+    },
+    {
+      "id": "parse",
+      "type": "backend",
+      "label": "解析成 Markdown",
+      "sublabel": "去噪 · 合段 · 提层级",
+      "stage": 1,
+      "row": 0,
+      "width": 108
+    },
+    {
+      "id": "chunk",
+      "type": "backend",
+      "label": "按结构切分",
+      "sublabel": "三级标题 + 正文",
+      "stage": 2,
+      "row": 0,
+      "width": 108
+    },
+    {
+      "id": "embed",
+      "type": "cloud",
+      "label": "Embedding 算向量",
+      "sublabel": "通义 · 批量",
+      "stage": 3,
+      "row": 0,
+      "width": 108
+    },
+    {
+      "id": "stores",
+      "type": "database",
+      "label": "双库写入",
+      "sublabel": "PGVector ＋ ES",
+      "stage": 3,
+      "row": 1,
+      "width": 108
+    },
+    {
+      "id": "recall",
+      "type": "backend",
+      "label": "两路并行召回",
+      "sublabel": "向量 ＋ BM25",
+      "stage": 4,
+      "row": 0,
+      "width": 108
+    },
+    {
+      "id": "rrf",
+      "type": "backend",
+      "label": "RRF 融合 + 重排",
+      "sublabel": "Top20~30 → Top5",
+      "stage": 4,
+      "row": 1,
+      "width": 108
+    },
+    {
+      "id": "llm",
+      "type": "cloud",
+      "label": "LLM 生成",
+      "sublabel": "只依据资料回答",
+      "stage": 4,
+      "row": 2,
+      "width": 108
+    }
+  ],
+  "flows": [
+    {
+      "id": "f1",
+      "from": "upload",
+      "to": "parse",
+      "label": "落记录 + 发 Kafka",
+      "classification": "异步",
+      "variant": "emphasis",
+      "labelAt": [
+        208,
+        201
+      ]
+    },
+    {
+      "id": "f2",
+      "from": "parse",
+      "to": "chunk",
+      "label": "Markdown",
+      "classification": "前置",
+      "variant": "emphasis"
+    },
+    {
+      "id": "f3",
+      "from": "chunk",
+      "to": "embed",
+      "label": "chunk 文本",
+      "classification": "批量",
+      "variant": "emphasis"
+    },
+    {
+      "id": "f4",
+      "from": "embed",
+      "to": "stores",
+      "label": "向量 + 原文",
+      "classification": "双写",
+      "variant": "emphasis",
+      "labelAt": [
+        745,
+        201
+      ]
+    },
+    {
+      "id": "f5",
+      "from": "stores",
+      "to": "recall",
+      "label": "两路索引",
+      "classification": "在线",
+      "variant": "default"
+    },
+    {
+      "id": "f6",
+      "from": "recall",
+      "to": "rrf",
+      "label": "候选集",
+      "classification": "融合",
+      "variant": "emphasis",
+      "labelAt": [
+        960,
+        201
+      ]
+    },
+    {
+      "id": "f7",
+      "from": "rrf",
+      "to": "llm",
+      "label": "Top5",
+      "classification": "达标",
+      "variant": "emphasis",
+      "labelAt": [
+        960,
+        315
+      ]
+    }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "离线为什么必须异步",
+      "items": [
+        "10MB 的 PDF 解析 + 几十个 chunk 向量化要几十秒",
+        "同步做会卡死上传接口，运营以为页面挂了",
+        "上传接口只「存原文 + 落记录 + 发消息」，秒回",
+        "文档状态要有「解析中 → 已生效」中间态，它是给双写可能失败留的位置"
+      ]
+    },
+    {
+      "dot": "cyan",
+      "title": "为什么是双库",
+      "items": [
+        "PGVector 做向量检索，ES 专心做它擅长的全文检索",
+        "关系库的 chunk_id 是两个检索库的幂等键，重试覆盖写不重复",
+        "两库都成功状态才改「已生效」，任一步失败留「解析中」等重试",
+        "没上分布式事务，靠幂等 + 状态机；另一条路是 ES 8 的 dense_vector 单库"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "阈值只约束知识问答类",
+      "items": [
+        "召回为空或重排分不达标 → 禁止生成，兜底 + 转人工",
+        "向量 sim 偏低不能单独决定兜底，会误杀 BM25 的正确结果",
+        "Tool Calling 分支跟 RAG 分数完全无关",
+        "★换 Embedding 模型必须全量重建：新旧向量空间不兼容，混检就是错的"
+      ]
+    }
+  ]
+}

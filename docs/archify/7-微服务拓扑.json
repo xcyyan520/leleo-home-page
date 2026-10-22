@@ -1,0 +1,288 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "云联 · 7 个微服务与横切",
+    "subtitle": "Java 5 个管业务，Python 2 个管大脑",
+    "locale": "zh-CN",
+    "output": ".archify/architecture-services-20261022-130000/service-topology.html"
+  },
+  "connections": [
+    {
+      "id": "c1",
+      "from": "client",
+      "to": "ng"
+    },
+    {
+      "id": "c2",
+      "from": "ng",
+      "to": "gw"
+    },
+    {
+      "id": "c3",
+      "from": "gw",
+      "to": "auth"
+    },
+    {
+      "id": "c4",
+      "from": "gw",
+      "to": "conv"
+    },
+    {
+      "id": "c5",
+      "from": "gw",
+      "to": "tkt"
+    },
+    {
+      "id": "c6",
+      "from": "gw",
+      "to": "cus"
+    },
+    {
+      "id": "c7",
+      "from": "gw",
+      "to": "rpt"
+    },
+    {
+      "id": "c8",
+      "from": "gw",
+      "to": "nac"
+    },
+    {
+      "id": "c9",
+      "from": "conv",
+      "to": "ai"
+    },
+    {
+      "id": "c10",
+      "from": "ai",
+      "to": "kb"
+    },
+    {
+      "id": "c11",
+      "from": "ai",
+      "to": "pgv"
+    },
+    {
+      "id": "c12",
+      "from": "ai",
+      "to": "es"
+    },
+    {
+      "id": "c13",
+      "from": "kb",
+      "to": "mq"
+    },
+    {
+      "id": "c14",
+      "from": "conv",
+      "to": "pg"
+    },
+    {
+      "id": "c15",
+      "from": "conv",
+      "to": "rd"
+    },
+    {
+      "id": "c16",
+      "from": "tkt",
+      "to": "pg"
+    },
+    {
+      "id": "c17",
+      "from": "cus",
+      "to": "pg"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "为什么是 Java + Python",
+      "items": [
+        "Java 做骨架：事务、权限、SLA 计时、报表这类要稳的",
+        "Python 做大脑：模型调用、LangGraph 编排、向量检索生态在 Python",
+        "两边靠 HTTP 直连，不经过网关"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "数边界",
+      "items": [
+        "7 个业务服务 = Java 5 + Python 2",
+        "网关不算在这 7 个里，它是横切的",
+        "Nacos 同时做注册和配置，配置热更新不用重启"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "数据归属",
+      "items": [
+        "MySQL 是权威副本，Redis 只是快",
+        "PGVector 与 ES 都是派生物，丢了能从 chunk 重建",
+        "租户隔离用独立 schema + 独立 collection，不靠 where 条件"
+      ]
+    }
+  ],
+  "components": [
+    {
+      "id": "client",
+      "type": "external",
+      "label": "顾客入口",
+      "sublabel": "微信 / 网页 / 抖音",
+      "pos": [
+        60,
+        120
+      ]
+    },
+    {
+      "id": "ng",
+      "type": "backend",
+      "label": "Nginx",
+      "sublabel": "入口",
+      "pos": [
+        260,
+        120
+      ]
+    },
+    {
+      "id": "gw",
+      "type": "security",
+      "label": "Gateway",
+      "sublabel": "JWT · 限流",
+      "pos": [
+        460,
+        120
+      ]
+    },
+    {
+      "id": "nac",
+      "type": "cloud",
+      "label": "Nacos",
+      "sublabel": "配置 + 注册",
+      "pos": [
+        660,
+        60
+      ]
+    },
+    {
+      "id": "auth",
+      "type": "backend",
+      "label": "认证授权",
+      "sublabel": "Java",
+      "pos": [
+        120,
+        280
+      ]
+    },
+    {
+      "id": "cus",
+      "type": "backend",
+      "label": "客户与坐席",
+      "sublabel": "Java",
+      "pos": [
+        300,
+        280
+      ]
+    },
+    {
+      "id": "conv",
+      "type": "backend",
+      "label": "会话消息",
+      "sublabel": "Java",
+      "pos": [
+        480,
+        280
+      ]
+    },
+    {
+      "id": "tkt",
+      "type": "backend",
+      "label": "工单 SLA",
+      "sublabel": "Java",
+      "pos": [
+        660,
+        280
+      ]
+    },
+    {
+      "id": "rpt",
+      "type": "backend",
+      "label": "报表统计",
+      "sublabel": "Java",
+      "pos": [
+        840,
+        280
+      ]
+    },
+    {
+      "id": "kb",
+      "type": "cloud",
+      "label": "知识库服务",
+      "sublabel": "Python",
+      "pos": [
+        560,
+        440
+      ]
+    },
+    {
+      "id": "ai",
+      "type": "cloud",
+      "label": "AI 编排",
+      "sublabel": "Python · LangGraph",
+      "pos": [
+        760,
+        440
+      ]
+    },
+    {
+      "id": "pg",
+      "type": "database",
+      "label": "MySQL",
+      "sublabel": "业务库",
+      "pos": [
+        120,
+        600
+      ]
+    },
+    {
+      "id": "rd",
+      "type": "database",
+      "label": "Redis",
+      "sublabel": "上下文 / 缓存",
+      "pos": [
+        300,
+        600
+      ]
+    },
+    {
+      "id": "pgv",
+      "type": "database",
+      "label": "PGVector",
+      "sublabel": "向量",
+      "pos": [
+        480,
+        600
+      ]
+    },
+    {
+      "id": "es",
+      "type": "database",
+      "label": "Elasticsearch",
+      "sublabel": "全文",
+      "pos": [
+        660,
+        600
+      ]
+    },
+    {
+      "id": "mq",
+      "type": "messagebus",
+      "label": "Kafka",
+      "sublabel": "异步",
+      "pos": [
+        840,
+        600
+      ]
+    }
+  ]
+}

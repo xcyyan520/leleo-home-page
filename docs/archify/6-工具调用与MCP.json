@@ -1,0 +1,78 @@
+{
+  "schema_version": 1,
+  "diagram_type": "sequence",
+  "meta": {
+    "title": "云联 · 工具调用：项目现状 vs MCP",
+    "subtitle": "同一件事，跨语言的位置不一样",
+    "locale": "zh-CN",
+    "output": ".archify/sequence-mcp-20261022-125000/tool-call.html",
+    "viewBox": [1085, 698],
+    "animation": "trace",
+    "visual_preset": "signal-flow",
+    "quality_profile": "showcase"
+  },
+  "participants": [
+    { "id": "c", "type": "external", "label": "顾客", "sublabel": "问物流" },
+    { "id": "ai", "type": "cloud", "label": "ai-agent", "sublabel": "LangGraph" },
+    { "id": "llm", "type": "cloud", "label": "模型", "sublabel": "决定调哪个" },
+    { "id": "reg", "type": "backend", "label": "工具注册", "sublabel": "进程内 / Server" },
+    { "id": "fn", "type": "backend", "label": "工具函数", "sublabel": "@tool" },
+    { "id": "svc", "type": "backend", "label": "工单服务", "sublabel": "Java" },
+    { "id": "db", "type": "database", "label": "MySQL", "sublabel": "订单表" }
+  ],
+  "segments": [
+    { "from": 150, "to": 288, "label": "① 现在：进程内装载 + 函数内跨语言" },
+    { "from": 296, "to": 448, "label": "② MCP：独立进程发现 + JSON-RPC" },
+    { "from": 456, "to": 560, "label": "③ 两边的差别" }
+  ],
+  "messages": [
+    { "from": "c", "to": "ai", "y": 160, "label": "快递到哪了", "variant": "emphasis" },
+    { "from": "ai", "to": "llm", "y": 194, "label": "8 个 @tool 签名 → JSON Schema", "variant": "emphasis" },
+    { "from": "llm", "to": "ai", "y": 228, "label": "{name, arguments}", "variant": "return" },
+    { "from": "ai", "to": "fn", "y": 262, "label": "进程内直接调，零序列化", "variant": "emphasis" },
+    { "from": "fn", "to": "svc", "y": 310, "label": "httpx.post /inner/orders", "variant": "emphasis" },
+    { "from": "svc", "to": "db", "y": 344, "label": "查订单", "variant": "default" },
+    { "from": "reg", "to": "ai", "y": 384, "label": "MCP: tools/list 运行时发现", "variant": "dashed" },
+    { "from": "ai", "to": "reg", "y": 418, "label": "MCP: JSON-RPC 调用（跨进程）", "variant": "dashed" },
+    { "from": "ai", "to": "c", "y": 462, "label": "回答带引用", "variant": "return" }
+  ],
+  "activations": [
+    { "participant": "ai", "from": 154, "to": 470, "type": "cloud" },
+    { "participant": "llm", "from": 188, "to": 234, "type": "cloud" },
+    { "participant": "fn", "from": 256, "to": 272, "type": "backend" },
+    { "participant": "svc", "from": 304, "to": 350, "type": "backend" },
+    { "participant": "db", "from": 338, "to": 350, "type": "database" },
+    { "participant": "reg", "from": 378, "to": 424, "type": "backend" }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "现在这条链路",
+      "items": [
+        "框架把 8 个 @tool 的签名 + docstring 自动转成 JSON Schema 塞进请求",
+        "模型只返回 {name, arguments}，不执行任何东西",
+        "框架在本进程内按名字找到函数直接调，零序列化",
+        "★跨语言发生在工具函数内部：httpx.post 到 Java 的 /inner 接口"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "换成 MCP 会变什么",
+      "items": [
+        "工具活在独立进程，运行时 tools/list 发现，而不是静态装载",
+        "调用变成 JSON-RPC 跨进程，多一次序列化",
+        "跨语言位置前移到「调用工具」这一层",
+        "★一句话：MCP 把调用工具做成跨进程的；我们是在工具函数内部做跨进程"
+      ]
+    },
+    {
+      "dot": "orange",
+      "title": "常被追问的三点",
+      "items": [
+        "MCP ≠ Function Calling：一个是协议标准，一个是模型能力",
+        "Server 两种部署：stdio（本机）与 Streamable HTTP（远端）",
+        "多 Server 工具重名要加 server__tool 命名空间前缀"
+      ]
+    }
+  ]
+}
