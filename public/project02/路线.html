@@ -1108,55 +1108,83 @@ html[data-theme="light"] ::-webkit-scrollbar-thumb{background:#d8cfbe !important
 html[data-theme="light"] ::selection{background:rgba(107,87,136,.2) !important;color:#241f2e !important}
 </style>
 <style id="sd-wide">
-/* ---- 版式：整个文本框加宽，正文保持可读行宽，宽块破格 ---- */
+/* ---- 版式：正文居中成 840px 一栏，宽块破格到整栏 ----
+   ★不要改回「给每个子元素 margin:auto 居中」。sd-skin 里有
+   h2.part{margin:44px 0 18px !important}，!important 的简写会把 margin-left
+   重置为 0，标题就贴回左边、和下面的引用框错开 110px（实测 h2 x=190 /
+   blockquote x=300）。把 .cbody 本身居中一次，所有子元素天然共用同一条
+   左边缘，这类冲突就不可能再发生。 */
 .wrap{max-width:1100px !important}
 
 @media (min-width:768px){
   /* 15.5px 下 1100px 一行约 70 个中文字，来回扫行很累。
-     所以容器放宽（宽块用得上），正文另设 840px 的行宽并居中。 */
-  .cbody > p,.cbody > ul,.cbody > ol,.cbody > blockquote,
-  .cbody > h2.part,.cbody > h3.sec,.cbody > h4.sub,.cbody > h5.sub2,
-  .cbody > .note,.cbody > .intro,.cbody > .check,.cbody > .tip,
-  .cbody > details.stage{max-width:840px;margin-left:auto;margin-right:auto}
+     所以容器放宽到 1100（宽块用得上），正文收成 840 居中。 */
+  .cbody{max-width:840px !important;margin-left:auto !important;margin-right:auto !important}
 
-  /* 表格与图：吃满整栏 —— 「核心七条」那张 5 列表格高 1471px，宽度是它唯一的解法 */
-  .cbody > .tblwrap,.cbody > .tbl-wrap,.cbody > figure.archify-embed{max-width:none}
-}
-
-/* 长步骤列表（≥8 项）在宽屏分两栏，把左右空着的宽度用上。
-   只处理 ul：ol 有顺序，分栏会读错顺序。 */
-@media (min-width:1200px){
+  /* 宽块破格：左右各吃掉 .cbody 与 .wrap 之间的 110px 空隙。
+     --wide 三个上限缺一不可：设计上限 1400 / 栏宽+两侧空隙 / 视口。
+     少了视口那一项，900px 宽的屏幕上表格会横向溢出。 */
+  .cbody > figure.archify-embed,
   .cbody > ul:has(> li:nth-child(8)){
-    columns:2;column-gap:48px;max-width:1100px;
+    --wide:min(1400px, calc(100% + 220px), calc(100vw - 40px));
+    width:var(--wide) !important;
+    max-width:var(--wide) !important;
+    margin-left:calc((100% - var(--wide)) / 2) !important;
+    margin-right:0 !important;
   }
+
+  /* ★表格的包裹层单独处理：它必须「贴合」表格，不能反过来撑满。
+     给固定 width 的话，3 行的「指标/值/性质」也占满 1060px，右边留下
+     一大片空白盒子——正是用户拍的第二张图。
+     ★用 max-content 而不是 fit-content：fit-content 的上限是「可用宽度」
+     （这里就是 .cbody 的 840px），大表也永远长不过 840；max-content 才会
+     长到内容真实宽度，再由 max-width 兜住上限。 */
+  .cbody > .tblwrap,
+  .cbody > .tbl-wrap{
+    --wide:min(1400px, calc(100% + 220px), calc(100vw - 40px));
+    width:max-content !important;
+    max-width:var(--wide) !important;
+    margin-left:auto !important;
+    margin-right:auto !important;
+  }
+
+  /* 长步骤列表（≥8 项）分两栏——左右空着的宽度本来就在浪费。
+     只处理 ul：ol 有顺序，分栏会读错顺序。 */
+  .cbody > ul:has(> li:nth-child(8)){columns:2;column-gap:48px}
   .cbody > ul:has(> li:nth-child(8)) > li{break-inside:avoid;margin-top:0}
 }
 
-/* ---- 表格 ---- */
-/* 页头是 sticky 且高 98px，表头必须停在它下面，否则滚到表格中段时列名
+/* ---- 表格：宽度跟着内容走 ----
+   ★包裹层必须「贴合」表格，而不是反过来给一个固定宽。
+   上一版给每张表 1400px，于是 3 行的「指标/值/性质」也占 1400px，
+   右边留下 1200px 空白盒子。现在包裹层 fit-content + 上限：
+   小表保持自然宽度，5 列的大表长到上限再换行。 */
+.tblwrap,.tbl-wrap{
+  width:fit-content !important;
+  max-width:var(--wide,1400px) !important;
+  margin-left:auto !important;
+  margin-right:auto !important;
+}
+.tblwrap table,.tbl-wrap table{width:auto !important;min-width:0 !important;max-width:100% !important}
+
+/* 页头 sticky 且高 98px，表头必须停在它下面，否则滚到表格中段时列名
    会滑到页头底下看不见。★只设 top 没用：.tblwrap 的 overflow-x:auto 让它
    成了滚动容器，sticky 变成相对这个容器定位，表头照旧被滚走
-   （实测 cssTop=98px 但 thTop=62）。所以桌面端把滚动容器关掉——宽度
-   放开后本来也没有横向溢出（实测 0 张表溢出、docW 不变）。 */
+   （实测 cssTop=98px 但 thTop=62）。桌面端关掉滚动容器——宽度放开后
+   本来也没有横向溢出（实测 0 张表溢出、docW 不变）。 */
 @media (min-width:768px){
   .tblwrap,.tbl-wrap{overflow:visible !important}
   .tblwrap th,.tbl-wrap th{top:98px !important}
 }
-.tblwrap,.tbl-wrap{
-  --wide:min(1400px, max(100%, calc(100vw - 40px)));
-  width:var(--wide) !important;
-  margin-left:calc((100% - var(--wide)) / 2) !important;
-}
-.tblwrap table,.tbl-wrap table{min-width:0 !important}
 .tblwrap th,.tblwrap td,.tbl-wrap th,.tbl-wrap td{padding:8px 11px !important;line-height:1.6 !important}
-.tblwrap thead th,.tbl-wrap thead th{font-size:13px !important;letter-spacing:.02em}
+
 /* 序号列窄且不换行 */
 .tblwrap td:first-child,.tblwrap th:first-child,
 .tbl-wrap td:first-child,.tbl-wrap th:first-child{width:2.6em;white-space:nowrap;text-align:center}
+
 /* 5 列表格：首尾两列收窄，把宽度让给中间两列。
-   ★用 min-width 而不是固定 width：手机上表格只有 560px 时，百分比会把
-   「亮点」压到 62px，中文标题被折成一行两三个字（竖条一样）。
-   给下限、让浏览器自己分配。 */
+   ★用 min-width 而不是固定 width：手机上表格只有 640px 时，百分比会把
+   「亮点」压到 62px，中文标题被折成一行两三个字（竖条一样）。 */
 .tblwrap table:has(thead th:nth-child(5)) td:nth-child(2),
 .tblwrap table:has(thead th:nth-child(5)) th:nth-child(2),
 .tbl-wrap table:has(thead th:nth-child(5)) td:nth-child(2),
@@ -1165,6 +1193,7 @@ html[data-theme="light"] ::selection{background:rgba(107,87,136,.2) !important;c
 .tblwrap table:has(thead th:nth-child(5)) th:nth-child(5),
 .tbl-wrap table:has(thead th:nth-child(5)) td:nth-child(5),
 .tbl-wrap table:has(thead th:nth-child(5)) th:nth-child(5){width:auto;min-width:92px}
+
 /* 表格变宽之后更需要对齐行，悬停给一条底纹 */
 .tblwrap tbody tr:hover td,.tbl-wrap tbody tr:hover td{background:rgba(139,122,170,.055) !important}
 /* 中文长句断行更自然，避免末行孤字 */
@@ -1173,7 +1202,7 @@ html[data-theme="light"] ::selection{background:rgba(107,87,136,.2) !important;c
 @media (max-width:767px){
   .wrap{max-width:100% !important}
   /* 手机上不要挤压：恢复横向滚动，否则 5 列表格会变成一条 2800px 的竖线 */
-  .tblwrap,.tbl-wrap{--wide:100%}
+  .tblwrap,.tbl-wrap{width:100% !important;max-width:100% !important}
   .tblwrap table,.tbl-wrap table{min-width:640px !important}
   .tblwrap th,.tblwrap td,.tbl-wrap th,.tbl-wrap td{padding:7px 9px !important;font-size:12.5px}
   /* 表格要能看出「右边还有内容」——否则读者以为被裁掉了 */
