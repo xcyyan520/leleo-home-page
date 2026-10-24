@@ -1,0 +1,99 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "云联客服工单平台 · 端到端主链路",
+    "locale": "zh-CN",
+    "visual_preset": "signal-flow",
+    "quality_profile": "showcase",
+    "output": ".archify/workflow-yunlian-pipeline-20261022-174949/yunlian-pipeline.html"
+  },
+  "lanes": [
+    { "id": "cust", "label": "顾客与渠道" },
+    { "id": "java", "label": "业务侧 · Java 微服务（含转人工与兜底）" },
+    { "id": "ai", "label": "智能侧 · LangGraph 编排" },
+    { "id": "data", "label": "数据与知识" }
+  ],
+  "phases": [
+    { "id": "p-in", "label": "接入", "fromCol": 0, "toCol": 1 },
+    { "id": "p-think", "label": "理解与路由", "fromCol": 2, "toCol": 3, "variant": "emphasis" },
+    { "id": "p-fetch", "label": "取数", "fromCol": 4, "toCol": 4, "variant": "dashed" },
+    { "id": "p-out", "label": "生成与交付", "fromCol": 5, "toCol": 5 }
+  ],
+  "groups": [
+    { "id": "g-graph", "label": "状态图：有环 · 可中断", "lane": "ai", "fromCol": 2, "toCol": 4, "variant": "emphasis" },
+    { "id": "g-ingest", "label": "离线入库链路", "lane": "data", "fromCol": 0, "toCol": 3, "variant": "dashed" }
+  ],
+  "mainPath": ["c-consult", "c-sdk", "g-gateway", "j-conv", "a-intent", "a-route", "a-rag", "a-answer", "c-reply"],
+  "nodes": [
+    { "id": "c-consult", "lane": "cust", "col": 0, "type": "external", "label": "顾客咨询", "sublabel": "文字 / 图片 / 截图", "icon": "person", "width": 116 },
+    { "id": "c-sdk", "lane": "cust", "col": 1, "type": "frontend", "label": "全渠道接入", "sublabel": "SDK / 公众号 / 小程序", "width": 132 },
+    { "id": "c-reply", "lane": "cust", "col": 5, "type": "frontend", "label": "答复顾客", "sublabel": "文字 / 选项卡片 / 转人工", "width": 132 },
+
+    { "id": "g-gateway", "lane": "java", "col": 1, "type": "security", "label": "Java 网关", "sublabel": "唯一验签 · 限流 · 灰度", "width": 132, "icon": "security" },
+    { "id": "j-conv", "lane": "java", "col": 2, "type": "backend", "label": "conversation 会话服务", "sublabel": "WebSocket · 消息落库", "width": 148 },
+
+    { "id": "j-biz", "lane": "java", "col": 4, "type": "backend", "label": "业务内部接口", "sublabel": "查单 / 物流 · 建工单", "width": 132 },
+
+    { "id": "a-intent", "lane": "ai", "col": 2, "type": "backend", "label": "意图识别 + 指代消解", "sublabel": "规则 + 模型双引擎", "width": 148 },
+    { "id": "a-route", "lane": "ai", "col": 3, "type": "backend", "label": "意图路由", "sublabel": "先分支，再谈阈值", "width": 120 },
+    { "id": "a-rag", "lane": "ai", "col": 4, "type": "backend", "label": "混合检索 + 重排", "sublabel": "RRF 粗排 → 重排 Top5", "width": 136 },
+    { "id": "a-answer", "lane": "ai", "col": 5, "type": "backend", "label": "生成 + 后置校验", "sublabel": "带引用 · 写执行日志", "width": 128 },
+
+    { "id": "i-doc", "lane": "data", "col": 0, "type": "database", "label": "文档上传", "sublabel": "政策 / FAQ / 手册", "width": 112 },
+    { "id": "i-split", "lane": "data", "col": 1, "type": "database", "label": "解析 + 分片", "sublabel": "按知识库类型选策略", "width": 132 },
+    { "id": "i-vec", "lane": "data", "col": 3, "type": "database", "label": "向量化入库", "sublabel": "双写 PGVector + ES", "width": 132 },
+    { "id": "k-pgv", "lane": "data", "col": 4, "type": "database", "label": "PGVector + ES", "sublabel": "4 万切片 · 客户独立集合", "width": 140 },
+
+    { "id": "e-human", "lane": "java", "col": 3, "type": "security", "label": "转人工 · 坐席接待", "sublabel": "四条规则命中即转", "width": 140 },
+    { "id": "e-fallback", "lane": "java", "col": 5, "type": "security", "label": "兜底话术 + 转人工", "sublabel": "召回空 / 重排分不达标", "width": 140 }
+  ],
+  "edges": [
+    { "id": "e1", "from": "c-consult", "to": "c-sdk" },
+    { "id": "e2", "from": "c-sdk", "to": "g-gateway" },
+    { "id": "e3", "from": "g-gateway", "to": "j-conv", "label": "WS 长连接" },
+    { "id": "e4", "from": "j-conv", "to": "a-intent", "label": "消息进推理" },
+    { "id": "e5", "from": "a-intent", "to": "a-route" },
+    { "id": "e6", "from": "a-route", "to": "a-rag", "label": "知识问答" },
+    { "id": "e7", "from": "a-route", "to": "j-biz", "label": "实时查询", "variant": "dashed", "role": "branch" },
+    { "id": "e8", "from": "j-biz", "to": "a-answer", "label": "结果回填", "variant": "dashed", "role": "branch" },
+    { "id": "e9", "from": "a-rag", "to": "a-answer", "label": "Top5 片段" },
+    { "id": "e10", "from": "a-rag", "to": "k-pgv", "label": "向量 + BM25", "variant": "dashed" },
+    { "id": "e11", "from": "a-answer", "to": "c-reply", "label": "推送", "role": "return" },
+    { "id": "e12", "from": "a-route", "to": "e-human", "label": "命中即转", "variant": "security", "role": "branch", "fromSide": "top", "toSide": "bottom" },
+    { "id": "e13", "from": "a-answer", "to": "e-fallback", "label": "不生成", "variant": "security", "role": "error" },
+    { "id": "i1", "from": "i-doc", "to": "i-split" },
+    { "id": "i2", "from": "i-split", "to": "i-vec" },
+    { "id": "i3", "from": "i-vec", "to": "k-pgv", "label": "写入" }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "口径红线（说错就穿）",
+      "items": [
+        "内部处理速率【估算】约 20 次/秒 —— 不是网关入口 QPS，也不是压测实测值",
+        "5000 会话 / 4 万条消息 / 350 单 日均；35 张表（AI 相关 8 张）",
+        "解决率 41% → 63% 是【目标】，不是生产实测"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "三个必须说对的点",
+      "items": [
+        "RRF 只出排序：两路 k=60 时值域 0 ~ 2/61 ≈ 0.0328，不能当相似度",
+        "送重排的是粗排候选 Top20~30，不是 Top5（只送 5 条等于没重排）",
+        "向量 0.60 只作成本参考，不单独触发兜底；终判看重排分 0.72"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "异步与降级",
+      "items": [
+        "识图 / 向量化 / 质检走 Kafka；实时消息投递不走 Kafka（消费组模型保不了单连接）",
+        "SLA 通知靠 afterCommit 只保时机，不保送达 —— 没做 Outbox，是已知缺口",
+        "识图失败降级回「请手动输入订单号」，锦上添花不能变单点故障"
+      ]
+    }
+  ]
+}
+

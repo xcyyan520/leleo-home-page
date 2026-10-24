@@ -1,0 +1,77 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "云联 · 知识文档入库：图片占位标记与切分归属",
+    "subtitle": "切分之前先埋标记 —— 图和文字在物理上就是同一段文本，切到哪图就跟到哪",
+    "locale": "zh-CN",
+    "visual_preset": "blueprint",
+    "quality_profile": "showcase",
+    "output": ".archify/architecture-yunlian-dashboard-20261024-110455/yunlian-figure-chain.html"
+  },
+  "lanes": [
+    { "id": "src", "label": "原始文档" },
+    { "id": "parse", "label": "解析与标记" },
+    { "id": "store", "label": "切分与入库" },
+    { "id": "use", "label": "检索与使用" }
+  ],
+  "phases": [
+    { "id": "p-raw", "label": "解析", "fromCol": 0, "toCol": 0, "variant": "emphasis" },
+    { "id": "p-mark", "label": "埋占位标记", "fromCol": 1, "toCol": 2, "variant": "emphasis" },
+    { "id": "p-split", "label": "切分 + 双库写入", "fromCol": 3, "toCol": 3 },
+    { "id": "p-serve", "label": "按需展开", "fromCol": 4, "toCol": 4, "variant": "dashed" }
+  ],
+  "groups": [
+    { "id": "g-bad", "label": "三种事后匹配的启发式 —— 都是猜", "lane": "parse", "fromCol": 3, "toCol": 4, "variant": "dashed" }
+  ],
+  "mainPath": ["n-doc", "n-parse", "n-mark", "n-chunk"],
+  "nodes": [
+    { "id": "n-doc", "lane": "src", "col": 0, "type": "database", "label": "原始文档", "sublabel": "PDF / Word / 网页", "width": 120 },
+    { "id": "n-parse", "lane": "parse", "col": 1, "type": "backend", "label": "解析器", "sublabel": "文字 + 图片位置", "width": 124 },
+    { "id": "n-mark", "lane": "parse", "col": 2, "type": "backend", "label": "替换为占位符", "sublabel": "[[FIG:figure_uid]]", "width": 140 },
+    { "id": "n-chunk", "lane": "store", "col": 3, "type": "backend", "label": "按标题层级切分", "sublabel": "标记跟着段落走", "width": 140 },
+    { "id": "n-db2", "lane": "store", "col": 3, "type": "database", "label": "chunk + figure", "sublabel": "heading_path 记归属", "width": 138, "yOffset": -80 },
+    { "id": "n-hit", "lane": "use", "col": 4, "type": "frontend", "label": "命中后展开", "sublabel": "标记 → 图片元数据", "width": 132 },
+    { "id": "n-b1", "lane": "parse", "col": 3, "type": "external", "label": "① 距离最近", "sublabel": "图配在引导语前 → 挂到下一句", "width": 138 },
+    { "id": "n-b2", "lane": "parse", "col": 4, "type": "external", "label": "② 同章节归属", "sublabel": "同节两张图分不清", "width": 130 },
+    { "id": "n-b3", "lane": "store", "col": 4, "type": "external", "label": "③ 按图注找正文", "sublabel": "用词不一致 → 静默丢图", "width": 136 }
+  ],
+  "edges": [
+    { "id": "e1", "from": "n-doc", "to": "n-parse", "label": "拆文字层" },
+    { "id": "e2", "from": "n-parse", "to": "n-mark", "label": "定位图片" },
+    { "id": "e3", "from": "n-mark", "to": "n-chunk", "label": "纯文本 + 标记" },
+    { "id": "e4", "from": "n-chunk", "to": "n-db2", "label": "双写" },
+    { "id": "e5", "from": "n-db2", "to": "n-hit", "label": "命中 chunk", "role": "return" },
+    { "id": "e6", "from": "n-mark", "to": "n-b1", "label": "若不埋标记", "role": "error", "variant": "dashed" },
+    { "id": "e7", "from": "n-b1", "to": "n-b2", "label": "换一种猜法", "role": "error", "variant": "dashed" },
+    { "id": "e8", "from": "n-b2", "to": "n-b3", "label": "再换一种", "role": "error", "variant": "dashed" }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "判据：只认树上的祖先路径，不认字符偏移",
+      "items": [
+        "偏移量不稳定 —— 重解析一次、作者改一个字，后面所有偏移量都变，图就挂错了",
+        "「这张图属于第二章第二节」是结构事实，重解析后答案不变 → chunk 上存 heading_path"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "三种启发式的共同毛病",
+      "items": [
+        "都是猜，猜错了还不报错 —— 比没图更糟，因为 AI 会拿着一张错图去回答",
+        "距离最近错在顺序：图常配在「如下图所示」之前",
+        "同章节归属在同节多图时二选一，两种都错；按图注找则用词对不上就丢图"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "三个工程细节",
+      "items": [
+        "标记要短且不与正文冲突：用 [[FIG:uid]] 而不是 [图1]（正文真会有人写 [图1]）",
+        "一个 chunk 多张图时按 chunk 内出现顺序编号，不按存储顺序",
+        "图跨页只归属一个 chunk（以图起点为准），否则同一 uid 出现两次，模型以为有两张图"
+      ]
+    }
+  ]
+}

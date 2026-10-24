@@ -1,0 +1,121 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "云联 · 发布和索引是两件事：不一致可以存在，但不能不可见",
+    "subtitle": "发布是同步事务（毫秒级），索引是异步任务（秒级到分钟级），两者必须各有一个状态",
+    "locale": "zh-CN",
+    "visual_preset": "signal-flow",
+    "quality_profile": "showcase",
+    "output": ".archify/workflow-publish-index-20261024/publish-index.html"
+  },
+  "lanes": [
+    {
+      "id": "main",
+      "label": "发布事务（同步 · 毫秒级）"
+    },
+    {
+      "id": "bar",
+      "label": "索引任务（异步 · 可重试）"
+    }
+  ],
+  "mainPath": [
+    "m1",
+    "m2",
+    "m4",
+    "m5"
+  ],
+  "nodes": [
+    {
+      "id": "m1",
+      "lane": "main",
+      "col": 0,
+      "type": "backend",
+      "label": "发布事务",
+      "sublabel": "同步，毫秒级",
+      "width": 128
+    },
+    {
+      "id": "m2",
+      "lane": "main",
+      "col": 1,
+      "type": "backend",
+      "label": "publish_status = 已发布",
+      "sublabel": "",
+      "width": 178
+    },
+    {
+      "id": "m3",
+      "lane": "bar",
+      "col": 1,
+      "type": "database",
+      "label": "写 knowledge_review",
+      "sublabel": "审核记录留痕",
+      "width": 164
+    },
+    {
+      "id": "m4",
+      "lane": "main",
+      "col": 2,
+      "type": "cloud",
+      "label": "投递索引任务（异步）",
+      "sublabel": "调 Embedding → 写向量库",
+      "width": 190
+    },
+    {
+      "id": "m5",
+      "lane": "main",
+      "col": 3,
+      "type": "backend",
+      "label": "回写 index_status",
+      "sublabel": "成功 / 失败（失败可一键重试）",
+      "width": 196
+    }
+  ],
+  "edges": [
+    {
+      "id": "e1",
+      "from": "m1",
+      "to": "m2",
+      "label": "同一事务"
+    },
+    {
+      "id": "e2",
+      "from": "m1",
+      "to": "m3",
+      "label": "同一事务",
+      "role": "branch",
+      "variant": "dashed"
+    },
+    {
+      "id": "e3",
+      "from": "m2",
+      "to": "m4",
+      "label": "事务提交后"
+    },
+    {
+      "id": "e4",
+      "from": "m4",
+      "to": "m5",
+      "label": ""
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "为什么不能合成一件事",
+      "items": [
+        "嵌一次向量要几百毫秒，几十个 chunk 就是几十秒——放不进发布事务",
+        "★两件事就必须有两个状态：publish_status 和 index_status"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "不一致必须可见",
+      "items": [
+        "已发布 + 索引失败 = 运营能看到文档但检索不到，最坑的一种",
+        "所以 index_status 要上列表页，并且给一键重试，而不是写日志了事"
+      ]
+    }
+  ]
+}

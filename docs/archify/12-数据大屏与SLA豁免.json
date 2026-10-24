@@ -1,0 +1,71 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "云联 · 单轮问答主链路与三条出口",
+    "subtitle": "主链 6 个节点 + 每个节点的分支出口：短路 / 转人工 / 兜底",
+    "locale": "zh-CN",
+    "visual_preset": "signal-flow",
+    "quality_profile": "showcase",
+    "output": ".archify/architecture-yunlian-dashboard-20261024-110455/yunlian-pipeline-deep.html"
+  },
+  "lanes": [
+    { "id": "main", "label": "主链路 · 一次问答从头到尾" },
+    { "id": "bar", "label": "分支出口 · 三条旁路" }
+  ],
+  "phases": [
+    { "id": "p1", "label": "接入", "fromCol": 0, "toCol": 1 },
+    { "id": "p2", "label": "理解", "fromCol": 2, "toCol": 3, "variant": "emphasis" },
+    { "id": "p3", "label": "执行", "fromCol": 4, "toCol": 4, "variant": "dashed" },
+    { "id": "p4", "label": "收口", "fromCol": 5, "toCol": 5, "variant": "security" }
+  ],
+  "mainPath": ["m1", "m2", "m3", "m4", "m5", "m6"],
+  "nodes": [
+    { "id": "m1", "lane": "main", "col": 0, "type": "external", "label": "顾客发起", "sublabel": "文字 / 图片 / 选项", "width": 118 },
+    { "id": "m2", "lane": "main", "col": 1, "type": "backend", "label": "conversation", "sublabel": "落库 · WS 进推理", "width": 130 },
+    { "id": "m3", "lane": "main", "col": 2, "type": "backend", "label": "① 意图识别", "sublabel": "规则 → 模型双引擎", "width": 132 },
+    { "id": "m4", "lane": "main", "col": 3, "type": "backend", "label": "①-2 指代消解 + ② 路由", "sublabel": "多轮才消解 → 先分支再谈阈值", "width": 178 },
+    { "id": "m5", "lane": "main", "col": 4, "type": "backend", "label": "④ 执行分支", "sublabel": "RAG / Tool / 选项", "width": 128 },
+    { "id": "m6", "lane": "main", "col": 5, "type": "backend", "label": "⑤ 生成 + ⑥ 后置校验", "sublabel": "不达标 → 不生成", "width": 152 },
+    { "id": "s1", "lane": "bar", "col": 2, "type": "security", "label": "①-1 短路拦截", "sublabel": "寒暄 / 确认不检索", "width": 138 },
+    { "id": "h1", "lane": "bar", "col": 3, "type": "security", "label": "转人工（四条）", "sublabel": "命中任一即转", "width": 128 },
+    { "id": "r1", "lane": "bar", "col": 4, "type": "security", "label": "兜底话术 + 转人工", "sublabel": "召回空 / 重排分不达标", "width": 146 }
+  ],
+  "edges": [
+    { "id": "e1", "from": "m1", "to": "m2", "label": "HTTPS" },
+    { "id": "e2", "from": "m2", "to": "m3", "label": "消息进推理" },
+    { "id": "e3", "from": "m3", "to": "m4", "label": "intent" },
+    { "id": "e4", "from": "m4", "to": "m5", "label": "路由结果" },
+    { "id": "e5", "from": "m5", "to": "m6", "label": "片段 / 数据" },
+    { "id": "e6", "from": "m3", "to": "s1", "label": "命中寒暄", "role": "branch", "variant": "dashed" },
+    { "id": "e7", "from": "m4", "to": "h1", "label": "四条命中", "role": "error", "variant": "security" },
+    { "id": "e8", "from": "m5", "to": "r1", "label": "分数不达标", "role": "error", "variant": "security" }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "三条分支各自的判据",
+      "items": [
+        "①-1 短路：寒暄/确认类不进 RAG、不走工具、不写执行日志 —— 走完整链路要两三秒、几分钱",
+        "② 转人工四条（或）：投诉意图 / 连续 2 次未识别 / 命中关键词 / 顾客主动要求",
+        "⑥ 后置校验只拦 RAG 分支：召回空或重排分不达标就不调生成模型；Tool 与选项分支不看知识库分数"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "顺序不能反（这题是分水岭）",
+      "items": [
+        "必须「先意图路由，再谈阈值」—— 把 RAG 阈值挡在 Tool Calling 之前，「我的快递到哪了」会被直接兜底",
+        "知识库检索不算工具（走 RAG 分支由路由决定，不交给模型判断），所以工具只有 8 个（6 读 2 写）"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "「后置」是相对什么说的",
+      "items": [
+        "相对 System Prompt 的软约束：prompt 说完不算数，代码在真正调生成模型之前再拦一道",
+        "生成之后还有一道「输出检查」：是否带引用 / 含违规词 / 长度合理 —— 两个不是一回事"
+      ]
+    }
+  ]
+}

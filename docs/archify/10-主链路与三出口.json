@@ -1,0 +1,79 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "云联 · 数据大屏与 SLA 熔断豁免闭环",
+    "subtitle": "从业务库到值班室大屏，再到「一键暂停考核」的动作闭环",
+    "locale": "zh-CN",
+    "visual_preset": "signal-flow",
+    "quality_profile": "showcase",
+    "output": ".archify/architecture-yunlian-dashboard-20261024-110455/yunlian-dashboard.html"
+  },
+  "lanes": [
+    { "id": "data", "label": "数据与汇总" },
+    { "id": "svc", "label": "服务层 · 聚合与查询" },
+    { "id": "ui", "label": "展示层 · 值班室大屏" },
+    { "id": "act", "label": "动作闭环 · 豁免与留痕" }
+  ],
+  "phases": [
+    { "id": "p-read", "label": "只读业务库", "fromCol": 0, "toCol": 0, "variant": "dashed" },
+    { "id": "p-agg", "label": "增量聚合", "fromCol": 1, "toCol": 2, "variant": "emphasis" },
+    { "id": "p-serve", "label": "查询与问数", "fromCol": 3, "toCol": 4 },
+    { "id": "p-act", "label": "触发动作", "fromCol": 5, "toCol": 5, "variant": "security" }
+  ],
+  "groups": [
+    { "id": "g-agg", "label": "覆盖写 · 水位线回看一桶", "lane": "svc", "fromCol": 1, "toCol": 1, "variant": "emphasis" },
+    { "id": "g-exempt", "label": "豁免是区间事实，不是单据事实", "lane": "act", "fromCol": 3, "toCol": 5, "variant": "security" }
+  ],
+  "mainPath": ["n-db", "n-job", "n-sum", "n-api", "n-screen"],
+  "nodes": [
+    { "id": "n-db", "lane": "data", "col": 0, "type": "database", "label": "业务库 MySQL", "sublabel": "月 120 万行", "width": 128 },
+    { "id": "n-sum", "lane": "data", "col": 2, "type": "database", "label": "汇总表 2 张", "sublabel": "小时 7 天 / 天 3 年", "width": 140 },
+    { "id": "n-job", "lane": "svc", "col": 1, "type": "backend", "label": "增量聚合", "sublabel": "每 5 分钟 · 对齐分桶", "width": 140 },
+    { "id": "n-api", "lane": "svc", "col": 3, "type": "backend", "label": "report-service", "sublabel": "overview 一把出全部", "width": 150 },
+    { "id": "n-ai", "lane": "svc", "col": 4, "type": "backend", "label": "三个 AI 角色", "sublabel": "同一状态图三个入口", "width": 140 },
+    { "id": "n-screen", "lane": "ui", "col": 5, "type": "frontend", "label": "值班室大屏", "sublabel": "轮询 5 分钟", "width": 128 },
+    { "id": "n-btn", "lane": "act", "col": 5, "type": "security", "label": "一键暂停考核", "sublabel": "选窗口 · 必填原因", "width": 132 },
+    { "id": "n-engine", "lane": "act", "col": 4, "type": "backend", "label": "SLA 引擎", "sublabel": "暂停计时", "width": 120 },
+    { "id": "n-log", "lane": "act", "col": 3, "type": "database", "label": "sla_exemption", "sublabel": "按范围存 · 可复盘", "width": 140 }
+  ],
+  "edges": [
+    { "id": "e1", "from": "n-db", "to": "n-job", "label": "只读扫描", "variant": "dashed" },
+    { "id": "e2", "from": "n-job", "to": "n-sum", "label": "覆盖写" },
+    { "id": "e3", "from": "n-sum", "to": "n-api", "label": "毫秒查询" },
+    { "id": "e4", "from": "n-api", "to": "n-screen", "label": "JSON 卡片" },
+    { "id": "e5", "from": "n-api", "to": "n-ai", "label": "6 个指标工具", "role": "branch" },
+    { "id": "e6", "from": "n-ai", "to": "n-screen", "label": "简报问数", "role": "branch", "variant": "dashed" },
+    { "id": "e7", "from": "n-screen", "to": "n-btn", "label": "积压告警", "role": "branch", "variant": "security" },
+    { "id": "e8", "from": "n-btn", "to": "n-engine", "label": "豁免事件", "role": "error", "variant": "security", "fromSide": "bottom", "toSide": "bottom" },
+    { "id": "e9", "from": "n-engine", "to": "n-log", "label": "落库留痕", "variant": "dashed" }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "顺序不能反：先有汇总表，才有大屏",
+      "items": [
+        "20 个卡片各发一条 SQL 扫 message（月 120 万行）= 把监控做成 DDoS，会拖死主业务",
+        "汇总表一次聚合写多个 metric_key，查询走索引，毫秒级"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "两个真坑（不踩过答不出来）",
+      "items": [
+        "幂等：唯一键 + 覆盖写，绝不能 += —— 重跑 / 补跑 / 双实例会翻倍",
+        "水位线：只往后算会漏迟到数据 → 每次重算「当前桶 + 上一个桶」，超 30 分钟进对账",
+        "时长类指标必须用 completed_at，不能用 created_at"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "为什么是「暂停计时」不是「改 SLA 目标」",
+      "items": [
+        "改目标要动 ticket_sla 配置表 —— 配置被业务动作改过，事后说不清「当时考核多少秒」",
+        "暂停是在每张工单上留痕，工单自带证据；复用 SLA 暂停机制，不新造",
+        "新业务动作优先用已有机制实现 —— 这是设计取舍，不是省事"
+      ]
+    }
+  ]
+}

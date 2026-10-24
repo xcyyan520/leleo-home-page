@@ -1,0 +1,105 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "云联 · 消息幂等：同一条消息只处理一次",
+    "subtitle": "client_msg_id 是幂等键 —— 重发时不变，所以能认出「这条我处理过」",
+    "locale": "zh-CN",
+    "visual_preset": "signal-flow",
+    "quality_profile": "showcase",
+    "output": ".archify/workflow-idempotent-20261024/idempotent.html"
+  },
+  "lanes": [
+    {
+      "id": "main",
+      "label": "首次到达 · 正常落库"
+    },
+    {
+      "id": "bar",
+      "label": "重复到达 · 直接返回"
+    }
+  ],
+  "mainPath": [
+    "m1",
+    "m2",
+    "m4"
+  ],
+  "nodes": [
+    {
+      "id": "m1",
+      "lane": "main",
+      "col": 0,
+      "type": "external",
+      "label": "顾客消息",
+      "sublabel": "重试 / 连点，号不变",
+      "width": 120
+    },
+    {
+      "id": "m2",
+      "lane": "main",
+      "col": 1,
+      "type": "backend",
+      "label": "conversation 先 check",
+      "sublabel": "client_msg_id 查是否处理过",
+      "width": 168
+    },
+    {
+      "id": "m4",
+      "lane": "main",
+      "col": 2,
+      "type": "backend",
+      "label": "落库 + 推送",
+      "sublabel": "MySQL 写入 · RPUSH Redis · WS 推送",
+      "width": 172
+    },
+    {
+      "id": "m3",
+      "lane": "bar",
+      "col": 2,
+      "type": "security",
+      "label": "直接返回上次结果",
+      "sublabel": "不写库、不推 Redis",
+      "width": 158
+    }
+  ],
+  "edges": [
+    {
+      "id": "e1",
+      "from": "m1",
+      "to": "m2",
+      "label": "带幂等键"
+    },
+    {
+      "id": "e2",
+      "from": "m2",
+      "to": "m4",
+      "label": "不存在"
+    },
+    {
+      "id": "e3",
+      "from": "m2",
+      "to": "m3",
+      "label": "已存在",
+      "role": "branch",
+      "variant": "dashed"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "幂等键必须是客户端生成的",
+      "items": [
+        "服务端生成就失去了「同一条消息」的含义——重发会得到新 id，去重失效",
+        "号只在客户端换，网络重试、用户连点都不会换号"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "为什么先去重再落库",
+      "items": [
+        "顺序反了就会先写一行脏数据，再把「重复」当正常数据推给坐席",
+        "重复建工单比重复消息严重得多：工单有 SLA 计时"
+      ]
+    }
+  ]
+}

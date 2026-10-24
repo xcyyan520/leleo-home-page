@@ -4,8 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <script src="/js/theme.js"></script>
-<meta name="theme-color" content="#07060f">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230a0a1a'/%3E%3Cpath d='M9 22V10h3v4.6h8V10h3v12h-3v-4.8h-8V22H9z' fill='%238b7aaa'/%3E%3C/svg%3E">
 <title>微服务图解手册 · 用开餐厅的方式搞懂它</title>
 <style>
 /* =========================================================
@@ -850,8 +848,8 @@ html[data-theme="light"] ::-webkit-scrollbar-thumb{background:#d8cfbe !important
 html[data-theme="light"] ::selection{background:rgba(107,87,136,.2) !important;color:#241f2e !important}
 
 /* ── inline-style variables ── */
-html{--ic-187cd9:#7f8fb5;--ic-12ef53:#7f8fb5}
-html[data-theme="light"]{--ic-187cd9:#4d608d;--ic-12ef53:#4d608d}
+html{--ic-e497e0:#141230;--ic-12ef53:#7f8fb5;--ic-2440fb:#d8cba8;--ic-4ca1d5:#c49a96;--ic-411a57:rgba(139,122,170,.6);--ic-48e413:rgba(196,169,112,.6);--ic-6fd419:rgba(127,160,122,.07)}
+html[data-theme="light"]{--ic-e497e0:#fbf9f4;--ic-12ef53:#4d608d;--ic-2440fb:#7c5b24;--ic-4ca1d5:#8f4141;--ic-411a57:rgba(107, 87, 136, 0.51);--ic-48e413:rgba(124, 91, 36, 0.51);--ic-6fd419:rgba(67, 106, 61, 0.06)}
 </style>
 </head>
 <body id="top">
@@ -870,8 +868,8 @@ html[data-theme="light"]{--ic-187cd9:#4d608d;--ic-12ef53:#4d608d}
       <a href="#s7">⑦ 面试问答</a>
       <a href="#s8">⑧ 速记卡</a>
     </nav>
-    <span class="hint">零基础 · 全大白话</span><a class="backlink" href="../路线.html" style="display:inline-flex;align-items:center;min-height:32px;padding:0 10px;border:1px solid #2a2740;border-radius:6px;background:var(--ic-187cd9);color:var(--ic-12ef53);text-decoration:none;font-size:13px;white-space:nowrap;touch-action:manipulation;-webkit-tap-highlight-color:transparent">← 回学习路线</a>
-  <div class="themebtn" id="btnTheme" role="button" tabindex="0" title="切换到白天">☀</div>
+    <span class="hint">零基础 · 全大白话</span><a class="backlink" href="../路线.html" style="display:inline-flex;align-items:center;min-height:32px;padding:0 10px;border:1px solid #2a2740;border-radius:6px;background:var(--ic-e497e0);color:var(--ic-12ef53);text-decoration:none;font-size:13px;white-space:nowrap;touch-action:manipulation;-webkit-tap-highlight-color:transparent">← 回学习路线</a>
+    <div class="themebtn" id="btnTheme" role="button" tabindex="0" title="切换到白天">☀</div>
 </div>
 </header>
 
@@ -1206,16 +1204,16 @@ html[data-theme="light"]{--ic-187cd9:#4d608d;--ic-12ef53:#4d608d}
         <div>
           <div class="qa-line"><span class="k">是什么</span><span class="v">一个服务要去用另一个服务的能力时，就发一个 HTTP 请求过去。OpenFeign 只是把这个 HTTP 请求包装成"像调用本地方法一样"的写法，让你少写样板代码。</span></div>
           <div class="qa-line"><span class="k g">打个比方</span><span class="v">同事之间打电话。你不需要知道对方坐在哪、用什么姿势接电话，你只要拨号、说清要什么、等一个答复。<b>Feign 就是帮你自动拨号的那个"语音助手"</b>，但电话线那头还是电话线，不是心灵感应。</span></div>
-          <div class="qa-line"><span class="k a">项目里干嘛</span><span class="v">AI 服务要检索知识库，就在代码里写一个接口加个注解，调用它跟调用本地方法一样自然；底层 Gateway/Feign 会去 Nacos 查地址、发出真正的 HTTP 请求、把 JSON 转成对象返回。</span></div>
+          <div class="qa-line"><span class="k a">项目里干嘛</span><span class="v">例如工单服务要拿一段会话摘要，就在代码里写一个接口加个注解，调用它跟调用本地方法一样自然；底层 Feign 会去 Nacos 查地址、发出真正的 HTTP 请求、把 JSON 转成对象返回。<b>注意：Feign 只能用在 Java 服务之间——Java 调 Python（比如调 AI 服务）用 RestTemplate / WebClient，Python 侧用 httpx。</b></span></div>
           <pre class="code"><span class="c">// 1) 声明"我要打的电话号码本"</span>
-<span class="k">@FeignClient</span>(name = <span class="s">"knowledge-service"</span>)   <span class="c">// name 就是 Nacos 里的服务名</span>
-<span class="k">public interface</span> KnowledgeClient {
-    <span class="k">@PostMapping</span>(<span class="s">"/inner/knowledge/search"</span>)
-    List&lt;Chunk&gt; search(<span class="k">@RequestBody</span> SearchReq req);
+<span class="k">@FeignClient</span>(name = <span class="s">"conversation-service"</span>)   <span class="c">// name 就是 Nacos 里的服务名（Java 服务之间）</span>
+<span class="k">public interface</span> SessionClient {
+    <span class="k">@GetMapping</span>(<span class="s">"/inner/session/{id}/summary"</span>)
+    String summary(<span class="k">@PathVariable</span>(<span class="s">"id"</span>) Long id);
 }
 
 <span class="c">// 2) 用起来跟本地方法一模一样，但其实已经发了一次 HTTP</span>
-List&lt;Chunk&gt; chunks = knowledgeClient.search(<span class="k">new</span> SearchReq(<span class="s">"怎么退货"</span>, 5));</pre>
+String summary = sessionClient.summary(1001L);</pre>
           <div class="note small">
             <b>重点强调（面试官最爱在这儿挖坑）：</b>Feign 没有任何魔法，它<b>就是一个 HTTP 客户端</b>。
             所以你必须自己想到：会超时（要配 connectTimeout / readTimeout）、会失败（要配重试或降级）、
@@ -1274,7 +1272,7 @@ List&lt;Chunk&gt; chunks = knowledgeClient.search(<span class="k">new</span> Sea
             <div class="box am" style="text-align:left">
               <span class="t">🔌 Sentinel</span>
               <span class="s">① 关闭（正常放行）</span>
-              <span class="s">② <b style="color:var(--ic-12ef53)">打开</b>（错误率超阈值 → 直接不调了，走兜底）</span>
+              <span class="s">② <b style="color:var(--ic-2440fb)">打开</b>（错误率超阈值 → 直接不调了，走兜底）</span>
               <span class="s">③ 半开（过一会儿放 1 个请求试探，通了就恢复）</span>
             </div>
             <div class="ar-down"></div>
@@ -1372,7 +1370,7 @@ List&lt;Chunk&gt; chunks = knowledgeClient.search(<span class="k">new</span> Sea
             <div class="ar-down"></div>
             <div class="box bl" style="text-align:left"><span class="t">③ ai-service</span><span class="s">意图识别 · 380ms</span></div>
             <div class="ar-down"></div>
-            <div class="box rd" style="text-align:left"><span class="t">④ knowledge 🐌</span><span class="s">向量检索 <b style="color:var(--ic-12ef53)">2300ms ← 卡在这</b></span></div>
+            <div class="box rd" style="text-align:left"><span class="t">④ knowledge 🐌</span><span class="s">向量检索 <b style="color:var(--ic-4ca1d5)">2300ms ← 卡在这</b></span></div>
             <div class="ar-down"></div>
             <div class="box bl" style="text-align:left"><span class="t">⑤ LLM 生成</span><span class="s">1600ms</span></div>
             <div class="small dim" style="text-align:center;margin-top:8px">拿 traceId 一搜，五段日志拼成一条时间线</div>
@@ -1470,7 +1468,7 @@ List&lt;Chunk&gt; chunks = knowledgeClient.search(<span class="k">new</span> Sea
         <div class="why">
           <span class="wt">为什么它是一个独立服务</span>
           ① <b>它是"有状态"的</b>：WebSocket 连接绑在某台机器上，扩容方式、发布方式都跟普通 HTTP 服务不一样（要优雅关闭、考虑连接迁移），混在别的服务里会互相牵制；
-          ② <b>写入量最大</b>：按单客户日均 6 万条消息，一个月 180 万行，消息表和别的业务表根本不是同一个量级，独立出去才好做分表、归档、单独调优；
+          ② <b>写入量最大</b>：按单客户日均 4 万条消息，一个月 120 万行，消息表和别的业务表根本不是同一个量级，独立出去才好做分表、归档、单独调优；
           ③ <b>实时性要求最高</b>：聊天要秒回，不能被"顺手也放在这个服务里"的报表、AI 代码拖慢 —— 这是拆它最直接的理由。
         </div>
       </div>
@@ -1594,9 +1592,9 @@ List&lt;Chunk&gt; chunks = knowledgeClient.search(<span class="k">new</span> Sea
             <div class="slot">空</div><div class="slot">空</div>
           </div>
           <div class="legend">
-            <span><i style="background:var(--ic-187cd9)"></i>AI 请求（每个占 2~4 秒）</span>
-            <span><i style="background:var(--ic-187cd9)"></i>报表请求（每个跑数秒）</span>
-            <span><i style="background:var(--ic-187cd9)"></i>会话请求（本该秒回）</span>
+            <span><i style="background:var(--ic-411a57)"></i>AI 请求（每个占 2~4 秒）</span>
+            <span><i style="background:var(--ic-48e413)"></i>报表请求（每个跑数秒）</span>
+            <span><i style="background:var(--ic-411a57)"></i>会话请求（本该秒回）</span>
           </div>
           <div class="queue">
             <div class="q"><span style="flex:0 0 120px">顾客消息延迟</span><span class="bar"><i class="rd" style="width:86%"></i></span><span>800ms（示意）</span></div>
@@ -1647,7 +1645,7 @@ List&lt;Chunk&gt; chunks = knowledgeClient.search(<span class="k">new</span> Sea
 
     <div class="card">
       <h3>面试时的标准说法（三句话讲完）</h3>
-      <div class="say" style="border-left:3px solid var(--green); background:var(--ic-187cd9); padding:9px 13px; border-radius:0 8px 8px 0">
+      <div class="say" style="border-left:3px solid var(--green); background:var(--ic-6fd419); padding:9px 13px; border-radius:0 8px 8px 0">
         "我们拆分的核心理由是<b>三类负载的特性完全不同</b>：AI 问答是单次 2~4 秒的长耗时网络等待，报表是扫大量历史数据的重查询，会话是要求毫秒级的实时高并发。
         放在一个进程里，它们会共用同一个线程池和数据库连接池，AI 把线程等满、报表把连接占满，最需要快的会话反而被拖到几百毫秒甚至超时。
         所以按<b>负载特征 + 数据边界 + 变更频率</b>拆成了 7 个服务，各自独立扩容、独立降级。"

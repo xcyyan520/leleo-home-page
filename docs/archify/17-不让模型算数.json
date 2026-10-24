@@ -1,0 +1,84 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "云联 · 铁律：绝不让 LLM 算数",
+    "subtitle": "数字在服务层算完、口径定死，模型只负责措辞和归因",
+    "locale": "zh-CN",
+    "visual_preset": "signal-flow",
+    "quality_profile": "showcase",
+    "output": ".archify/workflow-no-llm-math-20261024/no-llm-math.html"
+  },
+  "lanes": [
+    {
+      "id": "main",
+      "label": "算数（确定性代码） → 措辞（模型）"
+    }
+  ],
+  "mainPath": [
+    "m1",
+    "m2",
+    "m3"
+  ],
+  "nodes": [
+    {
+      "id": "m1",
+      "lane": "main",
+      "col": 0,
+      "type": "backend",
+      "label": "report-service 出结构化 JSON",
+      "sublabel": "数字已算好、口径已定型",
+      "width": 196
+    },
+    {
+      "id": "m2",
+      "lane": "main",
+      "col": 1,
+      "type": "cloud",
+      "label": "当「资料」塞进 Prompt",
+      "sublabel": "和 RAG 片段同一条路",
+      "width": 178
+    },
+    {
+      "id": "m3",
+      "lane": "main",
+      "col": 2,
+      "type": "backend",
+      "label": "模型只做措辞和归因",
+      "sublabel": "不做加减乘除",
+      "width": 178
+    }
+  ],
+  "edges": [
+    {
+      "id": "e1",
+      "from": "m1",
+      "to": "m2",
+      "label": ""
+    },
+    {
+      "id": "e2",
+      "from": "m2",
+      "to": "m3",
+      "label": ""
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "两个理由，缺一不可",
+      "items": [
+        "准确率：模型对三位以上数字的加减乘除会错，而且错得不稳定、不可复现",
+        "可解释：口径写在 SQL 里，被问「这个数怎么来的」能直接指出那一行"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "追问预案",
+      "items": [
+        "「那模型还要它干嘛」→ 措辞、归因、把 20 个指标翻译成一句人话",
+        "「怎么防止它自己算」→ Prompt 里明确禁止 + 只给已定型的数字 + 输出里不出现算术符号"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,137 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "云联 · 识图不是第三路召回，是召回的输入预处理",
+    "subtitle": "图片先被抽成结构化实体，再喂给意图路由——检索仍然是两路（向量 + BM25）",
+    "locale": "zh-CN",
+    "visual_preset": "signal-flow",
+    "quality_profile": "showcase",
+    "output": ".archify/workflow-vision-route-20261024/vision-route.html"
+  },
+  "lanes": [
+    {
+      "id": "main",
+      "label": "识图 → 实体回填 → 路由"
+    },
+    {
+      "id": "bar",
+      "label": "路由之后才分叉"
+    }
+  ],
+  "mainPath": [
+    "m1",
+    "m2",
+    "m3",
+    "m4",
+    "m5"
+  ],
+  "nodes": [
+    {
+      "id": "m1",
+      "lane": "main",
+      "col": 0,
+      "type": "external",
+      "label": "顾客发图",
+      "sublabel": "「这个能退吗」+ 一张图",
+      "width": 118
+    },
+    {
+      "id": "m2",
+      "lane": "main",
+      "col": 1,
+      "type": "cloud",
+      "label": "【识图】异步抽实体",
+      "sublabel": "order_no / error_code / 破损部位",
+      "width": 186
+    },
+    {
+      "id": "m3",
+      "lane": "main",
+      "col": 2,
+      "type": "database",
+      "label": "【会话实体表】",
+      "sublabel": "order_no = SF123…",
+      "width": 150
+    },
+    {
+      "id": "m4",
+      "lane": "main",
+      "col": 3,
+      "type": "backend",
+      "label": "【意图路由】",
+      "sublabel": "判定为「售后-退货」",
+      "width": 140
+    },
+    {
+      "id": "m5",
+      "lane": "main",
+      "col": 4,
+      "type": "backend",
+      "label": "RAG 分支",
+      "sublabel": "★还是两路召回，但 Query 被改写",
+      "width": 172
+    },
+    {
+      "id": "m6",
+      "lane": "bar",
+      "col": 4,
+      "type": "backend",
+      "label": "Tool Calling",
+      "sublabel": "queryOrder(SF123) 查这单真实状态",
+      "width": 190
+    }
+  ],
+  "edges": [
+    {
+      "id": "e1",
+      "from": "m1",
+      "to": "m2",
+      "label": ""
+    },
+    {
+      "id": "e2",
+      "from": "m2",
+      "to": "m3",
+      "label": "3~8 秒，不阻塞"
+    },
+    {
+      "id": "e3",
+      "from": "m3",
+      "to": "m4",
+      "label": "回填"
+    },
+    {
+      "id": "e4",
+      "from": "m4",
+      "to": "m5",
+      "label": "知识类"
+    },
+    {
+      "id": "e5",
+      "from": "m4",
+      "to": "m6",
+      "label": "实时类",
+      "role": "branch",
+      "variant": "dashed"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "识图改变的是 Query，不是召回路数",
+      "items": [
+        "★最容易讲错的一句：识图让 Query 从「这个能退吗」变成「退货政策 + 商品类目」",
+        "召回依然是向量 + BM25 两路，识图只是把指代换成了实体"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "3~8 秒必须异步",
+      "items": [
+        "同步做会把主链路从 1 秒级拖到 10 秒级",
+        "异步期间先回一句「正在看图片」，抽完回填再接续推理"
+      ]
+    }
+  ]
+}

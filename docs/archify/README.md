@@ -32,3 +32,20 @@ node "$skill\bin\archify.mjs" finalize workflow docs/archify/1-核心业务流�
 3. **能自动排的别手动指定。** `route` 预设、`fromSide`/`toSide` 与求解器算出的几何冲突时，报错信息会直接给出可用坐标（如 `Suggested fix: set labelAt [208, 201]`）—— 照着填，别猜。
 
 另外：`lifecycle` 类型强制"阶段轨"模型（lane id 必须是 `main`/`terminal`），**有环的图（如 LangGraph StateGraph）用 `architecture` 画**，否则会反复报 `clean-flow/edge-through-node`。
+
+## 2026-10-24 增补（10 → 17 张）
+
+| # | 文件 | 标题 | 来源 |
+|---|---|---|---|
+| 10 | 10-主链路与三出口.json | 云联 · 单轮问答主链路与三条出口 | 用户提供（step_2\.archify） |
+| 11 | 11-知识文档图片归属.json | 知识文档入库：图片占位标记与切分归属 | 用户提供 |
+| 12 | 12-数据大屏与SLA豁免.json | 云联 · 数据大屏与 SLA 熔断豁免闭环 | 用户提供 |
+| 13 | 13-端到端主链路.json | 云联客服工单平台 · 端到端主链路 | 用户提供，**卡片的规模数字已从 10 次/秒、3000 会话、32 张表 改为 20 次/秒、5000 会话、35 张表** |
+| 14 | 14-消息幂等.json | 消息幂等（client_msg_id） | 本次新写 |
+| 15 | 15-识图与路由.json | 识图改变的是 Query，不是召回路数 | 本次新写 |
+| 16 | 16-发布与索引.json | 发布与索引是两件事 | 本次新写 |
+| 17 | 17-不让模型算数.json | 绝不让 LLM 算数 | 本次新写 |
+
+嵌入方式改为 **内嵌 inline SVG**（不再跳转独立页）：project02-sync 技能的 scripts/diagrams.mjs
+把每张图的 <svg> 连同按 .archify-embed 作用域收敛过的查看器样式一起插进章节正文。
+约束不变：iewBox ≤1085×696（宽度受桌面阅读预算、高度受视口预算限制）。
