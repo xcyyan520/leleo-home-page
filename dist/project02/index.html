@@ -912,6 +912,84 @@ html[data-theme="light"] ::-webkit-scrollbar-track{background:#f2ede3 !important
 html[data-theme="light"] ::-webkit-scrollbar-thumb{background:#d8cfbe !important}
 html[data-theme="light"] ::selection{background:rgba(107,87,136,.2) !important;color:#241f2e !important}
 </style>
+<style id="sd-wide">
+/* ---- 版式：整个文本框加宽，正文保持可读行宽，宽块破格 ---- */
+.wrap{max-width:1100px !important}
+
+@media (min-width:768px){
+  /* 15.5px 下 1100px 一行约 70 个中文字，来回扫行很累。
+     所以容器放宽（宽块用得上），正文另设 840px 的行宽并居中。 */
+  .cbody > p,.cbody > ul,.cbody > ol,.cbody > blockquote,
+  .cbody > h2.part,.cbody > h3.sec,.cbody > h4.sub,.cbody > h5.sub2,
+  .cbody > .note,.cbody > .intro,.cbody > .check,.cbody > .tip,
+  .cbody > details.stage{max-width:840px;margin-left:auto;margin-right:auto}
+
+  /* 表格与图：吃满整栏 —— 「核心七条」那张 5 列表格高 1471px，宽度是它唯一的解法 */
+  .cbody > .tblwrap,.cbody > .tbl-wrap,.cbody > figure.archify-embed{max-width:none}
+}
+
+/* 长步骤列表（≥8 项）在宽屏分两栏，把左右空着的宽度用上。
+   只处理 ul：ol 有顺序，分栏会读错顺序。 */
+@media (min-width:1200px){
+  .cbody > ul:has(> li:nth-child(8)){
+    columns:2;column-gap:48px;max-width:1100px;
+  }
+  .cbody > ul:has(> li:nth-child(8)) > li{break-inside:avoid;margin-top:0}
+}
+
+/* ---- 表格 ---- */
+/* 页头是 sticky 且高 98px，表头必须停在它下面，否则滚到表格中段时列名
+   会滑到页头底下看不见。★只设 top 没用：.tblwrap 的 overflow-x:auto 让它
+   成了滚动容器，sticky 变成相对这个容器定位，表头照旧被滚走
+   （实测 cssTop=98px 但 thTop=62）。所以桌面端把滚动容器关掉——宽度
+   放开后本来也没有横向溢出（实测 0 张表溢出、docW 不变）。 */
+@media (min-width:768px){
+  .tblwrap,.tbl-wrap{overflow:visible !important}
+  .tblwrap th,.tbl-wrap th{top:98px !important}
+}
+.tblwrap,.tbl-wrap{
+  --wide:min(1400px, max(100%, calc(100vw - 40px)));
+  width:var(--wide) !important;
+  margin-left:calc((100% - var(--wide)) / 2) !important;
+}
+.tblwrap table,.tbl-wrap table{min-width:0 !important}
+.tblwrap th,.tblwrap td,.tbl-wrap th,.tbl-wrap td{padding:8px 11px !important;line-height:1.6 !important}
+.tblwrap thead th,.tbl-wrap thead th{font-size:13px !important;letter-spacing:.02em}
+/* 序号列窄且不换行 */
+.tblwrap td:first-child,.tblwrap th:first-child,
+.tbl-wrap td:first-child,.tbl-wrap th:first-child{width:2.6em;white-space:nowrap;text-align:center}
+/* 5 列表格：首尾两列收窄，把宽度让给中间两列。
+   ★用 min-width 而不是固定 width：手机上表格只有 560px 时，百分比会把
+   「亮点」压到 62px，中文标题被折成一行两三个字（竖条一样）。
+   给下限、让浏览器自己分配。 */
+.tblwrap table:has(thead th:nth-child(5)) td:nth-child(2),
+.tblwrap table:has(thead th:nth-child(5)) th:nth-child(2),
+.tbl-wrap table:has(thead th:nth-child(5)) td:nth-child(2),
+.tbl-wrap table:has(thead th:nth-child(5)) th:nth-child(2){width:auto;min-width:104px}
+.tblwrap table:has(thead th:nth-child(5)) td:nth-child(5),
+.tblwrap table:has(thead th:nth-child(5)) th:nth-child(5),
+.tbl-wrap table:has(thead th:nth-child(5)) td:nth-child(5),
+.tbl-wrap table:has(thead th:nth-child(5)) th:nth-child(5){width:auto;min-width:92px}
+/* 表格变宽之后更需要对齐行，悬停给一条底纹 */
+.tblwrap tbody tr:hover td,.tbl-wrap tbody tr:hover td{background:rgba(139,122,170,.055) !important}
+/* 中文长句断行更自然，避免末行孤字 */
+.tblwrap td,.tblwrap th,.tbl-wrap td,.tbl-wrap th{text-wrap:pretty;word-break:break-word}
+
+@media (max-width:767px){
+  .wrap{max-width:100% !important}
+  /* 手机上不要挤压：恢复横向滚动，否则 5 列表格会变成一条 2800px 的竖线 */
+  .tblwrap,.tbl-wrap{--wide:100%}
+  .tblwrap table,.tbl-wrap table{min-width:640px !important}
+  .tblwrap th,.tblwrap td,.tbl-wrap th,.tbl-wrap td{padding:7px 9px !important;font-size:12.5px}
+  /* 表格要能看出「右边还有内容」——否则读者以为被裁掉了 */
+  .tblwrap,.tbl-wrap{
+    background-image:linear-gradient(to left, rgba(139,122,170,.16), rgba(139,122,170,0));
+    background-repeat:no-repeat;
+    background-size:28px 100%;
+    background-position:right center;
+  }
+}
+</style>
 </head>
 <body>
 
