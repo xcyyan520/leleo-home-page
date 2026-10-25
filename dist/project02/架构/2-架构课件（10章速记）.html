@@ -1514,8 +1514,8 @@ html .varrow .tag{left:50%;transform:translateX(-50%);max-width:86vw;white-space
 
 <!-- ================= 6 数据库表 ================= -->
 <section id="s6">
-  <div class="sec-head"><div class="sec-no">06</div><h2>数据库表总览（约 35 张，6 大类）</h2></div>
-  <p class="sec-sub">6 + 7 + 8 + 4 + 8 + 2 = 35 张（工单 8 张含 ticket_escalation 和 sla_exemption；AI 8 张含 ai_vision_result / ai_prompt / ai_model_price；报表与看板 2 张汇总表）。AI 那 8 张是最容易被追问的，重点看。</p>
+  <div class="sec-head"><div class="sec-no">06</div><h2>数据库表总览（约 36 张，6 大类）</h2></div>
+  <p class="sec-sub">6 + 7 + 9 + 4 + 8 + 2 = 36 张（工单 9 张含 ticket_escalation、sla_exemption 和 event_outbox；AI 8 张含 ai_vision_result / ai_prompt / ai_model_price；报表与看板 2 张汇总表）。AI 那 8 张是最容易被追问的，重点看。</p>
 
   <div class="card">
     <h4><span class="badge cy">6 张</span> 客户与权限</h4>
@@ -1826,7 +1826,7 @@ html .varrow .tag{left:50%;transform:translateX(-50%);max-width:86vw;white-space
   <div class="card">
     <div class="numwall">
       <div class="chip">微服务 <b>7</b> 个</div>
-      <div class="chip">表 <b>约 35</b> 张（6+7+8+4+8+2）</div>
+      <div class="chip">表 <b>约 36</b> 张（6+7+9+4+8+2）</div>
       <div class="chip">客户 <b>3</b> 家（1 连锁零售 + 2 电商）</div>
       <div class="chip">公司 <b>40</b> 多人</div>
       <div class="chip">日均会话 <b>5000</b>（最大单客户）</div>
@@ -1933,7 +1933,7 @@ html .varrow .tag{left:50%;transform:translateX(-50%);max-width:86vw;white-space
       每次流转写一条 <code>ticket_flow_log</code>，并且和 <b class="hl">SLA 计时 / paused_at + paused_total 暂停计时 / 超时升级</b>强联动。<br><br>
       用 Flowable 的代价：<br>
       · <span class="bad">引入 BPMN 建模、流程定义部署、各类 Activator / Listener</span>，团队学习成本高；<br>
-      · <span class="bad">多出一整套引擎表（ACT_* 几十张）</span>，和"约 35 张表"的口径也对不上；<br>
+      · <span class="bad">多出一整套引擎表（ACT_* 几十张）</span>，和"约 36 张表"的口径也对不上；<br>
       · <span class="bad">SLA 这种跟业务状态强耦合的计时逻辑</span>，写在引擎监听器里反而比写在状态机里更难维护、更难排查。<br><br>
       所以最终选了<b class="hl">"自定义状态机 + 模板配置 + 流转日志"</b>的轻量方案：
       状态枚举清晰、流转日志可追溯、SLA 计算和状态切换在同一个事务里，出问题看 <code>ticket_flow_log</code> 一眼定位。<br><br>
