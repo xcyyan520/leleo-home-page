@@ -4,6 +4,8 @@
 // any path segment starting with "_" from routing, so this module is importable
 // but never exposed as an endpoint.
 
+import { SESSION_COOKIE, verifySessionTri } from './session.js'
+
 export const VISITOR_COOKIE = 'visitor-id'
 export const VISITOR_COOKIE_MAX_AGE = 60 * 60 * 24 * 365
 export const MAX_NAME = 24
@@ -13,19 +15,37 @@ export const MAX_NOTE = 60
 // audience.
 export const MAX_VISITORS = 2000
 
-export async function hashPassword(password) {
-  const encoder = new TextEncoder()
-  const data = encoder.encode(password + 'thoughts-salt-2026')
-  const hash = await crypto.subtle.digest('SHA-256', data)
-  return btoa(String.fromCharCode(...new Uint8Array(hash)))
-}
-
-// Returns the owner's auth token when the request carries a valid one.
+// Returns the owner's session token when the request carries a valid one.
+//
+// This used to compare the cookie against hashPassword(env.THOUGHTS_PASSWORD),
+// which made the cookie value a password-derived value — see the header of
+// functions/_lib/session.js for what that let an attacker do. Now the cookie is
+// an opaque token and validity is a row lookup.
+//
+// The no-cookie path returns before touching D1. This function runs on EVERY
+// front-page request (the visitor gate asks whether the caller is the owner),
+// and a guest carries no session to look up. A Worker on the Free plan gets
+// 10 ms of CPU per request, so one wasted query here would be paid by every
+// visitor forever.
 export async function ownerToken(request, env) {
   if (!env.THOUGHTS_PASSWORD) return null
-  const value = readCookie(request, 'thoughts-auth')
+  const value = readCookie(request, SESSION_COOKIE)
   if (!value) return null
-  return value === (await hashPassword(env.THOUGHTS_PASSWORD)) ? value : null
+  return (await verifySessionTri(env.DB, env.THOUGHTS_PASSWORD, value)) ? value : null
+}
+
+// Like ownerToken, but distinguishes "not the owner" from "could not check".
+//
+// The visitor gate must fail OPEN: if D1 is unreachable, a guest redirected to a
+// name form she also cannot submit is a worse outcome than a visit that goes
+// unrecorded — and the owner would be locked out of her own front page. Every
+// endpoint that guards a WRITE uses plain ownerToken, which fails closed.
+export async function ownerState(request, env) {
+  if (!env.THOUGHTS_PASSWORD) return true
+  const value = readCookie(request, SESSION_COOKIE)
+  if (!value) return false
+  const tri = await verifySessionTri(env.DB, env.THOUGHTS_PASSWORD, value)
+  return tri === null ? true : tri
 }
 
 export function readCookie(request, name) {

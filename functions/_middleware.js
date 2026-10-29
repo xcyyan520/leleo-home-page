@@ -1,4 +1,4 @@
-import { hashPassword, ownerToken, readCookie, VISITOR_COOKIE } from './_lib/visitor.js'
+import { ownerToken, ownerState, readCookie, VISITOR_COOKIE } from './_lib/visitor.js'
 
 function getLoginPage(error, next) {
   const msg = error ? `<p class="err">${error}</p>` : ''
@@ -91,9 +91,17 @@ async function submitAuth(e) {
     if (res.ok) { location.href = ${target}; return }
     btn.textContent = '进入'
     btn.disabled = false
+    // 429 means the password may well be right — retrying a dozen more times
+    // cannot succeed and only extends the window. Say so.
     const err = document.createElement('p')
     err.className = 'err'
-    err.textContent = '密码不对'
+    let msg = '密码不对'
+    if (res.status === 429) {
+      const data = await res.json().catch(() => ({}))
+      const mins = Math.max(1, Math.round((data.retryAfter || 600) / 60))
+      msg = '试太多次了，' + mins + ' 分钟后再来'
+    }
+    err.textContent = msg
     e.target.parentElement.before(err)
   } catch {
     btn.textContent = '进入'
@@ -123,8 +131,10 @@ export async function onRequest(context) {
     const isBot = /bot|crawler|spider|preview|facebookexternalhit|TelegramBot|WhatsApp|Slackbot|Twitterbot|Discordbot|Googlebot|bingbot|Baiduspider|YisouSpider|Sogou/i.test(ua)
     // Anything unexpected here must fail OPEN: a guest who cannot reach the
     // front page is a worse outcome than a visit that goes unrecorded.
+    // ownerState folds the D1-unreachable case into "treat as the owner", so
+    // this try is a last-resort belt on top of an already-safe call.
     let isOwner = false
-    try { isOwner = !!(await ownerToken(request, env)) } catch { isOwner = true }
+    try { isOwner = await ownerState(request, env) } catch { isOwner = true }
     if (wantsHtml && !isBot && !isOwner && !readCookie(request, VISITOR_COOKIE)) {
       // `/welcome`, not `/welcome.html`: Pages 308s the .html form, and a
       // redirect into a redirect shows up as a flash on slow connections.
