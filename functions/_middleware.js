@@ -159,14 +159,21 @@ export async function onRequest(context) {
   //
   // So: decode, collapse, lowercase, and only then decide. This key is used for
   // MATCHING only; url.pathname is still what gets forwarded.
-  let path
-  try {
-    path = decodeURIComponent(url.pathname).replace(/\/{2,}/g, '/').toLowerCase()
-  } catch {
-    // Malformed percent-encoding. Anything that cannot be normalised cannot be
-    // proven not to be a gated path, so treat it the same way.
-    path = url.pathname.replace(/\/{2,}/g, '/').toLowerCase()
+  let path = url.pathname
+  for (let i = 0; i < 3; i++) {
+    let next
+    try {
+      next = decodeURIComponent(path)
+    } catch {
+      // Malformed percent-encoding. Anything that cannot be normalised cannot
+      // be proven not to be a gated path, so stop decoding and let the prefix
+      // test below see the raw form.
+      break
+    }
+    if (next === path) break
+    path = next
   }
+  path = path.replace(/\/{2,}/g, '/').toLowerCase()
   const needsAuth = path.startsWith('/thoughts') || path.startsWith('/api/bubbles') || path.startsWith('/api/diary') || path.startsWith('/api/activity') || path.startsWith('/visitors')
   if (!needsAuth) return next()
 
