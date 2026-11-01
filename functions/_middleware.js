@@ -144,11 +144,34 @@ export async function onRequest(context) {
   }
 
   // Protect thoughts + bubble API + the owner's visitor history
-  const needsAuth = url.pathname.startsWith('/thoughts') || url.pathname.startsWith('/api/bubbles') || url.pathname.startsWith('/api/diary') || url.pathname.startsWith('/api/activity') || url.pathname.startsWith('/visitors')
+  //
+  // The pathname is NORMALISED before the prefix test, because a prefix test is
+  // only as strong as the string it is handed. Three variants each served the
+  // private diary in full, anonymously, from production:
+  //
+  //   //thoughts/chaos.txt      duplicate slashes - new URL() does not collapse
+  //                            them, so every startsWith() below said false and
+  //                            the request fell through to the static handler
+  //   /THOUGHTS/chaos.txt      case - startsWith() is case-sensitive, the asset
+  //                            server is not
+  //   /%74houghts/chaos.txt    percent-encoding - decoded only by the asset
+  //                            server, long after this test has run
+  //
+  // So: decode, collapse, lowercase, and only then decide. This key is used for
+  // MATCHING only; url.pathname is still what gets forwarded.
+  let path
+  try {
+    path = decodeURIComponent(url.pathname).replace(/\/{2,}/g, '/').toLowerCase()
+  } catch {
+    // Malformed percent-encoding. Anything that cannot be normalised cannot be
+    // proven not to be a gated path, so treat it the same way.
+    path = url.pathname.replace(/\/{2,}/g, '/').toLowerCase()
+  }
+  const needsAuth = path.startsWith('/thoughts') || path.startsWith('/api/bubbles') || path.startsWith('/api/diary') || path.startsWith('/api/activity') || path.startsWith('/visitors')
   if (!needsAuth) return next()
 
   // Let auth API through
-  if (url.pathname === '/api/auth') {
+  if (path === '/api/auth') {
     return next()
   }
 
